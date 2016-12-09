@@ -1,0 +1,43 @@
+plot$nrPerGrp <- factor(plot$nrPerGrp, levels=c(seq(100, 10, -10), 5, 2))
+tail(plot)
+data <- plot
+libary(ggplot)
+library(ggplot2)
+library(ggthemes)
+ggplot(data, aes(x=nrPerGrp, y=percentFoundConnections, fill=cells))+#
+    geom_boxplot()+#
+    theme_few()+#
+    scale_fill_economist()+#
+    labs(#
+        x="Points per cell type",#
+        y="% connections detected",#
+        title="Group Size Test"#
+        )+#
+        theme(#
+            legend.position="top",#
+            legend.title=element_text(size=15),#
+            legend.text=element_text(size=15),#
+            axis.title=element_text(size=17),#
+            axis.text=element_text(size=15),#
+            plot.title=element_text(#
+                hjust=0.5,#
+                family="Arial",#
+                face="bold",#
+                size=24,#
+                margin=margin(b=15)#
+            )#
+        )+#
+        guides(#
+            fill=guide_legend(#
+                title="Cells in multuplet",#
+                title.position = "top",#
+                title.hjust =0.5#
+            )#
+        )
+l<- lapply(#
+        sObj,#
+        function(i)#
+                getData(i, "codedSwarm")#
+    )
+l[[1]]
+l

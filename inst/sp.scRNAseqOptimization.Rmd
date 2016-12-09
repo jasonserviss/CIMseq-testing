@@ -1,0 +1,440 @@
+---
+title: "Interaction maps from incompletely dissociated primary tissue"
+author: "Jason T. Serviss and Martin F. Enge"
+date: "30 August 2016"
+output:
+  html_document:
+    highlight: pygments
+    theme: readable
+    code_folding: hide
+---
+
+```{r setup, echo=FALSE, message=FALSE}
+library(knitr)
+library(printr)
+library(ggplot2)
+library(ggthemes)
+library(ggplot2Themes)
+library(reshape2)
+library(viridis)
+
+##the function below allows dynamic insertion of the function source code 
+insert_fun = function(name) {
+  read_chunk(lines = capture.output(dump(name, '')), labels = paste(name, 'source', sep = '-'))
+}
+```
+
+<style>
+  .col2 {
+    columns: 2 200px;         /* number of columns and width in pixels*/
+    -webkit-columns: 2 200px; /* chrome, safari */
+    -moz-columns: 2 200px;    /* firefox */
+  }
+  .caption {
+      color: FireBrick;
+      font-weight: bold;
+      font-size: 1.0em;
+    } 
+</style>
+
+
+## Introduction
+Advances in single-cell biology has enabled us to investigate isolated single cells at an
+unprecedented resolution. Current methods can measure subtle changes in cell state, revealing
+specialized minor subpopulations within a cell type. However, functional characterization of such
+subpopulations is still challenging. A promising approach to untangling functional
+characterization is spatial transcriptomics, where genomewide measurements of gene
+expression are enriched with spatial attributes. Such approaches allow us to determine the
+relative positions of cell subpopulations. Unfortunately, current spatial transcriptomic
+approaches suffer either from problems with sensitivity, are limited to a restricted panel of
+genes, or the spatial attributes are of low resolution.
+<br></br>
+In order to deconvolute the cell connectome, we sort multiplets of incompletely dissociated cells
+along with single cells from the same sample. The single cells provide a set of blueprints of
+possible subcell types, and subsequently we use swarm optimization approaches to infer the
+composition of multiplets. Using this method we can measure the composition of a very large
+number of multiplets onto a lattice consisting of subcell types of arbitrary complexity.
+<br></br>
+
+## Package summary
+
+To accomplish these end-points an software package based on the R programming language 
+has been deveolped named "**_sp_**atial **_s_**ingle **_c_**ell **_RNA seq_**" 
+or **sp.scRNAseq**. The package works in 3 seperate stages which are described below:
+
+1. A spCounts object is made by providing singlet and multuplet exprssion data.
+2. The number of cell types present in the tissue is determined by running tSNE on the singlet expression profiles.
+3. Swarm optimization is then used to deconvolute the multuplets, providing a map of cell-cell interactions.
+
+Below we will demonstrate the sp.scRNAseq packages functionality and, in parallel,
+describe and show results from the testing of the package on *in silico* and biological data.
+
+## Synthetic data testing of multuplet deconvolution using swarm optimization
+
+To begin we use *in silico* data to evaluate if swarm optimization can be used as a deconvolution method for scRNAseq multuplets. We utilize random data generated from the negative binominal distribution to simulate scRNAseq singlets (single cells) with the [.syntheticSinglets][] function. This function generates a data set of 100 singlet expression profiles with 2000 genes each and 10 different cell types. These cell types were combined into multuplets consisting of 2, 3, or 4 cells using the [.syntheticMultuplets][] function. This dataset was then used used for testing the deconvolution process. 
+
+```{r spscRNAseqTesting, message=FALSE}
+#load spatial scRNAseq testing package
+library(sp.scRNAseqTesting)
+```
+
+### Singlets tSNE
+
+After the data was generated, tSNE was run to view the clusering of the singlets and classify them into cell types. The results from the tSNE, plotted below, indicate that each cell clusters well within it's cell type and that no overlap exists between groups of cell types. This represents the "ideal" situation and gives us a easy starting point to understand if swarm optimization may be an appropriate method to use even with less "well behaved" datasets.
+
+```{r syntheticCountsLoad}
+#load synthetic data
+data(syntheticData)
+
+#make spCounts object
+cObj <- spCounts(counts = syntheticData, counts.ercc=matrix(), sampleType = "m.")
+```
+<br></br>
+```{r syntheticUnsupervisedRun, eval=FALSE}
+#run unsupervised learning
+uObj <- spUnsupervised(cObj, max=1000, max_iter = 1000)
+```
+<br></br>
+```{r syntheticUnsupervisedLoad, echo=FALSE}
+uObj <- syntheticDataUnsupervised
+```
+<br></br>
+```{r syntheticUnsupervisedPlot, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot unsupervised results
+spPlot(uObj, type = "clusters")
+```
+
+<p class="caption" style="text-align:center">Figure 1. Unsupervised clustering of synthetic data singlets.</p>
+
+<br></br>
+In the next, step swarm optimization was then evaluated as a method to deconvolute the multuplets, thus producing a cell-cell interaction map or "connectome". To test this we generated multuplets based on the results of the post-tSNE classifications of the singlets. For example, to generate a multuplet representing the A1 and B1 group, one cell was picked from each group and the mean for each gene was calculated. Within the synthetic dataset multuplets were generated for all possible combinations of singlets using 2, 3, or 4 cells resulting in a total of 385 multuplets. We then picked 15 of these multuplets according to a specific number of connections desired between cell types (see table below). The swarm optimization was then tested using the spSwarm function . Due to the fact that we know which singlets were used to produce each multuplet and, therefore, which connections we expect, we can then measure the accuracy of the swarm optimization output.
+
+### Results synthetic data
+
+```{r syntheticResultsRun, eval=FALSE}
+#run pySwarm
+result <- spSwarm(cObj, uObj, limit=10, maxiter=10, swarmsize=250, cores=5)
+```
+
+<br></br>
+
+```{r, syntheticExpectedConn}
+syntheticDataTable
+```
+
+<p class="caption" style="text-align:center">Table 1. Expected connections in the synthetic multuplets.</p>
+
+```{r syntheticResultsLoad, echo=FALSE}
+result <- syntheticDataSwarm
+```
+
+Below we can see the network plot of the resulting connections detected after multuplet deconvloution. The singlets are clustered according to the previous tSNE results (small dots), the mean for each singlet classification group is represented by the large dots, and the detected interactions between groups (lines), and the number of interactions detected, or edge weights, are represented in the line thickness. Close inspection reveils that the detected connections mirror the expected connections in the table above.
+
+```{r syntheticResultsPlot, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot results
+spPlot(result)
+```
+
+<p class="caption" style="text-align:center">Figure 2. Newtork graph of the deteced multuplets in the synthetic data.</p>
+
+To view the results in a easier manner, the heatmap below shows the real vs detected connections with the number of connections represented as the heatmap's cell colors. The fact that all of the connections lay on a diagnal through the plot indicates that the swarm optimization method had a 100% sucess rate. 
+
+```{r syntheticResultTable, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+tabels <- calculateConnections(getData(result, "codedSwarm"), type="codedSwarm")[[2]]
+real <- data.frame(tabels[,,'real'])
+detected <- data.frame(tabels[,,'detected'])
+d <- data.frame(
+    real = paste(
+        real[rep(1:nrow(real), real[["Freq"]]), ]$from, 
+        real[rep(1:nrow(real), real[["Freq"]]), ]$to, 
+        sep="-"
+    ),
+    detected = paste(
+        detected[rep(1:nrow(detected), detected[["Freq"]]), ]$from, 
+        detected[rep(1:nrow(detected), detected[["Freq"]]), ]$to, 
+        sep="-"
+    )
+)
+table <- as.data.frame(table(d))
+
+ggplot(table, aes(x=real, y=detected, fill=factor(Freq)))+
+    geom_tile(alpha=0.85)+
+    theme_few()+
+    scale_fill_manual(values = c("lightgrey", "#77B7E5", "#F2F7E8", "#F9BD7E", "#C0343E", "#450b18"))+
+    theme(
+        axis.text.x=element_text(angle=90),
+        legend.position="top"
+    )+
+    labs(
+        x="Real Connections", 
+        y="Detected Connections", 
+        fill="Number of Connections"
+    )
+```
+
+<p class="caption" style="text-align:center">Figure 3. Real vs deteced connections in the synthetic data multuplets.</p>
+
+## Expression data testing of multuplet deconvolution using swarm optimization
+
+### Expression data tSNE
+Next we wanted to test swarm optimization using a dataset more representative of real data. To this end we used 131 fetal pancreas single cells that had been scRNA sequenced for this purpose. Below we can see the tSNE results from these singlets indicating that 8 cell types can be identified.
+
+```{r testCountsLoad, eval=TRUE}
+#load test data
+data(expressionTestData)
+
+#make spCounts object
+cObj <- spCounts(counts = expressionTestData, counts.ercc=matrix(), sampleType = "m.")
+```
+<br></br>
+```{r testUnsupervisedRun, eval=FALSE}
+#run unsupervised learning
+uObj <- spUnsupervised(cObj, max=2500, max_iter=10^5)
+```
+<br></br>
+```{r testUnsupervisedLoad, echo=FALSE}
+uObj <- expressionTestUnsupervised
+```
+<br></br>
+```{r testUnsupervisedPlot, fig.align='center', fig.height=8, fig.width=10, eval=TRUE}
+#plot unsupervised results
+spPlot(uObj, type = "clusters")
+```
+
+<p class="caption" style="text-align:center">Figure 4. Unsupervised clustering of the expression data singlets.</p>
+
+### Expression data results
+Next we used the single cell data and combined single cells into multuplets of 2, 3, or 4 cells using the [assembleTestData][] function. This resulted in 162 multuplets from which we then picked 15 to provide a specific expected connectome and ran swarm optimization. We can again start by looking at the table showing the expected connectome and the resulting network plot.
+
+```{r testResultsRun, eval=FALSE}
+#run pySwarm
+result2 <- spSwarm(cObj, uObj, limit=10, maxiter=10, swarmsize=250, cores=5)
+```
+
+```{r testResultsLoad, echo=FALSE}
+result2 <- expressionTestSwarm
+```
+
+<br></br>
+
+```{r, testExpectedConn}
+expressionTestTable
+```
+
+<p class="caption" style="text-align:center">Table 2. Expected connections in the expression data multuplets</p>
+
+```{r testResultsPlot, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot results
+spPlot(result2)
+```
+
+<p class="caption" style="text-align:center">Figure 5. Network graph of the connections detected in the expression data multuplets.</p>
+
+Plotting the results in the heatmap format indicate that swarm optimization is, again, able to deconvolute the multuplets within this dataset with a 100% sucess rate.
+```{r testResultsTable, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+tabels <- calculateConnections(getData(result2, "codedSwarm"), type="codedSwarm")[[2]]
+real <- data.frame(tabels[,,'real'])
+detected <- data.frame(tabels[,,'detected'])
+d <- data.frame(
+    real = paste(
+        real[rep(1:nrow(real), real[["Freq"]]), ]$from, 
+        real[rep(1:nrow(real), real[["Freq"]]), ]$to, 
+        sep="-"
+    ),
+    detected = paste(
+        detected[rep(1:nrow(detected), detected[["Freq"]]), ]$from, 
+        detected[rep(1:nrow(detected), detected[["Freq"]]), ]$to, 
+        sep="-"
+    )
+)
+table <- as.data.frame(table(d))
+
+ggplot(table, aes(x=real, y=detected, fill=factor(Freq)))+
+    geom_tile(alpha=0.85)+
+    theme_few()+
+    scale_fill_manual(values = c("lightgrey", "#77B7E5", "#F2F7E8", "#F9BD7E", "#C0343E", "#450b18"))+
+    theme(
+        axis.text.x=element_text(angle=90),
+        legend.position="top"
+    )+
+    labs(
+        x="Real Connections", 
+        y="Detected Connections", 
+        fill="Number of Connections"
+    )
+```
+
+<p class="caption" style="text-align:center">Figure 6. Real vs detected connections in expression data multuplets.</p>
+
+## Experimental data testing of multuplet deconvolution using swarm optimization
+
+Next, we used the sp.scRNAseq package on experimental data where both singlets and multuplets from fetal pancreatic tissue were physically isolated, via FACS sorting, previous to scRNAseq. The dataset includes 131 singlets and 69 multuplets. 
+
+### Experimental data ercc
+
+scRNAseq was performed with ercc spike-ins where a constant amount of nonhuman control RNA is spiked into each well when the plate is prepared. In the plot below we can see the ercc spike-in levels for singlets and multuplets. Multiplets have on average ~30% the number of ERCC reads, indicating that each contain on average three cells. The fraction depends on various other things, such as the size of the cell and how much of the cell’s RNA that was successfully recovered. 
+
+```{r experimentalDataLoad}
+#load test data
+data(expData)
+
+#expData is already a spCounts object
+cObj <- expData
+```
+<br></br>
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE}
+spPlot(cObj, type="ercc")
+```
+
+<p class="caption" style="text-align:center">Figure 7. Fraction of ERCC spike-ins in experimental data.</p>
+
+### Experimental data markers {.tabset}
+
+Next, we wanted to examine known cell identity marker expression within the singlets and multuplets. We expected that, whereas the singlets should exclusivley express these markers, the multuplets would show examples where multiple markers are expressed. Although some markers appear to be more promiscuous than others, we see that many of the markers follow this pattern.
+
+#### INS THY1
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE}
+markers <- c("INS", "THY1")
+spPlot(cObj, type="markers", markers=markers)
+```
+
+#### INS GCG
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE}
+markers <- c("INS", "GCG")
+spPlot(cObj, type="markers", markers=markers)
+```
+
+#### FLT1 THY1
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE}
+markers <- c("FLT1", "THY1")
+spPlot(cObj, type="markers", markers=markers)
+```
+
+#### EPCAM THY1
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE}
+markers <- c("EPCAM", "THY1")
+spPlot(cObj, type="markers", markers=markers)
+```
+
+#### PROM1 THY1
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE}
+markers <- c("PROM1", "THY1")
+spPlot(cObj, type="markers", markers=markers)
+```
+
+#### PROM1 INS
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE}
+markers <- c("PROM1", "INS")
+spPlot(cObj, type="markers", markers=markers)
+```
+
+<p class="caption" style="text-align:center">Figure 8. Cellular marker expression in experimental data singlets and multuplets.</p>
+
+### Experimental data tSNE
+
+Next, we ran tSNE and plotted the results. This reveals the presence of 9 distinct cell types within the tissue.
+
+```{r experimentalUnsupervisedRun, eval=FALSE}
+#run unsupervised learning
+uObj <- spUnsupervised(cObj, max=2000, max_iter=20000)
+```
+<br></br>
+```{r experimentalUnsupervisedLoad, echo=FALSE}
+uObj <- experimentalDataUnsupervised
+```
+<br></br>
+```{r experimentalClustersPlot, fig.align='center', fig.height=8, fig.width=10, eval=TRUE}
+#plot unsupervised results; cluster plot
+spPlot(uObj, type="clusters")
+```
+
+<p class="caption" style="text-align:center">Figure 9. Unsupervised clustering of the experimental singlets.</p>
+
+To relate the resulting tSNE-based classifications to previously known cell identities we further plotted the tSNE results showing expression levels (log 2 normalized counts) of several well known cell surface markers. Note that the dot colors in the plot represent the expression levels.
+
+```{r experimentalMarkersPlot, fig.align='center', fig.height=15, fig.width=10, eval=TRUE}
+#plot unsupervised results; markers plot
+markers <- c("EPCAM", "THY1", "FLT1", "INS", "GCG", "NEUROG3", "PROM1", "SST", "PRSS1")
+spPlot(uObj, type="markers", markers=markers)
+```
+
+<p class="caption" style="text-align:center">Figure 10. Cellular marker expression in post-tSNE classification groups.</p>
+
+### Experimental data results
+
+Finally, we used the sp.scRNAseq package to analyze the cell-cell interactions within the multuplets. The results indicate the presence of a high number of interactions between cell types B1 and A1, as well as, B1 and D1. Examination of the markers plot indicates that this may represent a differation process as there is a inverse correlation between NEUROG3 and INS in these groups. Further connections can be viewed in the plot. 
+
+```{r experimentResultsRun, eval=FALSE}
+#run pySwarm
+result3 <- spSwarm(cObj, uObj, maxiter=10, swarmsize=250, cores=8)
+```
+<br></br>
+```{r experimentResultsLoad, echo=FALSE}
+result3 <- experimentalDataSwarm
+```
+<br></br>
+```{r experimentResultsPlot, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot results
+spPlot(result3)
+```
+
+<p class="caption" style="text-align:center">Figure 11. Network plot of experimental data multuplet connections.</p>
+
+## Conclusions
+
+
+## Functions {.tabset}
+
+```{r sourceLoad, echo=FALSE}
+insert_fun("syntheticDataTest")
+.syntheticTestData <- sp.scRNAseqTesting:::.syntheticTestData
+insert_fun(".syntheticTestData")
+.syntheticSinglets <- sp.scRNAseqTesting:::.syntheticSinglets
+insert_fun(".syntheticSinglets")
+.syntheticMultuplets <- sp.scRNAseqTesting:::.syntheticMultuplets
+insert_fun(".syntheticMultuplets")
+
+insert_fun("expressionDataTest")
+.expressionTestData <- sp.scRNAseqTesting:::.expressionTestData
+insert_fun(".expressionTestData")
+.assemble <- sp.scRNAseqTesting:::.assemble
+insert_fun(".assemble")
+
+insert_fun("experimentalDataTest")
+```
+
+### syntheticDataTest
+```{r syntheticDataTest-source}
+```
+
+#### .syntheticTestData
+(wraps .syntheticSinglets and .syntheticMultuplits into one function)
+```{r .syntheticTestData-source}
+```
+
+#### .syntheticSinglets
+```{r .syntheticSinglets-source}
+```
+
+#### .syntheticMultuplets
+```{r .syntheticMultuplets-source}
+```
+
+
+### expressionDataTest
+```{r expressionDataTest-source}
+```
+
+#### .expressionTestData
+```{r .expressionTestData-source}
+```
+
+#### .assemble
+```{r .assemble-source}
+```
+
+### experimentalDataTest
+```{r experimentalDataTest-source}
+```
+
+<br></br><br></br><br></br><br></br>
