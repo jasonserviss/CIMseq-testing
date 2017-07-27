@@ -28,4 +28,3 @@ expDataTest()
 Jason T. Serviss
 }
 \keyword{experimentalDataTest}
-

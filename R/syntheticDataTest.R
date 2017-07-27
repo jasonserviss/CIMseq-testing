@@ -13,6 +13,7 @@
 #' @param ngenes Number of genes in generated synthetic data.
 #' @param ncells Number of cells per cell type in generated synthetic data.
 #' @param cellTypes Number of cell types in generated synthetic data.
+#' @param distFun The distance function to use for swarm optimization.
 #' @param ... additional arguments to pass on
 #' @return Saves results in .rda file.
 #' @author Jason T. Serviss
@@ -28,7 +29,16 @@ NULL
 #' @export
 #' @import sp.scRNAseq
 
-syntheticDataTest <- function(outPath = 'data', cores = 5, n=15, ngenes=2000, ncells=100, cellTypes=10, ...) {
+syntheticDataTest <- function(
+    outPath = './data',
+    cores = 6,
+    n = 20,
+    ngenes = 2000,
+    ncells = 100,
+    cellTypes = 10,
+    distFun = bic,
+    ...
+){
     
     #create synthetic data
     tmp <- .syntheticTestData(n, ngenes, ncells, cellTypes)
@@ -38,46 +48,51 @@ syntheticDataTest <- function(outPath = 'data', cores = 5, n=15, ngenes=2000, nc
     syntheticDataTable <- tmp[[4]]
     
     #make spCounts object
-    syntheticDataCounts <- spCounts(syntheticDataTest, matrix(), sampleType = "m.")
-    
+    single <- grepl("^s", colnames(syntheticDataTest))
+    syntheticDataCountsSng <- spCounts(
+        syntheticDataTest[,single],
+        matrix(NA, ncol = length(single[single == TRUE]))
+    )
+    syntheticDataCountsMul <- spCounts(
+        syntheticDataTest[,!single],
+        matrix(NA, ncol = length(single[single == FALSE]))
+    )
+
     #run pySwarm
     syntheticDataSwarm <- spSwarm(
+        syntheticDataCountsMul,
         syntheticDataUnsupervised,
-        limit="none",
-        maxiter=10,
-        swarmsize=250,
-        cores=cores
+        maxiter = 1000,
+        swarmsize = 500,
+        cores = cores,
+        distFun = bic,
+        report = TRUE,
+        reportRate = 10
     )
     
     #save
     save(
         syntheticData,
-        file=paste(outPath, "syntheticData.rda", sep="/"),
-        compress="bzip2"
+        file = paste(outPath, "syntheticData.rda", sep = "/"),
+        compress = "bzip2"
     )
     save(
-        syntheticDataCounts,
-        file=paste(outPath, "syntheticDataCounts.rda", sep="/"),
-        compress="bzip2"
-    )
-    save(
+        syntheticDataTest,
         syntheticDataUnsupervised,
-        file=paste(outPath, "syntheticDataUnsupervised.rda", sep="/"),
-        compress="bzip2"
-    )
-    save(
         syntheticDataSwarm,
-        file=paste(outPath, "syntheticDataSwarm.rda", sep="/"),
-        compress="bzip2"
-    )
-    save(
         syntheticDataTable,
-        file=paste(outPath, "syntheticDataTable.rda", sep="/"),
-        compress="bzip2"
+        file = paste(outPath, "syntheticDataTest.rda", sep = "/"),
+        compress = "bzip2"
     )
 }
 
-.syntheticTestData <- function(n, ngenes, ncells, cellTypes, perplexity=10) {
+.syntheticTestData <- function(
+    n,
+    ngenes,
+    ncells,
+    cellTypes,
+    perplexity=10
+){
     tmp <- .syntheticMultuplets(ngenes, ncells, cellTypes, perplexity)
     singlets <- tmp[[1]]
     multuplets <- tmp[[2]]
@@ -85,7 +100,7 @@ syntheticDataTest <- function(outPath = 'data', cores = 5, n=15, ngenes=2000, nc
     
     #select multuplets for current test
     testMultuplets <- multuplets[ ,sample(1:ncol(multuplets), n, replace=FALSE)]
-    table <- calculateConnections(testMultuplets, type="multuplets")
+    table <- calculateConnections(testMultuplets, type = "multuplets")
     
     #name, bind, and return
     names <- c(
@@ -108,98 +123,171 @@ syntheticDataTest <- function(outPath = 'data', cores = 5, n=15, ngenes=2000, nc
     syntheticData <- as.matrix(syntheticData)
     
     #add new counts and sampleType to uObj
-    counts(uObj) <- testSyntheticData
-    counts.log(uObj) <- sp.scRNAseq:::.norm.log.counts(testSyntheticData)
-    sampleType(uObj) <- c(getData(uObj, "sampleType"), rep("Multuplet", n))
+    #counts(uObj) <- testSyntheticData
+    #counts.log(uObj) <- sp.scRNAseq:::.norm.log.counts(testSyntheticData)
+    #sampleType(uObj) <- c(getData(uObj, "sampleType"), rep("Multuplet", n))
     
     return(list(syntheticData, testSyntheticData, uObj, table))
 }
 
-.syntheticSinglets <- function(ngenes, ncells, cellTypes) {
+.syntheticSinglets <- function(
+    ngenes,
+    ncells,
+    cellTypes
+){
 
     for( i in 1:cellTypes) {
         set.seed(i)
         meanExprs <- 2^runif(ngenes, 0, 5)
-        counts <- matrix(rnbinom(ngenes*ncells, mu=meanExprs, size=i), nrow=ngenes)
+        counts <- matrix(
+            rnbinom(ngenes*ncells, mu=meanExprs, size=i),
+            nrow=ngenes
+        )
         if( i == 1 ) {
             singlets <- counts
         } else {
             singlets <- cbind(singlets, counts)
         }
     }
-    colnames(singlets) <- paste(sort(rep(letters, ncells))[1:(cellTypes*ncells)], 1:ncells, sep="")
+    colnames(singlets) <- paste(
+        sort(rep(letters, ncells))[1:(cellTypes*ncells)],
+        1:ncells,
+        sep = ""
+    )
     singlets <- as.data.frame(singlets)
     
     return(singlets)
 }
 
-.syntheticMultuplets <- function(ngenes, ncells, cellTypes, perplexity) {
+.syntheticMultuplets <- function(
+    ngenes,
+    ncells,
+    cellTypes,
+    perplexity
+){
     singlets <- .syntheticSinglets(ngenes, ncells, cellTypes)
-    cObj <- spCounts(as.matrix(singlets), counts.ercc=matrix(), sampleType="[A-Z]")
-    uObj <- spUnsupervised(cObj, max=ngenes, max_iter = 1000, perplexity=perplexity)
-    colnames(singlets) <- getData(uObj, "classification")
+    cObjSng <- spCounts(
+        as.matrix(singlets),
+        counts.ercc=matrix(rep(NA, ncol(singlets)), ncol=ncol(singlets))
+    )
+    uObj <- spUnsupervised(
+        cObjSng,
+        theta = 0,
+        k = 2,
+        max_iter = 2000,
+        perplexity = 10,
+        initial_dims = ncol(singlets),
+        Gmax = 50,
+        seed = 11,
+        type = "max"
+    )
     
+    colnames(singlets) <- getData(uObj, "classification")
     mean <- getData(uObj, "groupMeans")
     
-    #same cell type
-    combos <- t(matrix(rep(unique(colnames(singlets)), 2), ncol=2))
-    
-    for(y in 1:ncol(combos)) {
-        current <- combos[ ,y]
-        new <- data.frame(
-            rowMeans(
-                data.frame(
-                    mean[ , colnames(mean) %in% current[1]],
-                    mean[ , colnames(mean) %in% current[2]]
-                )
-            )
-        )
-        
-        if( y == 1 ) {
-            multuplets <- new
-            names <- paste(current, collapse="")
-        } else {
-            multuplets <- cbind(multuplets, new)
-            names <- c(names, paste(current, collapse=""))
-        }
-    }
-    
     #doublets
-    combos <- combn(unique(colnames(singlets)), 2)
-    
-    for(y in 1:ncol(combos)) {
-        current <- combos[ ,y]
-        new <- data.frame(rowMeans(mean[ , colnames(mean) %in% current]))
-        multuplets <- cbind(multuplets, new)
-        names <- c(names, paste(current, collapse=""))
-    }
+    cellNames <- unique(colnames(singlets))
+    tmp <- .makeMultuplet(2, cellNames, data.frame(), data.frame(), mean)
+    multuplets <- tmp[[1]]
+    names <- tmp[[2]]
     
     #triplets
-    combos <- combn(unique(colnames(singlets)), 3)
-    
-    for(u in 1:ncol(combos)) {
-        current <- combos[ ,u]
-        new <- data.frame(rowMeans(mean[ , colnames(mean) %in% current]))
-        multuplets <- cbind(multuplets, new)
-        names <- c(names,  paste(current, collapse=""))
-    }
+    tmp <- .makeMultuplet(3, cellNames, multuplets, names, mean)
+    multuplets <- tmp[[1]]
+    names <- tmp[[2]]
     
     #quadruplets
-    combos <- combn(unique(colnames(singlets)), 4)
-    
-    for(u in 1:ncol(combos)) {
-        current <- combos[ ,u]
-        new <- data.frame(rowMeans(mean[ , colnames(mean) %in% current]))
-        multuplets <- cbind(multuplets, new)
-        names <- c(names,  paste(current, collapse=""))
-    }
+    tmp <- .makeMultuplet(4, cellNames, multuplets, names, mean)
+    multuplets <- tmp[[1]]
+    names <- tmp[[2]]
     
     colnames(multuplets) <- names
     
     return(list(singlets, multuplets, uObj))
 }
 
+.makeMultuplet <- function(
+    n,
+    cellNames,
+    multuplets,
+    names,
+    mean
+){
+    switch(n - 1,
+        {combos <- expand.grid(cellNames, cellNames)},
+        {combos <- expand.grid(cellNames, cellNames, cellNames)},
+        {combos <- expand.grid(cellNames, cellNames, cellNames, cellNames)}
+    )
+    
+    dat.sort = t(apply(combos, 1, sort))
+    combos <- t(combos[!duplicated(dat.sort),])
+    
+    for(u in 1:ncol(combos)) {
+        current <- combos[ ,u]
+        bool <- all.equal(
+            as.character(current),
+            as.character(rep(current[1], length(current)))
+        )
+        if(isTRUE(bool)) {
+            new <- data.frame(mean[ , colnames(mean) %in% current])
+        } else {
+            new <- data.frame(rowMeans(mean[ , colnames(mean) %in% current]))
+        }
+        
+        if(ncol(multuplets) == 0) {
+            multuplets <- new
+            names <- paste(current, collapse="")
+        } else {
+            multuplets <- cbind(multuplets, new)
+            names <- c(names,  paste(current, collapse=""))
+        }
+    }
+    return(list(multuplets, names))
+}
 
+.adjustFreq <- function(ncells, cellNames, multuplets) {
+    intMat <- .interactionMatrix(ncells, cellNames, 23443)
+    
+    x <- as.list(gsub("(.{2})", "\\1 ", colnames(multuplets)))
+    l <- lapply(x, function(y) strsplit(y, " "))
+    c <- lapply(l, function(y) sum(c("A1", "B1") %in% y[[1]])==2)
+    n <- lapply(l, function(y) length(grep("A1", y[[1]])))
+    
+}
 
+#try to write a fucntion to calculate the frequency of interactions from the colnames of a dataframe with multuplets
+.countsInteracts <- function(mul, cellNames) {
+    names <- colnames(mul)
+    x <- as.list(gsub("(.{2})", "\\1 ", colnames(multuplets)))
+    l <- lapply(x, function(y) strsplit(y, " "))
+    c <- lapply(l, function(j) combn(j[[1]], 2))
+    p <- lapply(c, function(m) sapply(1:ncol(m), function(i) paste(m[,i], collapse="-")))
+    t <- table(unlist(p))
+    
+    m <- matrix(NA, ncol=length(cellNames), nrow=length(cellNames), dimnames=list(cellNames, cellNames))
+    
+    for(i in 1:length(t)) {
+        n1 <- strsplit(names(t)[i], "-")[[1]][1]
+        n2 <- strsplit(names(t)[i], "-")[[1]][2]
+        m[n1, n2] <- t[i]
 
+    }
+    m[upper.tri(m)] <- t(m)[upper.tri(m)]
+}
 
+.interactionMatrix <- function(ncells, cellNames, seed) {
+    set.seed(seed)
+    m <- matrix(NA, ncol=ncells, nrow=ncells, dimnames=(list(cellNames, cellNames)))
+    diag(m) <- sample(seq(45, 55, 1), size=length(diag(m)))
+
+    .f <- function(x) {
+        s <- sum(x, na.rm=TRUE)
+        int <- sample(c(1,2), 1)
+        x[sample(which(is.na(x) == TRUE), size=int)] <- sample(seq(30, (100-s), 1), size=int)
+        x <- x/sum(x, na.rm=TRUE)*90
+        x[is.na(x) == TRUE] <- sample(seq(0, 10, 0.1), size=length(x[is.na(x) == TRUE]))
+        return(round(x/sum(x)*100))
+    }
+    
+    apply(m, 1, .f)
+}

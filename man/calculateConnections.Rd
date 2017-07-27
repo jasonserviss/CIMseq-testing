@@ -26,4 +26,3 @@ calculateConnections()
 Jason T. Serviss
 }
 \keyword{calculateConnections}
-

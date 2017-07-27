@@ -1,0 +1,163 @@
+---
+title: "Plot edges per multiplet"
+output: html_document
+---
+
+The number of cells in a multiplet should correlate with the number of edges detected. Test this with the fetal pancreas dataset.
+```{r}
+library(sp.scRNAseq)
+library(ggplot2)
+library(ggthemes)
+library(reshape2)
+
+load('~/Desktop/sp.scRNAseqHalfTime/halfTime.rda')
+load('~/Desktop/sp.scRNAseqHalfTime/sObj2.1000.rda')
+load('~/Desktop/sp.scRNAseqHalfTime/sObj3.10000.rda')
+
+#recalculate sObj so that costs are reported
+sObj <- spSwarm(cObjMul, uObj, swarmsize=500, cores=4, max_iter=10, distFun=distToSlicePearson)
+
+edges10 <- spSwarmPoisson(sObj, edge.cutoff = 1/13.5)
+edges1000 <- spSwarmPoisson(sObj, edge.cutoff = 1/13.5)
+edges10000 <- spSwarmPoisson(sObj, edge.cutoff = 1/13.5)
+
+mulForEdges10 <- sapply(1:nrow(edges10), function(j)
+    selectClustersOnEdge(sObj, 1/13.5, edges10[j, "from"], edges10[j, "to"])    
+)
+
+mulForEdges1000 <- sapply(1:nrow(edges1000), function(j)
+    selectClustersOnEdge(sObj2, 1/13.5, edges1000[j, "from"], edges1000[j, "to"])    
+)
+
+mulForEdges10000 <- sapply(1:nrow(edges10000), function(j)
+    selectClustersOnEdge(sObj3, 1/13.5, edges10000[j, "from"], edges10000[j, "to"])    
+)
+
+ta10 <- as.data.frame(table(unlist(mulForEdges10)))
+ta1000 <- as.data.frame(table(unlist(mulForEdges1000)))
+ta10000 <- as.data.frame(table(unlist(mulForEdges10000)))
+
+#calculate cell number and frac.ercc
+frac.ercc <- colSums(getData(cObjMul, "counts.ercc")) / (colSums(getData(cObjMul, "counts.ercc"))+colSums(getData(cObjMul, "counts")))
+
+#calculate cell number
+sfrac.ercc <- colSums(getData(cObjSng, "counts.ercc")) / (colSums(getData(cObjSng, "counts.ercc"))+colSums(getData(cObjSng, "counts")))
+cellNr <- median(sfrac.ercc) / frac.ercc
+
+if(identical(names(frac.ercc), names(cellNr))) {
+    ercc <- data.frame(
+        frac.ercc = frac.ercc,
+        cellNr = cellNr
+    )
+}
+ercc$Var1 <- rownames(ercc)
+m <- Reduce(function(x, y) merge(x, y, all=TRUE, by="Var1", suffixes=c("10", "1000", "10000")), list(ta10, ta1000, ta10000, ercc))
+colnames(m)[4] <- "Freq10000"
+colnames(m)[1] <- "Sample"
+mel <- reshape2::melt(m, id.vars=c("Sample", "cellNr", "frac.ercc"))
+
+names <- c(
+    Freq10 = "10 iterations",
+    Freq1000 = "1000 iterations",
+    Freq10000 = "10000 iterations"
+)
+
+
+ggplot(mel, aes(cellNr, value))+
+    geom_point()+
+    theme_few()+
+    labs(
+        x="Number of cells",
+        y="Number of edges"
+    )+
+    facet_grid(variable~., labeller = as_labeller(names))
+
+```
+
+It looks as though the number of edges found is reduced between interation number 10 and 1000, although o further changes are seen when the iterations are increased to 10^4. Although at iteration 1000 and 10^4 there is no strong correlation between edges detected and number of cells, the somewhat negative correlation observed at iteration = 10, is absent. See if the sum of residuals for each multiplet differ between iterations.
+
+```{r}
+res10 <- calcResiduals(cObjMul, uObj, sObj)
+res1000 <- calcResiduals(cObjMul, uObj, sObj2)
+res10000 <- calcResiduals(cObjMul, uObj, sObj3)
+
+cs <- data.frame(
+    cs10=colSums(res10),
+    cs1000=colSums(res1000),
+    cs10000=colSums(res10000),
+    mul=colnames(res10)
+)
+
+m2 <- reshape2::melt(cs, id.vars="mul")
+
+ggplot(m2, aes(x=mul, y=value))+
+    geom_bar(aes(fill=variable), stat="identity", position=position_dodge(width=1))+
+    theme(
+        axis.text.x=element_text(angle=90)
+    )
+```
+
+The sum of residuals seems not to differ between iterations which is strange. Look at all the residuals individually.
+
+```{r}
+m10 <- melt(res10)
+m1000 <- melt(res1000)
+m10000 <- melt(res10000)
+m10$variable <- 10
+m1000$variable <- 1000
+m10000$variable <- 10000
+
+ms <- rbind(m10, m1000, m10000)
+
+ggplot(ms, aes(Var2, value))+
+    geom_point()+
+    facet_grid(variable~.)+
+    theme_few()+
+    theme(
+        axis.text.x=element_text(angle=90)
+    )
+```
+
+This produced results I don't understand at the moment. Come back to this. 
+Look at the costs reported instead for now.
+
+```{r}
+c10 <- getData(sObj, "costs")
+c1000 <- getData(sObj2, "costs")
+c10000 <- getData(sObj3, "costs")
+
+d <- data.frame(
+    c10=c10,
+    c1000=c1000,
+    c10000=c10000,
+    mult=rownames(getData(sObj, "spSwarm"))
+)
+
+m3 <- melt(d, id.vars="mult")
+ggplot(m3, aes(mult, value))+
+    geom_bar(aes(fill=variable), stat="identity", position=position_dodge(width=1))+
+    theme_few()+
+    scale_fill_ptol()+
+    theme(
+        axis.text.x=element_text(angle=90)
+    )
+```
+
+It appears that the costs are higher for iterations=10 than iterations=1000 or iterations=10000. Iterations 1000 and 10000 give the same costs as could potentially be expected.
+Re-plot this as the sum of costs instead.
+
+```{r}
+sums <- as.data.frame(colSums(d[,1:3]))
+sums$iterations <- rownames(sums)
+colnames(sums)[1] <- "costs"
+
+ggplot(sums, aes(x=iterations, y=costs))+
+    geom_bar(stat="identity", position=position_dodge(width=1))+
+    theme_few()+
+    scale_x_discrete(labels=c("10", "1000", "10000"))+
+    labs(
+        y="Sum of costs"
+    )
+
+
+```

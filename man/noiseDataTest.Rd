@@ -28,4 +28,3 @@ noiseDataTest()
 Jason T. Serviss
 }
 \keyword{noiseDataTest}
-

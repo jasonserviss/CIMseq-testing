@@ -24,17 +24,22 @@ NULL
 #' @import sp.scRNAseq
 #' @importFrom plyr ddply
 
-calculateConnections <- function(codedSwarm, type="codedSwarm") {
+calculateConnections <- function(
+    swarm,
+    type = "codedSwarm",
+    edge.cutoff = 0
+){
     
     if(type == "multuplets") {
-        data <- data.frame(sampleName = colnames(codedSwarm))
+        data <- data.frame(row.names = colnames(swarm))
         conns <- .processSampleNames(data)
         tab <- table(conns[ ,c("from", "to")])
         return(tab)
     }
     
-    detectedConnections <- .swarmNetworkDF(codedSwarm)
-    realConnections <- .processSampleNames(codedSwarm)
+    #detectedConnections <- .swarmNetworkDF(swarm)
+    detectedConnections <- .swarmNetworkDF(swarm, edge.cutoff)
+    realConnections <- .processSampleNames(swarm)
     tab <- table(
         rbind(
             realConnections[,c("from", "to", "connType")],
@@ -72,7 +77,7 @@ calculateConnections <- function(codedSwarm, type="codedSwarm") {
 }
 
 .processSampleNames <- function(data) {
-    realConn1 <- gsub("m.([A-Z]1[A-Z]1)", "\\1", data$sampleName)
+    realConn1 <- gsub("m.([A-Z]1[A-Z]1)", "\\1", rownames(data))
     realConn2 <- trimws(gsub("(.{2})", "\\1 ", realConn1), which = "both")
     realConn3 <- strsplit(realConn2, " ")
     realConn4 <- lapply(realConn3, function(x) combn(x, 2))
@@ -87,7 +92,7 @@ calculateConnections <- function(codedSwarm, type="codedSwarm") {
         to=to,
         multuplet=as.character(
             rep(
-                data$sampleName,
+                rownames(data),
                 unlist(nConnections)
             )
         ),
@@ -97,22 +102,20 @@ calculateConnections <- function(codedSwarm, type="codedSwarm") {
     return(output)
 }
 
-.swarmNetworkDF <- function(x) {
-    names <- colnames(x)[c(-1,-2)]
-    
+.swarmNetworkDF <- function(x, edge.cutoff) {
     for(o in 1:nrow(x)) {
-        ind <- which(x[o, c(-1,-2)] != 0)
+        ind <- which(x[o,] > edge.cutoff)
         
         if(length(ind) == 0) {
             combs <- data.frame(V1=NA, V2=NA)
         } else if(length(ind) == 1) {
-            combs <-  data.frame(V1=names[ind], V2=names[ind], stringsAsFactors=FALSE)
+            combs <-  data.frame(V1=names(x)[ind], V2=names(x)[ind], stringsAsFactors=FALSE)
         } else {
-            combs <- as.data.frame(t(combn(names[ind],2)), stringsAsFactors=FALSE)
+            combs <- as.data.frame(t(combn(names(x)[ind],2)), stringsAsFactors=FALSE)
         }
         
         
-        combs$multuplet <- as.character(x[o, 'sampleName'])
+        combs$multuplet <- rep(rownames(x)[o], nrow(combs))
         
         if( o == 1 ) {
             connections <- combs

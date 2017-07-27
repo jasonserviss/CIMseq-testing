@@ -16,6 +16,8 @@
 
 \item{cellTypes}{Number of cell types in generated synthetic data.}
 
+\item{distFun}{The distance function to use for swarm optimization.}
+
 \item{...}{additional arguments to pass on}
 }
 \value{
@@ -36,4 +38,3 @@ syntheticDataTest()
 Jason T. Serviss
 }
 \keyword{syntheticDataTest}
-

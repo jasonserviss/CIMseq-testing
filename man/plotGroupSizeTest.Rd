@@ -24,4 +24,3 @@ plotGroupSizeTest()
 Jason T. Serviss
 }
 \keyword{plotGroupSizeTest}
-

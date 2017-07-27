@@ -24,4 +24,3 @@ plotCellTypesIncludedTest()
 Jason T. Serviss
 }
 \keyword{plotCellTypesIncludedTest}
-

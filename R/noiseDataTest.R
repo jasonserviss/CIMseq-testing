@@ -39,8 +39,16 @@ noiseDataTest <- function(innerCores=1, outerCores=10, outPath='data', n=10, dat
     
     #load spUnsupervised for dataset
     if(dataType == "synthetic") {
+        data(syntheticDataTest)
         uObj <- syntheticDataUnsupervised
+        rm(list=c(
+            "syntheticDataTable",
+            "syntheticDataTest",
+            "syntheticDataSwarm",
+            "syntheticDataUnsupervised"
+        ))
     } else {
+        data(expressionTest)
         uObj <- expressionTestUnsupervised
     }
     
@@ -246,7 +254,10 @@ NULL
 #' @importFrom ggthemes theme_few scale_fill_economist
 #' @importFrom dplyr combine
 
-noiseDataTestPlot <- function(dataType="synthetic") {
+noiseDataTestPlot <- function(
+    dataType="synthetic",
+    edge.cutoff = 1/10.5
+){
     
     if(dataType == "synthetic") {
         data <- noiseDataSwarmSyn
@@ -260,7 +271,7 @@ noiseDataTestPlot <- function(dataType="synthetic") {
         lapply(
             e,
             function(p)
-                calculateConnections(getData(p, "codedSwarm"))[[1]]
+                calculateConnections(getData(p, "spSwarm"))[[1]]
         )
     )
     

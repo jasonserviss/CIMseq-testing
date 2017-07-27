@@ -26,4 +26,3 @@ groupSizeTest()
 Jason T. Serviss
 }
 \keyword{groupSizeTest}
-

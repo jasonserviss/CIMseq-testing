@@ -26,4 +26,3 @@ noiseDataTestPlot()
 Jason T. Serviss
 }
 \keyword{noiseDataTestPlot}
-

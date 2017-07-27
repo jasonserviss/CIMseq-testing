@@ -25,7 +25,7 @@ NULL
 #' @export
 #' @import sp.scRNAseq
 
-expressionDataTest <- function(outPath = 'data', cores=5, n=15, ...) {
+expressionDataTest <- function(outPath = './data', cores=6, n=30, ...) {
     
     #make test data
     tmp <- .expressionTestData(n)
@@ -35,10 +35,20 @@ expressionDataTest <- function(outPath = 'data', cores=5, n=15, ...) {
     expressionTestTable <- tmp[[4]]
     
     #make spCounts object
-    expressionTestDataCounts <- spCounts(testExpTestData, matrix(), "m.")
+    single <- grepl("^s", colnames(testExpTestData))
+    sng <- testExpTestData[ ,single]
+    mul <- testExpTestData[ ,!single]
+    cObjSng <- spCounts(sng, matrix(NA, ncol=ncol(sng)))
+    cObjMul <- spCounts(mul, matrix(NA, ncol=ncol(mul)))
     
     #run pySwarm
-    expressionTestSwarm <- spSwarm(expressionTestUnsupervised, limit="none", maxiter=10, swarmsize=250, cores=cores)
+    expressionTestSwarm <- spSwarm(
+        cObjMul,
+        expressionTestUnsupervised,
+        maxiter=10^4,
+        swarmsize=250,
+        cores=cores
+    )
     
     #save
     save(
@@ -47,23 +57,8 @@ expressionDataTest <- function(outPath = 'data', cores=5, n=15, ...) {
         compress="bzip2"
     )
     save(
-        expressionTestDataCounts,
-        file=paste(outPath, "expressionTestDataCounts.rda", sep="/"),
-        compress="bzip2"
-    )
-    save(
-        expressionTestUnsupervised,
-        file=paste(outPath, "expressionTestUnsupervised.rda", sep="/"),
-        compress="bzip2"
-    )
-    save(
-        expressionTestSwarm,
-        file=paste(outPath, "expressionTestSwarm.rda", sep="/"),
-        compress="bzip2"
-    )
-    save(
-        expressionTestTable,
-        file=paste(outPath, "expressionTestTable.rda", sep="/"),
+        testExpTestData, expressionTestUnsupervised, expressionTestTable, expressionTestSwarm,
+        file=paste(outPath, "expressionTest.rda", sep="/"),
         compress="bzip2"
     )
 }
@@ -71,14 +66,28 @@ expressionDataTest <- function(outPath = 'data', cores=5, n=15, ...) {
 .expressionTestData <- function(n) {
     
     #load data
-    counts <- getData(expData, "counts")
-    sampleType <- getData(expData, "sampleType")
-    sng <- counts[ ,sampleType == "Singlet"]
+    counts <- expCounts
+    single <- grepl("^s", colnames(counts))
+    sng <- counts[ ,single]
+    mul <- counts[,!single]
+    cObjSng <- spCounts(sng, matrix(NA, ncol=ncol(sng)))
+    cObjMul <- spCounts(mul, matrix(NA, ncol=ncol(mul)))
     
-    unsupervised <- spUnsupervised(expData, max=2500, max_iter=10^5)
+    uObj <- spUnsupervised(
+        cObjSng,
+        theta = 0,
+        k = 2,
+        max_iter = 10^4,
+        perplexity = 10,
+        initial_dims = ncol(sng),
+        Gmax = 50,
+        seed = 15,
+        type = "var",
+        max = 1000
+    )
     
-    classification <- getData(unsupervised, "classification")
-    means <- getData(unsupervised, "groupMeans")
+    classification <- getData(uObj, "classification")
+    means <- getData(uObj, "groupMeans")
     
     dataset <- data.frame(row.names=1:nrow(sng))
     names <- c()
@@ -115,11 +124,11 @@ expressionDataTest <- function(outPath = 'data', cores=5, n=15, ...) {
     testExpTestData <- as.matrix(cbind(sng, testMultuplets))
 
     #add new data to uObj
-    counts(unsupervised) <- testExpTestData
-    counts.log(unsupervised) <- sp.scRNAseq:::.norm.log.counts(testExpTestData)
-    sampleType(unsupervised) <- c(rep("Singlet", ncol(sng)), rep("Multuplet", n))
+    #counts(unsupervised) <- testExpTestData
+    #counts.log(unsupervised) <- sp.scRNAseq:::.norm.log.counts(testExpTestData)
+    #sampleType(unsupervised) <- c(rep("Singlet", ncol(sng)), rep("Multuplet", n))
     
-    return(list(expTestData, testExpTestData, unsupervised, table))
+    return(list(expTestData, testExpTestData, uObj, table))
     
 }
 

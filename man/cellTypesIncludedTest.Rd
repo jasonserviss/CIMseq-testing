@@ -26,4 +26,3 @@ cellTypesIncludedTest()
 Jason T. Serviss
 }
 \keyword{cellTypesIncludedTest}
-

@@ -1,0 +1,20 @@
+---
+title: "permutationTest"
+author: "Jason T. Serviss"
+date: "17/05/2017"
+output: html_document
+---
+
+```{r}
+library(sp.scRNAseq)
+```
+
+```{r, eval=FALSE}
+load("~/Github/sp.scRNAseqTesting/inst/fetalPancreasAnalysis/data.rda")
+permResult <- permuteSwarm(cObjSng, cObjMul, uObj.uw, sObj.uw, maxiter=1000, swarmsize=500, cores=6, iter=1000)
+save(permResult, file='~/Github/sp.scRNAseqTesting/inst/permutationTest/permResult.rda', compress="bzip2")
+```
+
+```{r}
+load('~/Github/sp.scRNAseqTesting/inst/permutationTest/permResult.rda')
+```

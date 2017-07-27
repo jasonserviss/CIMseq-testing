@@ -1,0 +1,585 @@
+---
+title: "fetalPancreasAnalysis"
+author: "Jason T. Serviss"
+date: "01/05/2017"
+output:
+  html_document:
+    highlight: pygments
+    theme: readable
+    code_folding: hide
+---
+
+<style>
+
+.caption {
+      color: FireBrick;
+      font-weight: bold;
+      font-size: 1.0em;
+    } 
+  .col2 {
+    columns: 2 200px;         /* number of columns and width in pixels*/
+    -webkit-columns: 2 200px; /* chrome, safari */
+    -moz-columns: 2 200px;    /* firefox */
+  }
+</style>
+
+I re-ran the fetal pancreas dataset using both the weighted and unweighted mean and increased the number of swarm iterations to 1000 (was 10 for the data in my half time and the manuscript). Results and further thoughts are below.
+
+```{r}
+library(sp.scRNAseq)
+library(ggplot2)
+library(ggthemes)
+library(RColorBrewer)
+library(reshape2)
+```
+
+```{r, eval=FALSE}
+sng <- grepl("^s.*", colnames(expCounts))
+
+cObjSng <- spCounts(expCounts[,sng], expErcc[,sng])
+cObjMul <- spCounts(expCounts[,!sng], expErcc[,!sng])
+
+uObj.w <- spUnsupervised(cObjSng, max_iter=10^4, max=1000, type="var", weighted=TRUE)
+uObj.uw <- spUnsupervised(cObjSng, max_iter=10^4, max=1000, type="var", weighted=FALSE)
+
+sObj.w <- spSwarm(cObjMul, uObj.w, swarmsize=500, cores=6, maxiter=1000, distFun=distToSlice)
+sObj.uw <- spSwarm(cObjMul, uObj.uw, swarmsize=500, cores=6, maxiter=1000, distFun=distToSlice)
+
+
+#output saved locally
+save(
+    cObjSng,
+    cObjMul,
+    uObj.w,
+    uObj.uw,
+    sObj.w,
+    sObj.uw,
+    file="~/Github/sp.scRNAseqTesting/inst/fetalPancreasAnalysis/data.rda",
+    compress="bzip2"
+)
+```
+
+```{r}
+markers <- function(spUnsupervised, spCounts, g, title="") {
+    l <- apply(getData(spCounts, "counts.log")[g,] - .1, 2, sum) + .1
+    if(title == "") {title <- paste(g, sep="  ", collapse="  ")} else {subtitle <- paste(g, sep="  ", collapse="  ")}
+    mi <- min(l,na.rm=TRUE)
+    ma <- max(l,na.rm=TRUE)
+    ColorRamp <- colorRampPalette(rev(brewer.pal(n = 7,name = "RdYlBu")))(100)
+    ColorLevels <- seq(mi, ma, length=length(ColorRamp))
+    v <- round((l - mi)/(ma - mi)*99 + 1,0)
+    tsne <- as.data.frame(getData(spUnsupervised, "tsne"))
+    tsne$col <- ColorRamp[v]
+    tsne$Procent <- v
+    
+    x <- colorRampPalette(rev(brewer.pal(n = 7,name = "RdYlBu")))(3)
+    p <- ggplot(tsne, aes(x=V1, y=V2))+
+        geom_point(aes(colour=Procent), size=4)+
+        scale_colour_gradient2(
+            low=x[1],
+            high=x[3],
+            mid=x[2],
+            midpoint=50
+        )+
+        labs(
+            title=title,
+            subtitle=ifelse(length(subtitle != 0), subtitle, ""),
+            x="Dim 1",
+            y="Dim 2"
+        )+
+        theme_few()+
+        theme(
+            plot.title=element_text(hjust = 0.5, size=25),
+            plot.subtitle=element_text(hjust = 0.5, size=20),
+            legend.title=element_blank(),
+            legend.key.size=unit(1, "cm"),
+            legend.text=element_text(size=15),
+            axis.text=element_blank(),
+            axis.title=element_text(size=20),
+            axis.ticks=element_blank()
+        )
+    
+    return(p)
+}
+```
+
+```{r}
+outputDir <- "~/Github/sp.scRNAseqTesting/inst/fetalPancreasAnalysis/"
+load("~/Github/sp.scRNAseqTesting/inst/fetalPancreasAnalysis/data.rda")
+```
+
+###Show ercc and various cell count plots
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotCounts(cObjSng, cObjMul, type="ercc")
+```
+
+Below I calculate the cell number by using the 25%, 50%, and 75% percentile of the fraction of singlet ercc reads and plot the number of cells per sample. This potentially provides some measure of uncertainty concerning the number of cells in each sample.
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+d <- estimateCells(cObjSng, cObjMul)
+m <- melt(d, id.vars=c("sampleName", "sampleType", "frac.ercc"))
+
+ggplot(m, aes(sampleName, value))+
+    geom_boxplot(aes(fill=sampleType))+
+    theme_few()+
+    theme(
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        legend.position="top"
+    )+
+    scale_fill_ptol()+
+    labs(
+        x="Sample",
+        y="Cell number"
+    )+
+    guides(fill=guide_legend(title = "Sample type"))
+```
+
+Below I show the ercc counts in each classified cell type. This could give some indication concerning the size of the cells and potentially their contribution of RNA to the multiplet.
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot frac.ercc per classified cell type
+order <- colnames(getData(cObjSng, "counts"))
+class <- data.frame(class = getData(uObj.w, "classification"))
+class$sampleName <- order
+m <- merge(d, class, by="sampleName", all.x=FALSE, all.y=TRUE)
+sng <- subset(m, sampleType == "Singlet")
+
+color <- colorRampPalette(ggthemes_data$ptol$qualitative[[12]])(length(unique(class$class)))
+ggplot(sng, aes(x=class, frac.ercc))+
+    geom_boxplot(aes(fill=class))+
+    theme_few()+
+    scale_fill_manual(values=color)+
+    labs(
+        x="Cell type",
+        y="Fraction of ERCC"
+    )+
+    guides(fill=FALSE)
+```
+
+###Show unsupervised plot.
+
+You can see the uncertainty (reported from Mclust) now in the plot as the size of the point. Everything here looks good. 
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotUnsupervised(uObj.uw, type="clusters")
+```
+
+<br></br><br></br>
+
+###Plot cell specific markers
+Nothing new here with the exception that I created an additional plot (last one) to highlight all endocrine cells and identified a small population (2 cells) of epsilon cells.
+
+```{r}
+#specify genes
+alphaGenes <- c("GCG", "IRX2")
+betaGenes <- c("INS", "HADH")
+deltaGenes <- c("SST", "HHEX", "PCSK1", "RBP4")
+PPgenes <- c("PPY", "ETV1", "PAX6", "ARX", "MALAT1")
+EpsilonGenes <- c("GHRL", "PHGR1", "GRAMD2")
+acinarGenes <- c("PRSS1", "CPA2", "CTRB2")
+endothelialGenes <- c("ESAM", "ICAM2", "FLT1")
+mesenchymalGenes <- c("COL1A1", "THY1")
+ductGenes <- c("SPP1", "DEFB1", "CFTR", "PROM1")
+progenitorGenes <- c("NEUROD1", "NEUROG3", "NKX2-2")
+endocrineGenes <- c("GCG", "INS", "SST", "PPY")
+```
+
+<div class="col2">
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot alpha
+alpha <- markers(uObj.uw, cObjSng, alphaGenes, title="Alpha-cell genes")
+ggsave(alpha, file=paste(outputDir, "alphaGenes.pdf", sep="/"))
+alpha
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot beta
+beta <- markers(uObj.uw, cObjSng, betaGenes, title="Beta-cell genes")
+ggsave(beta, file=paste(outputDir, "betaGenes.pdf", sep="/"))
+beta
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot delta
+markers(uObj.uw, cObjSng, deltaGenes, title="Delta-cell genes")
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot PP
+markers(uObj.uw, cObjSng, PPgenes, title="PP-cell genes")
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot acinar
+acinar <- markers(uObj.uw, cObjSng, acinarGenes, title="Acinar-cell genes")
+ggsave(acinar, file=paste(outputDir, "acinarGenes.pdf", sep="/"))
+acinar
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot endothelial
+endo <- markers(uObj.uw, cObjSng, endothelialGenes, title="Endothelial-cell genes")
+ggsave(endo, file=paste(outputDir, "endoProgGenes.pdf", sep="/"))
+endo
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot mesenchymal
+mesen <- markers(uObj.uw, cObjSng, mesenchymalGenes, title="Mesenchymal-cell genes")
+ggsave(mesen, file=paste(outputDir, "mesenchymalGenes.pdf", sep="/"))
+mesen
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot duct
+duct <- markers(uObj.uw, cObjSng, ductGenes, title="Duct-cell genes")
+ggsave(duct, file=paste(outputDir, "ductGenes.pdf", sep="/"))
+duct
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot endocrine progenitors
+prog <- markers(uObj.uw, cObjSng, progenitorGenes, title="Progenitor-cell genes")
+ggsave(prog, file=paste(outputDir, "endoProgGenes.pdf", sep="/"))
+prog
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot endocrine progenitors
+EpsilonGenes <- markers(uObj.uw, cObjSng, EpsilonGenes, title="Epsilon-cell genes")
+ggsave(EpsilonGenes, file=paste(outputDir, "epsilonGenes.pdf", sep="/"))
+EpsilonGenes
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+#plot all endocrine
+endoc <- markers(uObj.uw, cObjSng, endocrineGenes, title="Endocrine-cell genes")
+ggsave(endoc, file=paste(outputDir, "endocrineGenes.pdf", sep="/"))
+endoc
+```
+
+
+</div>
+<br></br><br></br>
+
+###Plot connections in weighted and unweighted analysis.
+
+Here I plot the differences when using the weighted vs unweighted mean of the classified cell types for the swarm optimization. The unweighted analysis is detecting more edges (254 compared to 214) over the edge cutoff (1/13.5) but the weighted analysis is detecting more significant edges (14 compared to 11). Right now I think the differences in significant edges between weighted and unweighted has more to do with the way we are calculating the p-value and less with the truth. I implemented the p-value calculation on a per connection basis (as we had discussed) butI am still not sure we are on the right track.
+
+<div class="col2">
+
+####Unweighted
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotSwarm(sObj.uw, uObj.uw, cObjSng, type="tsne", edge.cutoff=1/13.5, min.num.edges=1)
+```
+
+<br></br>
+
+####Weighted
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotSwarm(sObj.w, uObj.w, cObjSng, type="tsne", edge.cutoff=1/13.5, min.num.edges=1)
+```
+
+</div>
+
+###Plot significant (alpha < 0.05) edges
+
+<div class="col2">
+
+####Unweighted
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotSwarm(sObj.uw, uObj.uw, cObjSng, type="tsne", edge.cutoff=1/13.5, min.num.edges=1, min.pval=0.05)
+```
+
+<br></br>
+
+####Weighted
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotSwarm(sObj.w, uObj.w, cObjSng, type="tsne", edge.cutoff=1/13.5, min.num.edges=1, min.pval=0.05)
+```
+
+</div>
+
+###Plot p-values per cell type
+I experimented with several orther ways to visualize the results. They are potentially a bit small here but you get the idea. 
+
+<div class="col2">
+
+####Unweighted
+```{r, fig.align='center', fig.height=9, fig.width=11, eval=TRUE, message=FALSE}
+plotSwarm(sObj.uw, type="edgeBar", edge.cutoff=1/13.5)
+```
+
+<br></br>
+
+####Weighted
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotSwarm(sObj.w, type="edgeBar", edge.cutoff=1/13.5)
+```
+
+</div>
+
+<div class="col2">
+
+####Unweighted
+```{r, fig.align='center', fig.height=9, fig.width=11, eval=TRUE, message=FALSE}
+plotSwarm(sObj.uw, type="heat", edge.cutoff=1/13.5)
+```
+
+<br></br>
+
+####Weighted
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotSwarm(sObj.w, type="heat", edge.cutoff=1/13.5)
+```
+
+</div>
+
+###Try to verify connections
+
+Below I try to plot some of the established cell type markers in the singlets and multiplets to get some feeling if the reported connections are valid. It doesn't look so great.
+
+<div class="col2">
+
+####Duct and Endothelial
+```{r}
+plotCounts(cObjSng, cObjMul, type="markers", markers=c("FLT1", "PROM1"))
+```
+
+```{r}
+plotCounts(cObjSng, cObjMul, type="markers", markers=c("ICAM2", "PROM1"))
+```
+
+<br></br>
+
+####Endocrine progenitors and Endothelial
+```{r}
+plotCounts(cObjSng, cObjMul, type="markers", markers=c("FLT1", "NEUROD1"))
+```
+
+```{r}
+plotCounts(cObjSng, cObjMul, type="markers", markers=c("FLT1", "NEUROG3"))
+```
+
+<br></br>
+
+####Acinar and Duct
+```{r}
+plotCounts(cObjSng, cObjMul, type="markers", markers=c("PROM1", "PRSS1"))
+```
+
+```{r}
+plotCounts(cObjSng, cObjMul, type="markers", markers=c("PROM1", "CPA2"))
+```
+
+<br></br>
+
+####Acinar and Beta
+```{r}
+plotCounts(cObjSng, cObjMul, type="markers", markers=c("INS", "PRSS1"))
+```
+
+```{r}
+plotCounts(cObjSng, cObjMul, type="markers", markers=c("HADH", "PRSS1"))
+```
+
+</div>
+
+<br></br>
+
+###Plot weighted edges vs unweighted edges
+
+Here I wanted to plot the edges detected in the weighted and unweighted analysis. Even though on average the weighted method is detecting fewer edges, the plot shows that there are examples where the weighted method is detecting more edges than the unweighted method. I think that is a positive sign, indicating that the weighted or unweighted method does not consistantly detect more or less edges. 
+
+```{r}
+edges.w <- spSwarmPoisson(sObj.w, edge.cutoff = 1/13.5, min.pval=1)
+edges.uw <- spSwarmPoisson(sObj.uw, edge.cutoff = 1/13.5, min.pval=1)
+
+mulForEdges.w <- getMultipletsForEdge(sObj.w, 1/13.5, edges.w[,1:2])    
+mulForEdges.uw <- getMultipletsForEdge(sObj.uw, 1/13.5, edges.uw[,1:2])    
+
+ta.w <- data.frame(table(unlist(mulForEdges.w)), type="weighted")
+ta.uw <- data.frame(table(unlist(mulForEdges.uw)), type="unweighted")
+ta <- rbind(ta.w, ta.uw)
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+ggplot(ta, aes(Var1, Freq))+
+    geom_bar(aes(fill=type), stat="identity", position=position_dodge(width=1))+
+    theme_few()+
+    theme(
+        axis.text.x=element_text(angle=90),
+        legend.position = "top"
+    )+
+    labs(
+        x="Multiplet",
+        y="Number of edges"
+    )+
+    guides(fill=guide_legend(title="Analysis"))+
+    scale_fill_ptol(labels=c("Weighted", "Unweighted"))
+
+```
+
+###Plot significant edges as a function of cell number and max theoretical edges
+
+Here I wanted to start looking at the accuracy of the results and how well they correspond to our expectations. 
+
+Since we now have a method to calculate the theoretical cell number in the multiplets (using the fraction of ercc), we can look at the number of edges detected as a function of the cell number. As you can see in the left plot (edges vs. cell number), there is no strong correlation between cell number and number of edges detected as we might expect (each point is a multiplet). 
+
+In the plot on the right (edges vs. max theoretical edges), I use the cell number per multiplet to calculate the maximum number of edges that could theoretically exist in each multiplet. Note that self connections are not present in the max theoretical calculation. This will only have a minor effect on the intrepretation of the plot since there is 1 self connection in the weighted analysis and 3 in the unweighted analysis. I then plot the theoretical max vs the number of edges detected. The results indicate that only multiplets containing 5 cells or more have a detected number of edges less than or equal to the theoretical maximum in both the weighted and unweighted analysis. Although the weighted analysis is performing more in-line with the expectations, both analysis methods seem to be detecting more edges than is theoretically possible. 
+
+```{r}
+cells <- estimateCells(cObjSng, cObjMul)
+m <- merge(ta, cells, by.x="Var1", by.y="sampleName")
+```
+
+<div class="col2">
+
+<br></br>
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+names <- c(
+    weighted = "Weighted",
+    unweighted = "Unweighted"
+)
+
+ggplot(m, aes(x=factor(round(cellNumberMedian)), y=Freq))+
+    geom_boxplot(aes(fill=type), alpha=0.75, outlier.colour = "white")+
+    geom_jitter(height=0, width=0.25, size=4, alpha=0.5)+
+    theme_few()+
+    scale_fill_ptol()+
+    labs(
+        x="Cell number",
+        y="Detected edges"
+    )+
+    facet_grid(type~., labeller = as_labeller(names))+
+    guides(fill=FALSE)+
+    theme(
+        axis.text=element_text(size=25),
+        axis.title=element_text(size=30),
+        strip.text.y = element_text(size = 25),
+        axis.title.y=element_text(margin=margin(0,20,0,0))
+    )
+```
+
+<br></br>
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+m$theo <- sapply(1:nrow(m), function(x) 
+    if(round(m[x,"cellNumberMedian"]) < 2) {
+        0
+    } else {
+         ncol(combn(1:round(m[x,"cellNumberMedian"]), 2))
+    }
+)
+
+ggplot(m, aes(x=factor(theo), y=Freq))+
+    geom_boxplot(aes(fill=type), alpha=0.75, outlier.colour = "white")+
+    geom_jitter(height=0, width=0.25, size=4, alpha=0.5)+
+    facet_grid(type~., labeller = as_labeller(names))+
+    scale_fill_ptol()+
+    labs(
+        x="Maximum theoretical edges",
+        y="Detected edges"
+    )+
+    guides(fill=FALSE)+
+    theme_few()+
+    theme(
+        axis.text=element_text(size=25),
+        axis.title=element_text(size=30),
+        strip.text.y = element_text(size = 25),
+        axis.title.y=element_text(margin=margin(0,20,0,0))
+    )
+```
+
+</div>
+
+<br></br><br></br>
+
+###Plot deviation of observed edges from maximum number of theoretical edges as a function of the cost
+
+In the plot below negative numbers indicate multiplets that have less edges than the theoretical max whereas, positive numbers indicate multiplets that have more edges than the theoretical max. Results indicate several things. 1) There is a cost below which no multiplets have more edges than the maximum number of theoretical edges (approximatley 275000). 2) There is a cost after which all cells have more edges than the theoretical max (approximatley 320000). 3) It appears as though multiplets with a large number of cells tend to deconvolute more according to expectations than multiplets with a small number of cells.
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+costs <- data.frame(cost=getData(sObj.w, "costs"), Var1=rownames(getData(sObj.w, "spSwarm")))
+m <- merge(m, costs, by="Var1", all=TRUE)
+
+ggplot(m, aes(x=cost, y=Freq-theo))+
+    geom_point(aes(colour=cellNumberMedian))+
+    facet_grid(type~., labeller = as_labeller(names))+
+    theme_few()+
+    labs(
+        x="Cost",
+        y="Deviation from maximum theoretical edges (detected - theoretical)"
+    )+
+    guides(colour=guide_legend(title="Cell number"))
+```
+
+##Look at distribution of fractions per cell number
+```{r}
+swarm <- getData(sObj.w, "spSwarm")
+sortSwarm <- t(apply(swarm, 1, function(x) sort(x, decreasing=TRUE)))
+colnames(sortSwarm) <- colnames(swarm)
+plot <- merge(cells %>% filter(sampleType == "Multiplet") %>% select(c(1,5)), sortSwarm, by.x="sampleName", by.y=0)
+plot$cellNumberMedian <- round(plot$cellNumberMedian)
+m2 <- melt(plot, id.vars=c("sampleName", "cellNumberMedian"))
+
+ggplot(m2, aes(variable, value))+
+    geom_boxplot()+
+    facet_grid(cellNumberMedian~.)+
+    labs(
+        x="Fraction position sorted",
+        y="Fraction value",
+        subtitle="Estimated multiplet cells on right y axis. Grey dotted line indicates typical edge cutoff (1/13.5)."
+    )+
+    theme_few()+
+    theme(
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        plot.subtitle=element_text(hjust=0)
+    )+
+    geom_hline(yintercept=1/13.5, lty=2, colour="darkgrey")
+```
+
+###Plot cost as a function of average expression
+
+Next I wanted to have a look at the residuals. 
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+res.w <- data.frame(rowSums(calcResiduals(cObjMul, uObj.w, sObj.w, edge.cutoff=1/13.5)))
+cs <- data.frame(rowMeans(getData(cObjMul, "counts.cpm")[getData(uObj.w, "selectInd"),]))
+m <- merge(res.w, cs, by=0, all=TRUE)
+colnames(m) <- c("gene", "residuals", "mean")
+ggplot(m, aes(residuals, mean))+
+    geom_point()+
+    theme_few()+
+    labs(
+        x="Residuals",
+        y="Mean"
+    )
+
+```
+
+###Plot residuals per multiplet
+
+```{r, fig.align='center', fig.height=8, fig.width=12, eval=TRUE, message=FALSE}
+plotSwarm(sObj.uw, uObj.uw, cObjSng, cObjMul, type="multiplets", edge.cutoff=1/13.5, label.cutoff=1)
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=12, eval=TRUE, message=FALSE}
+plotSwarm(sObj.w, uObj.w, cObjSng, cObjMul, type="multiplets", edge.cutoff=1/13.5, label.cutoff=1)
+```
+
+###Plot sum of residuals per significant connection
+
+####Unweighted connections
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotSwarm(sObj.uw, uObj.uw, cObjSng, cObjMul, type="edges", edge.cutoff=1/13.5, min.num.edges=1, min.pval=0.05, label.cutoff=4)
+```
+
+####Weighted connections
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotSwarm(sObj.w, uObj.w, cObjSng, cObjMul, type="edges", edge.cutoff=1/13.5, min.num.edges=1, min.pval=0.05, label.cutoff=4)
+```
+
+
+##Look at distribution of fractions per cell number
