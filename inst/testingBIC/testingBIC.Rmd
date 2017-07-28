@@ -237,3 +237,52 @@ plotUnsupervised(uObjBic2)
 plotSwarm(sObjBic2, type = "edgeBar", edge.cutoff = 0, min.num.edges = 1)
 
 ```
+
+The results in fact do indicate that we detect many connections within the acinar subgroup as would be expected.
+
+```{r, eval = FALSE}
+sObjBic3 <- spSwarm(cObjSng, uObjBic, swarmsize = 500, cores = 6, maxiter = 1000, distFun = bic, report = FALSE, reportRate = 10)
+save(sObjBic3, file = "~/Github/sp.scRNAseqTesting/inst/testingBIC/sObjBic3.rda", compress = "bzip2")
+```
+
+```{r, echo = FALSE}
+load("~/Github/sp.scRNAseqTesting/inst/testingBIC/sObjBic3.rda")
+```
+
+```{r, fig.align='center', fig.height=12, fig.width=10, eval=TRUE, message=FALSE}
+classification <- getData(uObjBic, "classification") %>%
+    as_tibble() %>%
+    add_column(sample = rownames(getData(uObjBic, "tsne"))) %>%
+    rename(classification = value)
+
+spSwarmPoisson(sObjBic3, 0) %>%
+    filter(weight > 0) %>%
+    select(1, 2) %>%
+    getMultipletsForEdge(sObjBic3, 0, .) %>%
+    left_join(classification, by = c("multiplet" = "sample")) %>%
+    select(from, to, classification) %>%
+    table() %>%
+    as_tibble() %>%
+    filter(n > 0) %>%
+    mutate(detected = case_when(
+        from == classification & to == classification ~ classification,
+        from == classification & to != classification ~ to,
+        from != classification & to == classification ~ from,
+        TRUE ~ paste(from, to, sep = "- ")
+    )) %>%
+    ggplot(., aes(classification, detected)) +
+    geom_tile(aes(fill = n)) +
+    theme_few() +
+    scale_fill_viridis() +
+    theme(
+        axis.text.x = element_text(angle = 90)
+    ) +
+    labs(
+        x = "Classification (by Mclust)",
+        y = "Detected classification or connection"
+    ) +
+    guides(fill = guide_colorbar(title = "Count"))
+
+```
+
+The results indicate that many of the singlets are mis-classified. This could be compounded by the fact that an uncertainty parameter and weighted means are not included in the analysis although this seems like it would actually make the problem worse. In some cases this can be explained by the following: In cases where 2 groups of singlets are close to one another (acinar and ductal for example), since we use the mean of the groups in the deconvolution, it can be the case that an individual singlet (acinar), when running the deconvolution on the singlets, is closer to the mean of the "other" group (ductal) than it is to the mean of its "own" group (acinar). In theory this could be happening with doublets as well and therefore, the implications should be considered further.

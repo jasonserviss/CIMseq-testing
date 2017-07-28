@@ -10,6 +10,9 @@
 #' @param outPath Path to output results to.
 #' @param cores Number of cores to be used for spSwarm.
 #' @param n Number of multuplets.
+#' @param ngenes Specifies the \code{n} argument to the \code{spTopMax}
+#'    function.
+#' @param distFun The distance function to use during swarm optimization.
 #' @param ... additional arguments to pass on
 #' @return Saves results in .rda file.
 #' @author Jason T. Serviss
@@ -25,10 +28,17 @@ NULL
 #' @export
 #' @import sp.scRNAseq
 
-expressionDataTest <- function(outPath = './data', cores=6, n=30, ...) {
+expressionDataTest <- function(
+    outPath = './data',
+    cores = 6,
+    n = 30,
+    ngenes = 2000,
+    distFun = bic,
+    ...
+){
     
     #make test data
-    tmp <- .expressionTestData(n)
+    tmp <- .expressionTestData(n, ngenes)
     expressionTestData <- tmp[[1]]
     testExpTestData <- tmp[[2]]
     expressionTestUnsupervised <- tmp[[3]]
@@ -45,25 +55,29 @@ expressionDataTest <- function(outPath = './data', cores=6, n=30, ...) {
     expressionTestSwarm <- spSwarm(
         cObjMul,
         expressionTestUnsupervised,
-        maxiter=10^4,
-        swarmsize=250,
-        cores=cores
+        maxiter = 10^4,
+        swarmsize = 250,
+        cores = cores,
+        distFun = distFun
     )
     
     #save
     save(
         expressionTestData,
-        file=paste(outPath, "expressionTestData.rda", sep="/"),
-        compress="bzip2"
+        file = paste(outPath, "expressionTestData.rda", sep = "/"),
+        compress = "bzip2"
     )
     save(
-        testExpTestData, expressionTestUnsupervised, expressionTestTable, expressionTestSwarm,
-        file=paste(outPath, "expressionTest.rda", sep="/"),
-        compress="bzip2"
+        testExpTestData,
+        expressionTestUnsupervised,
+        expressionTestTable,
+        expressionTestSwarm,
+        file = paste(outPath, "expressionTest.rda", sep = "/"),
+        compress = "bzip2"
     )
 }
 
-.expressionTestData <- function(n) {
+.expressionTestData <- function(n, ngenes) {
     
     #load data
     counts <- expCounts
@@ -82,8 +96,8 @@ expressionDataTest <- function(outPath = './data', cores=6, n=30, ...) {
         initial_dims = ncol(sng),
         Gmax = 50,
         seed = 15,
-        type = "var",
-        max = 1000
+        type = "max",
+        max = ngenes
     )
     
     classification <- getData(uObj, "classification")
@@ -93,32 +107,32 @@ expressionDataTest <- function(outPath = './data', cores=6, n=30, ...) {
     names <- c()
     
     #same cell type
-    tmp <- .assemble(means, classification, dataset, names, 2, type="homo")
+    tmp <- .assemble(means, classification, dataset, names, 2, type = "homo")
     dataset <- tmp[[1]]
     names <- tmp[[2]]
 
     #doublets
-    tmp <- .assemble(means, classification, dataset, names, 2, type="hetero")
+    tmp <- .assemble(means, classification, dataset, names, 2, type = "hetero")
     dataset <- tmp[[1]]
     names <- tmp[[2]]
     
     #triplets
-    tmp <- .assemble(means, classification, dataset, names, 3, type="hetero")
+    tmp <- .assemble(means, classification, dataset, names, 3, type = "hetero")
     dataset <- tmp[[1]]
     names <- tmp[[2]]
     
     #quadruplets
-    tmp <- .assemble(means, classification, dataset, names, 4, type="hetero")
+    tmp <- .assemble(means, classification, dataset, names, 4, type = "hetero")
     dataset <- tmp[[1]]
     names <- tmp[[2]]
     
     #adjust colnames
-    colnames(dataset) <- paste("m.", names, sep="")
-    colnames(sng) <- paste("s.", classification, sep="")
+    colnames(dataset) <- paste("m.", names, sep = "")
+    colnames(sng) <- paste("s.", classification, sep = "")
     
     #select multuplets for current test
-    testMultuplets <- dataset[ ,sample(1:ncol(dataset), n, replace=FALSE)]
-    table <- calculateConnections(testMultuplets, type="multuplets")
+    testMultuplets <- dataset[ ,sample(1:ncol(dataset), n, replace = FALSE)]
+    table <- calculateConnections(testMultuplets, type = "multuplets")
     
     expTestData <- as.matrix(cbind(sng, dataset))
     testExpTestData <- as.matrix(cbind(sng, testMultuplets))
@@ -134,15 +148,15 @@ expressionDataTest <- function(outPath = './data', cores=6, n=30, ...) {
 
 .assemble <- function(means, classification, dataset, names, x, type) {
     
-    if(type=="hetero") {
+    if(type == "hetero") {
         comb <- combn(unique(classification), x)
     } else {
-        comb <- t(matrix(rep(unique(classification), 2), ncol=2))
+        comb <- t(matrix(rep(unique(classification), 2), ncol = 2))
     }
     
     for( i in 1:ncol(comb)) {
         currentMult <- rowMeans(means[,comb[,i]])
-        name <- paste(comb[,i], sep="", collapse="")
+        name <- paste(comb[,i], sep = "", collapse = "")
         
         dataset <- cbind(dataset, currentMult)
         names <- c(names, name)

@@ -10,6 +10,11 @@
 
 \item{n}{Number of multuplets.}
 
+\item{ngenes}{Specifies the \code{n} argument to the \code{spTopMax}
+function.}
+
+\item{distFun}{The distance function to use during swarm optimization.}
+
 \item{...}{additional arguments to pass on}
 }
 \value{
