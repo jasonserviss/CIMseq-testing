@@ -229,19 +229,16 @@ syntheticDataTest <- function(
         current <- combos[ ,u]
         
         set.seed(2918834)
-        idx1 <- sample(
-            which(colnames(singlets) == current[1]),
-            size = 1,
-            replace = FALSE
-        )
+        idxs <- c()
+        for(i in 1:length(current)) {
+            idxs[i] <- sample(
+                which(colnames(singlets) == current[1]),
+                size = 1,
+                replace = FALSE
+            )
+        }
         
-        idx2 <- sample(
-            which(colnames(singlets) == current[2]),
-            size = 1,
-            replace = FALSE
-        )
-        
-        new <- data.frame(rowMeans(singlets[, c(idx1, idx2)]))
+        new <- data.frame(rowMeans(singlets[, idxs]))
         
         if(ncol(multuplets) == 0) {
             multuplets <- new
