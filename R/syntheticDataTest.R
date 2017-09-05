@@ -186,21 +186,21 @@ syntheticDataTest <- function(
     )
     
     colnames(singlets) <- getData(uObj, "classification")
-    mean <- getData(uObj, "groupMeans")
+    #mean <- getData(uObj, "groupMeans")
     
     #doublets
     cellNames <- unique(colnames(singlets))
-    tmp <- .makeMultuplet(2, cellNames, data.frame(), data.frame(), mean)
+    tmp <- .makeMultuplet(2, cellNames, data.frame(), data.frame(), singlets)
     multuplets <- tmp[[1]]
     names <- tmp[[2]]
     
     #triplets
-    tmp <- .makeMultuplet(3, cellNames, multuplets, names, mean)
+    tmp <- .makeMultuplet(3, cellNames, multuplets, names, singlets)
     multuplets <- tmp[[1]]
     names <- tmp[[2]]
     
     #quadruplets
-    tmp <- .makeMultuplet(4, cellNames, multuplets, names, mean)
+    tmp <- .makeMultuplet(4, cellNames, multuplets, names, singlets)
     multuplets <- tmp[[1]]
     names <- tmp[[2]]
     
@@ -214,7 +214,7 @@ syntheticDataTest <- function(
     cellNames,
     multuplets,
     names,
-    mean
+    singlets
 ){
     switch(n - 1,
         {combos <- expand.grid(cellNames, cellNames)},
@@ -227,22 +227,28 @@ syntheticDataTest <- function(
     
     for(u in 1:ncol(combos)) {
         current <- combos[ ,u]
-        bool <- all.equal(
-            as.character(current),
-            as.character(rep(current[1], length(current)))
+        
+        set.seed(2918834)
+        idx1 <- sample(
+            which(colnames(singlets) == current[1]),
+            size = 1,
+            replace = FALSE
         )
-        if(isTRUE(bool)) {
-            new <- data.frame(mean[ , colnames(mean) %in% current]) #here I use the mean of the cell type to construct the connections to that cell type in the multiplet. It could be better to randomly pick one of the cells of that cell type instead.
-        } else {
-            new <- data.frame(rowMeans(mean[ , colnames(mean) %in% current]))
-        }
+        
+        idx2 <- sample(
+            which(colnames(singlets) == current[2]),
+            size = 1,
+            replace = FALSE
+        )
+        
+        new <- data.frame(rowMeans(singlets[, c(idx1, idx2)]))
         
         if(ncol(multuplets) == 0) {
             multuplets <- new
-            names <- paste(current, collapse="")
+            names <- paste(current, collapse = "")
         } else {
             multuplets <- cbind(multuplets, new)
-            names <- c(names,  paste(current, collapse=""))
+            names <- c(names,  paste(current, collapse = ""))
         }
     }
     return(list(multuplets, names))
