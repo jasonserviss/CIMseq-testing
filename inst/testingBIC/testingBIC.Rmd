@@ -78,7 +78,7 @@ Plot the detected connections.
 plotSwarm(sObjBic, type = "edgeBar", edge.cutoff = 0, min.num.edges = 1)
 ```
 
-The detected connections look much more realistic. Many of the connections are expected due to the fact that they represent known ongoing differentiation processes (Endocrine progenitor -> Beta, Ductal -> Acinar, Ductal -> Endocrine Progenitor). In addition 37 of the edges (or `r paste(round(37/sum(allEdges$weight), digits = 2), "%", sep = "")` of the total detected edges) are endothelial - endothelial connections which makes sense due to the fact that multiplets were sorted on this marker. The number of self connections in the multiplets is `r sum(filter(allEdges, from == to)$weight)` or `r paste(round(sum(filter(allEdges, from == to)$weight) / sum(allEdges$weight), digits = 2), "%", sep = "")` of the total edges. A table below shows the non-self connections, their weights and p-values (although the p-value calculation needs some improvment).
+The detected connections look much more realistic. Many of the connections are expected due to the fact that they represent known ongoing differentiation processes (Endocrine progenitor -> Beta, Ductal -> Acinar, Ductal -> Endocrine Progenitor). In addition 37 of the edges (or `r paste(round(100*(37/sum(allEdges$weight)), digits = 2), "%", sep = "")` of the total detected edges) are endothelial - endothelial connections which makes sense due to the fact that multiplets were sorted on this marker. The number of self connections in the multiplets is `r sum(filter(allEdges, from == to)$weight)` or `r paste(round(100 * (sum(filter(allEdges, from == to)$weight) / sum(allEdges$weight)), digits = 2), "%", sep = "")` of the total edges. A table below shows the non-self connections, their weights and p-values (although the p-value calculation needs some improvment).
 
 ```{r}
 nselfEdges
@@ -106,7 +106,7 @@ funx <- function(swarm, edge.cutoff = 0) {
         setNames(rownames(swarm))
     
     #finds all connections per multiplet
-    conns <- lapply(1:length(input), function(x) {
+    lapply(1:length(input), function(x) {
         y <- input[[x]]
         if(length(y) > 1) {
             co <- combn(y, 2)
@@ -120,16 +120,15 @@ funx <- function(swarm, edge.cutoff = 0) {
         t() %>%
         data.frame(., rowname = rownames(.), row.names = 1:nrow(.)) %>%
         as_tibble() %>%
-        rename(from = X1, to = X2, multiplet = rowname) %>%
-        select(multiplet, from, to) %>%
         mutate(
-            from = as.character(from), 
-            to = as.character(to), 
-            multiplet = as.character(multiplet)
-        )
+            from = as.character(pull(., X1)), 
+            to = as.character(pull(., X2)), 
+            multiplet = as.character(pull(., rowname))
+        ) %>%
+        select(multiplet, from, to)
 }
 
-funx(getData(syntheticDataSwarm, "spSwarm")) %>%
+funx(swarm = getData(syntheticDataSwarm, "spSwarm"), edge.cutoff = 0) %>%
     mutate(real = paste(from, to, sep = "-")) %>%
     select(-from, -to) %>%
     left_join(getEdgesForMultiplet(syntheticDataSwarm, 1/10.5, rownames(getData(syntheticDataSwarm, "spSwarm"))), by = "multiplet") %>%
@@ -172,8 +171,8 @@ We can also try another "test strategy". If we divide the classified cell types 
 subClasses <- tsne %>%
     as.data.frame() %>%
     rownames_to_column() %>%
-    rename(sample = rowname, tsneDim1 = V1, tsneDim2 = V2) %>%
     as_tibble() %>%
+    dplyr::rename(sample = rowname, tsneDim1 = V1, tsneDim2 = V2) %>%
     left_join(sampleClasses) %>%
     mutate(subClass = case_when(
         class == "Acinar" & tsneDim1 < -34.9 ~ "Acinar-1",
@@ -253,7 +252,7 @@ load("~/Github/sp.scRNAseqTesting/inst/testingBIC/sObjBic3.rda")
 classification <- getData(uObjBic, "classification") %>%
     as_tibble() %>%
     add_column(sample = rownames(getData(uObjBic, "tsne"))) %>%
-    rename(classification = value)
+    dplyr::rename(classification = value)
 
 spSwarmPoisson(sObjBic3, 0) %>%
     filter(weight > 0) %>%
@@ -286,3 +285,59 @@ spSwarmPoisson(sObjBic3, 0) %>%
 ```
 
 The results indicate that many of the singlets are mis-classified. This could be compounded by the fact that an uncertainty parameter and weighted means are not included in the analysis although this seems like it would actually make the problem worse. In some cases this can be explained by the following: In cases where 2 groups of singlets are close to one another (acinar and ductal for example), since we use the mean of the groups in the deconvolution, it can be the case that an individual singlet (acinar), when running the deconvolution on the singlets, is closer to the mean of the "other" group (ductal) than it is to the mean of its "own" group (acinar). In theory this could be happening with doublets as well and therefore, the implications should be considered further.
+
+Finally, we can look at the performance of the BIC distance function on the expression dataset (where singlets were combined into multiplets).
+```{r, fig.align='center', fig.height=12, fig.width=10, eval=TRUE, message=FALSE}
+funx(swarm = getData(expressionTestSwarm, "spSwarm"), edge.cutoff = 0) %>%
+    mutate(real = paste(from, to, sep = "-")) %>%
+    select(-from, -to) %>%
+    left_join(
+        getEdgesForMultiplet(
+            expressionTestSwarm, 
+            1/9.5, 
+            rownames(getData(expressionTestSwarm, "spSwarm"))
+        ), 
+        by = "multiplet"
+    ) %>%
+    mutate(detected = paste(from, to, sep = "-")) %>%
+    select(-from, -to) %>%
+    gather(type, connection, -multiplet) %>%
+    group_by(connection, type) %>%
+    summarize(count = n()) %>%
+    ungroup() %>%
+    ggplot(., aes(type, connection)) +
+    geom_tile(aes(fill = count)) +
+    facet_grid(
+        .~type,
+        space = "free",
+        scale = "free",
+        labeller = as_labeller(c(
+            `detected` = "Detected",
+            `real` = "Real"
+        ))
+    ) +
+    scale_fill_viridis() +
+    theme_few() +
+    labs(
+        x = "Type",
+        y = "Connection"
+    ) +
+    guides(fill = guide_colorbar(title = "Count")) +
+    theme(
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text.x = element_text()
+    )
+
+```
+
+The results indicate that, in the same manner as the synthetic dataset, the BIC distance function characterizes all multiplets correctly. 
+
+In summary, the BIC distance function seems to be performing better than the previously used distToSlice function although the evidence for this is minimal. Both distance functions were able to acuratley identify all connections in the multiplets in the synthetic and expression datasets. Although the "subgroups test" (where a known cell type is divided into multiple cell types) was never performed with the distToSlice funciton, it would be expected to perform well there as well. Thus, the main evidence that the BIC distance function has an increased performance compared to the distToSlice function is its results using the real data, the reasons for this belief being outlined in the respective results. 
+
+
+
+
+
+
+

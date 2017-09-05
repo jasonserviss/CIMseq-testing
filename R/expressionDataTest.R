@@ -83,9 +83,9 @@ expressionDataTest <- function(
     counts <- expCounts
     single <- grepl("^s", colnames(counts))
     sng <- counts[ ,single]
-    mul <- counts[,!single]
-    cObjSng <- spCounts(sng, matrix(NA, ncol=ncol(sng)))
-    cObjMul <- spCounts(mul, matrix(NA, ncol=ncol(mul)))
+    mul <- counts[ ,!single]
+    cObjSng <- spCounts(sng, matrix(NA, ncol = ncol(sng)))
+    cObjMul <- spCounts(mul, matrix(NA, ncol = ncol(mul)))
     
     uObj <- spUnsupervised(
         cObjSng,
@@ -103,7 +103,7 @@ expressionDataTest <- function(
     classification <- getData(uObj, "classification")
     means <- getData(uObj, "groupMeans")
     
-    dataset <- data.frame(row.names=1:nrow(sng))
+    dataset <- data.frame(row.names = 1:nrow(sng))
     names <- c()
     
     #same cell type
@@ -155,8 +155,8 @@ expressionDataTest <- function(
     }
     
     for( i in 1:ncol(comb)) {
-        currentMult <- rowMeans(means[,comb[,i]])
-        name <- paste(comb[,i], sep = "", collapse = "")
+        currentMult <- rowMeans(means[ ,comb[ ,i]])
+        name <- paste(comb[ ,i], sep = "", collapse = "")
         
         dataset <- cbind(dataset, currentMult)
         names <- c(names, name)

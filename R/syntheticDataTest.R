@@ -91,7 +91,7 @@ syntheticDataTest <- function(
     ngenes,
     ncells,
     cellTypes,
-    perplexity=10
+    perplexity = 10
 ){
     tmp <- .syntheticMultuplets(ngenes, ncells, cellTypes, perplexity)
     singlets <- tmp[[1]]
@@ -99,7 +99,7 @@ syntheticDataTest <- function(
     uObj <- tmp[[3]]
     
     #select multuplets for current test
-    testMultuplets <- multuplets[ ,sample(1:ncol(multuplets), n, replace=FALSE)]
+    testMultuplets <- multuplets[ ,sample(1:ncol(multuplets), n, replace = FALSE)]
     table <- calculateConnections(testMultuplets, type = "multuplets")
     
     #name, bind, and return
@@ -136,11 +136,11 @@ syntheticDataTest <- function(
     cellTypes
 ){
 
-    for( i in 1:cellTypes) {
+    for(i in 1:cellTypes) {
         set.seed(i)
         meanExprs <- 2^runif(ngenes, 0, 5)
         counts <- matrix(
-            rnbinom(ngenes*ncells, mu=meanExprs, size=i),
+            rnbinom(ngenes * ncells, mu = meanExprs, size = i),
             nrow=ngenes
         )
         if( i == 1 ) {
@@ -150,7 +150,7 @@ syntheticDataTest <- function(
         }
     }
     colnames(singlets) <- paste(
-        sort(rep(letters, ncells))[1:(cellTypes*ncells)],
+        sort(rep(letters, ncells))[1:(cellTypes * ncells)],
         1:ncells,
         sep = ""
     )
@@ -168,7 +168,10 @@ syntheticDataTest <- function(
     singlets <- .syntheticSinglets(ngenes, ncells, cellTypes)
     cObjSng <- spCounts(
         as.matrix(singlets),
-        counts.ercc=matrix(rep(NA, ncol(singlets)), ncol=ncol(singlets))
+        counts.ercc = matrix(
+            rep(NA, ncol(singlets)),
+            ncol = ncol(singlets)
+        )
     )
     uObj <- spUnsupervised(
         cObjSng,
@@ -219,7 +222,7 @@ syntheticDataTest <- function(
         {combos <- expand.grid(cellNames, cellNames, cellNames, cellNames)}
     )
     
-    dat.sort = t(apply(combos, 1, sort))
+    dat.sort <- t(apply(combos, 1, sort))
     combos <- t(combos[!duplicated(dat.sort),])
     
     for(u in 1:ncol(combos)) {
@@ -229,7 +232,7 @@ syntheticDataTest <- function(
             as.character(rep(current[1], length(current)))
         )
         if(isTRUE(bool)) {
-            new <- data.frame(mean[ , colnames(mean) %in% current])
+            new <- data.frame(mean[ , colnames(mean) %in% current]) #here I use the mean of the cell type to construct the connections to that cell type in the multiplet. It could be better to randomly pick one of the cells of that cell type instead.
         } else {
             new <- data.frame(rowMeans(mean[ , colnames(mean) %in% current]))
         }
@@ -244,6 +247,11 @@ syntheticDataTest <- function(
     }
     return(list(multuplets, names))
 }
+
+
+
+
+
 
 .adjustFreq <- function(ncells, cellNames, multuplets) {
     intMat <- .interactionMatrix(ncells, cellNames, 23443)
