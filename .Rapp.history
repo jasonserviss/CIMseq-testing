@@ -1,5 +1,51 @@
-setwd('~/Github/sp.scRNAseqTesting')
-devtools::document()
-devtools::install()
-library(sp.ScRNAseqTesting)
-library(sp.scRNAseqTesting)
+freq
+.quantifyConnections <- function(mulNames) {#
+    split <- strsplit(trimws(gsub("(.{2})", "\\1 ", mulNames)), " ")#
+    l <- lapply(#
+        split,#
+        function(x)#
+            paste(combn(x, 2)[1, ], combn(x, 2)[2, ], sep = "-")#
+    )#
+    out <- as.data.frame(table(unlist(l)))#
+    out$type1 <- gsub("^(..)...$", "\\1", out$Var1)#
+    out$type2 <- gsub("^...(..)$", "\\1", out$Var1)#
+    out$percent <- out$Freq / sum(out$Freq)#
+    return(out)#
+}
+freq <- .quantifyConnections(rownames(register)[gtOne])
+freq
+sum(freq$Freq)
+.targetFreq <- function(mulNames, fixed) {#
+    split <- strsplit(trimws(gsub("(.{2})", "\\1 ", mulNames)), " ")#
+    l <- lapply(#
+        split,#
+        function(x)#
+            paste(combn(x, 2)[1, ], combn(x, 2)[2, ], sep = "-")#
+    )#
+    conTypes <- data.frame(unique(unlist(l)))#
+    conTypes$type1 <- gsub("^(..)...", "\\1", conTypes[, 1])#
+    conTypes$type2 <- gsub("...(..)$", "\\1", conTypes[, 1])#
+    conTypes$target <- NA#
+    conTypes$self <- ifelse(conTypes$type1 == conTypes$type2, TRUE, FALSE)#
+    done <- c()#
+    for(i in fixed) {#
+        if(!all(is.na(conTypes[conTypes$type1 == i | conTypes$type2 == i, 4]))) {#
+            next#
+        }#
+        idxs <- which(#
+            (conTypes$type1 == i | conTypes$type2 == i ) &#
+            conTypes$self == FALSE &#
+            !conTypes$type1 %in% done &#
+            !conTypes$type2 %in% done#
+        )#
+        set.seed(23089)#
+        idx <- sample(idxs, size = 1)#
+        conTypes[idx, "target"] <- 50#
+        done <- c(done, i)#
+    }#
+    return(subset(conTypes, type1 %in% fixed | type2 %in% fixed))#
+}
+targetFreq <- .targetFreq(rownames(register)[gtOne], fixed)
+targetFreq
+freq
+library(tidyverse)

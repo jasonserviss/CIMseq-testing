@@ -12,7 +12,8 @@
 #' @param n Number of multuplets.
 #' @param ngenes Number of genes in generated synthetic data.
 #' @param ncells Number of cells per cell type in generated synthetic data.
-#' @param cellTypes Number of cell types in generated synthetic data.
+#' @param cellTypes Number of cell types in generated synthetic data. For the
+#'    frequency adjustment to work this should be an even number.
 #' @param distFun The distance function to use for swarm optimization.
 #' @param ... additional arguments to pass on
 #' @return Saves results in .rda file.
@@ -141,7 +142,7 @@ syntheticDataTest <- function(
         meanExprs <- 2^runif(ngenes, 0, 5)
         counts <- matrix(
             rnbinom(ngenes * ncells, mu = meanExprs, size = i),
-            nrow=ngenes
+            nrow = ngenes
         )
         if( i == 1 ) {
             singlets <- counts
@@ -206,6 +207,8 @@ syntheticDataTest <- function(
     
     colnames(multuplets) <- names
     
+    #multuplets <- .adjustMultuplets(singlets, multuplets)
+    
     return(list(singlets, multuplets, uObj))
 }
 
@@ -228,7 +231,7 @@ syntheticDataTest <- function(
     for(u in 1:ncol(combos)) {
         current <- combos[ ,u]
         
-        set.seed(2918834)
+        set.seed(2918834 + u)
         idxs <- c()
         for(i in 1:length(current)) {
             idxs[i] <- sample(
@@ -252,6 +255,196 @@ syntheticDataTest <- function(
 }
 
 
+.adjustMultuplets <- function(singlets, multuplets) {
+    
+    combos <- combn(unique(colnames(singlets)), 2)
+    
+    #find connections in multuplets
+    register <- sapply(
+        1:ncol(combos),
+        function(x)
+            grepl(combos[1, x], colnames(multuplets)) & grepl(combos[2, x], colnames(multuplets))
+    )
+    rownames(register) <- colnames(multuplets)
+    colnames(register) <- paste(combos[1, ], combos[2,], sep = "-")
+    
+    #identify multuplets with 1 and >1 connections
+    one <- which(rowSums(register) == 1)
+    gtOne <- which(rowSums(register) > 1)
+    
+    #decide which connection preferences should exist
+    targetConnections <- decideConnections(unique(colnames(singlets)))
+    
+    #quantify current connections
+    current <- .quantifyConnections(colnames(multuplets))
+    
+    #adjust connection frequency
+    
+    for(i in 1:nrow(targetConnections)) {
+        
+        #calculate current percent
+        type1 <- gsub("^(..)...$", "\\1", targetConnections[i, "conn"])
+        type2 <- gsub("^...(..)$", "\\1", targetConnections[i, "conn"])
+
+        f <- current[current$Var1 == targetConnections[i, "conn"], "Freq"]
+        s <- sum(current[current$type1 %in% c(type1, type2) | current$type2 %in% c(type1, type2), "Freq"])
+        currentPercent <- (f / s) * 100
+        
+        #calculate number to add
+        numerator <- (100 * f) - (s * targetConnections[i, "target"])
+        denominator <- targetConnections[i, "target"] - 100
+        add <- numerator / denominator
+        
+        #synthesize and add
+        #the problem with 100 cells each cell type is that it is not enough to
+        #meet the target so either synthesize more cells or drop the target
+        for(y in 1:add) {
+            tmp <- .makeMultuplet(
+                2,
+                c(type1, type2),
+                multuplets,
+                colnames(multuplets),
+                singlets
+            )
+            multuplets <- tmp[[1]]
+            
+            #remove self connections
+            n <- ncol(multuplets)
+            multuplets <- multuplets[, -c(n, (n - 2))]
+            colnames(multuplets)[ncol(multuplets)] <- paste(type1, type2, sep = "")
+        }
+        
+        #check frequency
+        after <- .quantifyConnections(colnames(multuplets))
+        f <- after[after$Var1 == targetConnections[i, "conn"], "Freq"]
+        s <- sum(after[after$type1 %in% c(type1, type2) | after$type2 %in% c(type1, type2), "Freq"])
+        currentPercent <- (f / s) * 100
+        targetConnections[i, "current"] <- currentPercent
+    }
+    
+    if(!all.equal(targetConnections$target, targetConnections$current)) {
+        stop("target connection percentage was not met. check code")
+    }
+    return(multuplets)
+}
+
+.quantifyConnections <- function(multupletNames) {
+    split <- trimws(gsub("(.{2})", "\\1 ", multupletNames))
+    suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", split)
+    ss <- strsplit(suffixRemove, " ")
+    l <- lapply(ss, function  (x) combn(x, 2))
+    srt <- lapply(l, function(x) apply(x, 2, sort))
+    p <- lapply(srt, function(x) paste(x[1, ], x[2, ], sep = "-"))
+    d <- as.data.frame(table(unlist(p)), stringsAsFactors = FALSE)
+    d$type1 <- gsub("^(..)...$", "\\1", d$Var1)
+    d$type2 <- gsub("^...(..)$", "\\1", d$Var1)
+    d
+}
+
+
+#decide which connections should exist
+decideConnections <- function(cellTypes) {
+    
+    done <- c()
+    count <- 0
+    combos <- c()
+    for(i in 1:(length(cellTypes) / 2)) {
+        set.seed(988797 + count)
+        comb <- sort(sample(cellTypes, size = 2, replace = FALSE))
+        while(any(comb %in% done)) {
+            set.seed(988797 + count)
+            comb <- sort(sample(cellTypes, size = 2, replace = FALSE))
+            count <- count + 1
+        }
+        done <- c(done, comb)
+        combos[i] <- paste(comb[1], comb[2], sep = "-")
+    }
+    
+    if(any(!cellTypes %in% unlist(strsplit(combos, "-")))) {
+        idx <- which(!cellTypes %in% unlist(strsplit(combos, "-")))
+        missing <- cellTypes[idx]
+        combos <- c(combos, paste(missing, sample(cellTypes, 1), sep = "-"))
+    }
+
+    return(data.frame(
+        conn = combos,
+        target = 50,
+        current = 0,
+        stringsAsFactors = FALSE
+    ))
+}
+
+
+.optimizeFun <- function(x) {
+    x <- round(x)
+    for(i in 1:length(x)) {
+        #subset multiplets that include this connection
+    }
+}
+
+
+
+#ratio: the ratio of cell types to have fixed connection frequencies
+.pickFixedFreq <- function(singlets, multuplets, cellTypes, ratio = 0.5) {
+    nFixed <- round(cellTypes * ratio)
+    
+    #pick cell types to fix
+    set.seed(22389)
+    fixed <- sample(unique(colnames(singlets)), size = nFixed, replace = FALSE)
+    combos <- combn(fixed, 2) #add self connections?
+    
+    #find multuplets with fixed connections
+    register <- sapply(
+        1:ncol(combos),
+        function(x)
+            grepl(combos[1, x], colnames(multuplets)) & grepl(combos[2, x], colnames(multuplets))
+    )
+    rownames(register) <- colnames(multuplets)
+    colnames(register) <- paste(combos[1, ], combos[2,], sep = "-")
+    
+    #identify multuplets with 1 and >1 fixed connections
+    one <- which(rowSums(register) == 1)
+    gtOne <- which(rowSums(register) > 1)
+    
+    #quantify connections per fixed connection type in multiplets with >1
+    #fixed connections
+    freq <- .quantifyConnections(rownames(register)[gtOne], fixed)
+    
+    #set up target frequencies for existing connections
+    #each cell type should have one other cell type that it interacts with 30%
+    #of the time
+    targetFreq <- .targetFreq(freq)
+    
+    #compare target frequencies to quantified connections and adjust
+    
+}
+
+.targetFreq <- function(freq) {
+
+    freq$target <- NA
+    freq$self <- ifelse(freq$type1 == freq$type2, TRUE, FALSE)
+    done <- c()
+    
+    for(i in fixed) {
+        if(!all(is.na(freq[freq$type1 == i | freq$type2 == i, 4]))) {
+            next
+        }
+        
+        idxs <- which(
+            (freq$type1 == i | freq$type2 == i ) &
+            freq$self == FALSE &
+            !freq$type1 %in% done &
+            !freq$type2 %in% done
+        )
+        
+        set.seed(23089)
+        idx <- sample(idxs, size = 1)
+        freq[idx, "target"] <- 50
+        done <- c(done, i)
+    }
+    
+    return(conTypes[is.na(conTypes$target) == FALSE, ])
+}
 
 
 
