@@ -100,7 +100,8 @@ syntheticDataTest <- function(
     uObj <- tmp[[3]]
     
     #select multuplets for current test
-    testMultuplets <- multuplets[ ,sample(1:ncol(multuplets), n, replace = FALSE)]
+    idx <- sample(1:ncol(multuplets), n, replace = FALSE)
+    testMultuplets <- multuplets[, idx]
     table <- calculateConnections(testMultuplets, type = "multuplets")
     
     #name, bind, and return
@@ -207,7 +208,7 @@ syntheticDataTest <- function(
     
     colnames(multuplets) <- names
     
-    #multuplets <- .adjustMultuplets(singlets, multuplets)
+    multuplets <- .adjustMultuplets(singlets, multuplets)
     
     return(list(singlets, multuplets, uObj))
 }
@@ -256,9 +257,9 @@ syntheticDataTest <- function(
 
 
 .adjustMultuplets <- function(singlets, multuplets) {
-        
+    
     #decide which connection preferences should exist
-    targetConnections <- decideConnections(unique(colnames(singlets)))
+    targetConnections <- decideConnections(unique(colnames(singlets)), 30)
     
     #quantify current connections
     current <- .quantifyConnections(colnames(multuplets))
@@ -279,7 +280,13 @@ syntheticDataTest <- function(
         numerator <- (100 * f) - (s * targetConnections[i, "target"])
         denominator <- targetConnections[i, "target"] - 100
         add <- numerator / denominator
-        
+        mess <- paste(
+            "Adjusting connections percentages by adding ",
+            add,
+            " multiplets.",
+            sep = ""
+        )
+        print(mess)
         #synthesize and add connections to achieve target percentages
         for(y in 1:add) {
             tmp <- .makeMultuplet(
@@ -287,7 +294,7 @@ syntheticDataTest <- function(
                 c(type1, type2),
                 multuplets,
                 colnames(multuplets),
-                singlets
+                singlets #IT WOULD SEEM BETTER TO REGENERATE THESE, this also reflects reality better since its impossible for the exact same singlet to be a singlet and in a multiplets
             )
             multuplets <- tmp[[1]]
             
@@ -326,7 +333,7 @@ syntheticDataTest <- function(
 
 
 #decide which connections should exist
-decideConnections <- function(cellTypes) {
+decideConnections <- function(cellTypes, target) {
     
     done <- c()
     count <- 0
@@ -351,7 +358,7 @@ decideConnections <- function(cellTypes) {
 
     return(data.frame(
         conn = combos,
-        target = 50,
+        target = target,
         current = 0,
         stringsAsFactors = FALSE
     ))
