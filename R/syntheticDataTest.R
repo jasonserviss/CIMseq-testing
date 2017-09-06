@@ -256,22 +256,7 @@ syntheticDataTest <- function(
 
 
 .adjustMultuplets <- function(singlets, multuplets) {
-    
-    combos <- combn(unique(colnames(singlets)), 2)
-    
-    #find connections in multuplets
-    register <- sapply(
-        1:ncol(combos),
-        function(x)
-            grepl(combos[1, x], colnames(multuplets)) & grepl(combos[2, x], colnames(multuplets))
-    )
-    rownames(register) <- colnames(multuplets)
-    colnames(register) <- paste(combos[1, ], combos[2,], sep = "-")
-    
-    #identify multuplets with 1 and >1 connections
-    one <- which(rowSums(register) == 1)
-    gtOne <- which(rowSums(register) > 1)
-    
+        
     #decide which connection preferences should exist
     targetConnections <- decideConnections(unique(colnames(singlets)))
     
@@ -295,9 +280,7 @@ syntheticDataTest <- function(
         denominator <- targetConnections[i, "target"] - 100
         add <- numerator / denominator
         
-        #synthesize and add
-        #the problem with 100 cells each cell type is that it is not enough to
-        #meet the target so either synthesize more cells or drop the target
+        #synthesize and add connections to achieve target percentages
         for(y in 1:add) {
             tmp <- .makeMultuplet(
                 2,
@@ -375,123 +358,3 @@ decideConnections <- function(cellTypes) {
 }
 
 
-.optimizeFun <- function(x) {
-    x <- round(x)
-    for(i in 1:length(x)) {
-        #subset multiplets that include this connection
-    }
-}
-
-
-
-#ratio: the ratio of cell types to have fixed connection frequencies
-.pickFixedFreq <- function(singlets, multuplets, cellTypes, ratio = 0.5) {
-    nFixed <- round(cellTypes * ratio)
-    
-    #pick cell types to fix
-    set.seed(22389)
-    fixed <- sample(unique(colnames(singlets)), size = nFixed, replace = FALSE)
-    combos <- combn(fixed, 2) #add self connections?
-    
-    #find multuplets with fixed connections
-    register <- sapply(
-        1:ncol(combos),
-        function(x)
-            grepl(combos[1, x], colnames(multuplets)) & grepl(combos[2, x], colnames(multuplets))
-    )
-    rownames(register) <- colnames(multuplets)
-    colnames(register) <- paste(combos[1, ], combos[2,], sep = "-")
-    
-    #identify multuplets with 1 and >1 fixed connections
-    one <- which(rowSums(register) == 1)
-    gtOne <- which(rowSums(register) > 1)
-    
-    #quantify connections per fixed connection type in multiplets with >1
-    #fixed connections
-    freq <- .quantifyConnections(rownames(register)[gtOne], fixed)
-    
-    #set up target frequencies for existing connections
-    #each cell type should have one other cell type that it interacts with 30%
-    #of the time
-    targetFreq <- .targetFreq(freq)
-    
-    #compare target frequencies to quantified connections and adjust
-    
-}
-
-.targetFreq <- function(freq) {
-
-    freq$target <- NA
-    freq$self <- ifelse(freq$type1 == freq$type2, TRUE, FALSE)
-    done <- c()
-    
-    for(i in fixed) {
-        if(!all(is.na(freq[freq$type1 == i | freq$type2 == i, 4]))) {
-            next
-        }
-        
-        idxs <- which(
-            (freq$type1 == i | freq$type2 == i ) &
-            freq$self == FALSE &
-            !freq$type1 %in% done &
-            !freq$type2 %in% done
-        )
-        
-        set.seed(23089)
-        idx <- sample(idxs, size = 1)
-        freq[idx, "target"] <- 50
-        done <- c(done, i)
-    }
-    
-    return(conTypes[is.na(conTypes$target) == FALSE, ])
-}
-
-
-
-
-.adjustFreq <- function(ncells, cellNames, multuplets) {
-    intMat <- .interactionMatrix(ncells, cellNames, 23443)
-    
-    x <- as.list(gsub("(.{2})", "\\1 ", colnames(multuplets)))
-    l <- lapply(x, function(y) strsplit(y, " "))
-    c <- lapply(l, function(y) sum(c("A1", "B1") %in% y[[1]])==2)
-    n <- lapply(l, function(y) length(grep("A1", y[[1]])))
-    
-}
-
-#try to write a fucntion to calculate the frequency of interactions from the colnames of a dataframe with multuplets
-.countsInteracts <- function(mul, cellNames) {
-    names <- colnames(mul)
-    x <- as.list(gsub("(.{2})", "\\1 ", colnames(multuplets)))
-    l <- lapply(x, function(y) strsplit(y, " "))
-    c <- lapply(l, function(j) combn(j[[1]], 2))
-    p <- lapply(c, function(m) sapply(1:ncol(m), function(i) paste(m[,i], collapse="-")))
-    t <- table(unlist(p))
-    
-    m <- matrix(NA, ncol=length(cellNames), nrow=length(cellNames), dimnames=list(cellNames, cellNames))
-    
-    for(i in 1:length(t)) {
-        n1 <- strsplit(names(t)[i], "-")[[1]][1]
-        n2 <- strsplit(names(t)[i], "-")[[1]][2]
-        m[n1, n2] <- t[i]
-
-    }
-    m[upper.tri(m)] <- t(m)[upper.tri(m)]
-}
-
-.interactionMatrix <- function(ncells, cellNames, seed) {
-    set.seed(seed)
-    m <- matrix(NA, ncol=ncells, nrow=ncells, dimnames=(list(cellNames, cellNames)))
-    diag(m) <- sample(seq(45, 55, 1), size=length(diag(m)))
-
-    .f <- function(x) {
-        s <- sum(x, na.rm=TRUE)
-        int <- sample(c(1,2), 1)
-        x[sample(which(is.na(x) == TRUE), size=int)] <- sample(seq(30, (100-s), 1), size=int)
-        x <- x/sum(x, na.rm=TRUE)*90
-        x[is.na(x) == TRUE] <- sample(seq(0, 10, 0.1), size=length(x[is.na(x) == TRUE]))
-        return(round(x/sum(x)*100))
-    }
-    
-    apply(m, 1, .f)
-}
