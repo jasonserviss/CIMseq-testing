@@ -31,15 +31,14 @@ calculateConnections <- function(
 ){
     
     if(type == "multuplets") {
-        data <- data.frame(row.names = colnames(swarm))
-        conns <- .processSampleNames(data)
+        conns <- .processSampleNames(colnames(swarm))
         tab <- table(conns[ ,c("from", "to")])
         return(tab)
     }
     
     #detectedConnections <- .swarmNetworkDF(swarm)
     detectedConnections <- .swarmNetworkDF(swarm, edge.cutoff)
-    realConnections <- .processSampleNames(swarm)
+    realConnections <- .processSampleNames(rownames(swarm))
     tab <- table(
         rbind(
             realConnections[,c("from", "to", "connType")],
@@ -77,7 +76,7 @@ calculateConnections <- function(
 }
 
 .processSampleNames <- function(data) {
-    realConn1 <- gsub("m.([A-Z]1[A-Z]1)", "\\1", rownames(data))
+    realConn1 <- gsub("m.([A-Z]1[A-Z]1)", "\\1", data)
     realConn2 <- trimws(gsub("(.{2})", "\\1 ", realConn1), which = "both")
     suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", realConn2)
     realConn3 <- strsplit(suffixRemove, " ")
@@ -89,11 +88,11 @@ calculateConnections <- function(
     to <- unlist(lapply(realConn5, function(u) u[2,]))
     
     output <- data.frame(
-        from=from,
-        to=to,
-        multuplet=as.character(
+        from = from,
+        to = to,
+        multuplet = as.character(
             rep(
-                rownames(data),
+                data,
                 unlist(nConnections)
             )
         ),
