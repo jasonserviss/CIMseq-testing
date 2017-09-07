@@ -150,20 +150,13 @@ syntheticDataTest <- function(
     ncells,
     cellTypes
 ){
-
-    for(i in 1:cellTypes) {
-        set.seed(i)
-        meanExprs <- 2^runif(ngenes, 0, 5)
-        counts <- matrix(
-            rnbinom(ngenes * ncells, mu = meanExprs, size = i),
-            nrow = ngenes
-        )
-        if( i == 1 ) {
-            singlets <- counts
-        } else {
-            singlets <- cbind(singlets, counts)
-        }
-    }
+    synth <- sapply(1:cellTypes, function(x) {
+        set.seed(x)
+        rnbinom(ngenes * ncells, mu = 2^runif(ngenes, 0, 5), size = i)
+    })
+    
+    singlets <- matrix(as.numeric(synth), nrow = ngenes)
+    
     colnames(singlets) <- paste(
         sort(rep(LETTERS, ncells))[1:(cellTypes * ncells)],
         1:ncells,
@@ -202,15 +195,11 @@ syntheticDataTest <- function(
     )
     
     colnames(singlets) <- getData(uObj, "classification")
+    cellNames <- unique(colnames(singlets))
+    tmp <- data.frame(row.names = 1:ngenes)
     
     #doublets
-    cellNames <- unique(colnames(singlets))
-    tmp <- .makeMultuplet(
-        2,
-        cellNames,
-        data.frame(row.names = 1:ngenes),
-        singlets
-    )
+    tmp <- .makeMultuplet(2, cellNames, tmp, singlets)
     
     #triplets
     tmp <- .makeMultuplet(3, cellNames, tmp, singlets)
@@ -255,7 +244,10 @@ syntheticDataTest <- function(
         rowMeans(singlets[, pick])
     })
     
-    colnames(add) <- sapply(1:ncol(combos), function(i) paste(combos[, i], collapse = ""))
+    colnames(add) <- sapply(1:ncol(combos), function(i) {
+        paste(combos[, i], collapse = "")
+    })
+    
     multuplets <- cbind(multuplets, add)
     return(multuplets)
 }

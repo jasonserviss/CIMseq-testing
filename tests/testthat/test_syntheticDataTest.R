@@ -14,7 +14,7 @@ test_that("check that the .syntheticSinglets function outputs the expected resul
     expectedNames <- paste(
         sort(
             rep(
-                letters,
+                LETTERS,
                 ncells
             )
         )[1:(cellTypes*ncells)],
