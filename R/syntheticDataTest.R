@@ -33,11 +33,12 @@ NULL
 syntheticDataTest <- function(
     outPath = './data',
     cores = 6,
-    n = 100,
+    n = 500,
     ngenes = 2000,
     ncells = 100,
     cellTypes = 10,
     distFun = bic,
+    target = 20
     ...
 ){
     
@@ -94,7 +95,7 @@ syntheticDataTest <- function(
     cellTypes,
     perplexity = 10
 ){
-    tmp <- .syntheticMultuplets(ngenes, ncells, cellTypes, perplexity)
+    tmp <- .syntheticMultuplets(ngenes, ncells, cellTypes, perplexity, target)
     singlets <- tmp[[1]]
     multuplets <- tmp[[2]]
     uObj <- tmp[[3]]
@@ -102,9 +103,21 @@ syntheticDataTest <- function(
     #select multuplets for current test
     idx <- sample(1:ncol(multuplets), n, replace = FALSE)
     testMultuplets <- multuplets[, idx]
+    
+    #name, calculate connections, bind, and return
+    colnames(multuplets) <- gsub(
+        "^([A-Z0-9]*)\\..*",
+        "\\1",
+        colnames(multuplets)
+    )
+    colnames(testMultuplets) <- gsub(
+        "^([A-Z0-9]*)\\..*",
+        "\\1",
+        colnames(testMultuplets)
+    )
+    
     table <- calculateConnections(testMultuplets, type = "multuplets")
     
-    #name, bind, and return
     names <- c(
         paste("s", colnames(singlets), sep="."),
         paste("m", colnames(multuplets), sep=".")
@@ -165,7 +178,8 @@ syntheticDataTest <- function(
     ngenes,
     ncells,
     cellTypes,
-    perplexity
+    perplexity,
+    target
 ){
     singlets <- .syntheticSinglets(ngenes, ncells, cellTypes)
     cObjSng <- spCounts(
@@ -188,30 +202,36 @@ syntheticDataTest <- function(
     )
     
     colnames(singlets) <- getData(uObj, "classification")
-    #mean <- getData(uObj, "groupMeans")
     
     #doublets
     cellNames <- unique(colnames(singlets))
     tmp <- .makeMultuplet(2, cellNames, data.frame(), data.frame(), singlets)
-    multuplets <- tmp[[1]]
-    names <- tmp[[2]]
     
     #triplets
-    tmp <- .makeMultuplet(3, cellNames, multuplets, names, singlets)
-    multuplets <- tmp[[1]]
-    names <- tmp[[2]]
+    tmp <- .makeMultuplet(3, cellNames, tmp[[1]], tmp[[2]], singlets)
     
     #quadruplets
-    tmp <- .makeMultuplet(4, cellNames, multuplets, names, singlets)
+    tmp <- .makeMultuplet(4, cellNames, tmp[[1]], tmp[[2]], singlets)
     multuplets <- tmp[[1]]
     names <- tmp[[2]]
     
     colnames(multuplets) <- names
     
-    multuplets <- .adjustMultuplets(singlets, multuplets, ngenes, cellTypes)
+    #adjust perfered connections
+    multuplets <- .adjustMultuplets(
+        singlets,
+        multuplets,
+        ngenes,
+        cellTypes,
+        target
+    )
+    
+    #adjust self connections
+    multuplets <- .adjustSelf(multuplets, singlets)
     
     return(list(singlets, multuplets, uObj))
 }
+
 
 .makeMultuplet <- function(
     n,
@@ -255,10 +275,16 @@ syntheticDataTest <- function(
     return(list(multuplets, names))
 }
 
-.adjustMultuplets <- function(singlets, multuplets, ngenes, cellTypes) {
+.adjustMultuplets <- function(
+    singlets,
+    multuplets,
+    ngenes,
+    cellTypes,
+    target
+){
     
     #decide which connection preferences should exist
-    targetConnections <- decideConnections(unique(colnames(singlets)), 30)
+    targetConnections <- decideConnections(unique(colnames(singlets)), target)
     
     #quantify current connections
     current <- .quantifyConnections(colnames(multuplets))
@@ -272,13 +298,15 @@ syntheticDataTest <- function(
         type2 <- gsub("^...(..)$", "\\1", targetConnections[i, "conn"])
 
         f <- current[current$Var1 == targetConnections[i, "conn"], "Freq"]
-        s <- sum(current[current$type1 %in% c(type1, type2) | current$type2 %in% c(type1, type2), "Freq"])
+        types <- c(type1, type2)
+        bool <- current$type1 %in% types | current$type2 %in% types
+        s <- sum(current[bool, "Freq"])
         currentPercent <- (f / s) * 100
         
         #calculate number to add
         numerator <- (100 * f) - (s * targetConnections[i, "target"])
         denominator <- targetConnections[i, "target"] - 100
-        add <- numerator / denominator
+        add <- ceiling(numerator / denominator)
         mess <- paste(
             "Adjusting connections percentages by adding ",
             add,
@@ -286,29 +314,32 @@ syntheticDataTest <- function(
             sep = ""
         )
         print(mess)
+        
         #synthesize and add connections to achieve target percentages
         for(y in 1:add) {
             tmp <- .makeMultuplet(
                 2,
-                c(type1, type2),
+                types,
                 multuplets,
                 colnames(multuplets),
-                .syntheticSinglets(ngenes, 1, cellTypes)[,c(type1, type2)]
+                .syntheticSinglets(ngenes, 1, cellTypes)[, types]
             )
             multuplets <- tmp[[1]]
             
             #remove self connections
             n <- ncol(multuplets)
             multuplets <- multuplets[, -c(n, (n - 2))]
-            colnames(multuplets)[ncol(multuplets)] <- paste(type1, type2, sep = "")
+            n <- ncol(multuplets)
+            colnames(multuplets)[n] <- paste(types, collapse = "")
         }
         
         #check frequency
         after <- .quantifyConnections(colnames(multuplets))
         f <- after[after$Var1 == targetConnections[i, "conn"], "Freq"]
-        s <- sum(after[after$type1 %in% c(type1, type2) | after$type2 %in% c(type1, type2), "Freq"])
+        bool <- after$type1 %in% types | after$type2 %in% types
+        s <- sum(after[bool, "Freq"])
         currentPercent <- (f / s) * 100
-        targetConnections[i, "current"] <- currentPercent
+        targetConnections[i, "current"] <- round(currentPercent)
     }
     
     if(!all.equal(targetConnections$target, targetConnections$current)) {
@@ -318,7 +349,9 @@ syntheticDataTest <- function(
 }
 
 #Uses the multuplet naming convention to quantify the connections.
-.quantifyConnections <- function(multupletNames) {
+.quantifyConnections <- function(
+    multupletNames
+){
     split <- trimws(gsub("(.{2})", "\\1 ", multupletNames))
     suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", split)
     ss <- strsplit(suffixRemove, " ")
@@ -328,11 +361,20 @@ syntheticDataTest <- function(
     d <- as.data.frame(table(unlist(p)), stringsAsFactors = FALSE)
     d$type1 <- gsub("^(..)...$", "\\1", d$Var1)
     d$type2 <- gsub("^...(..)$", "\\1", d$Var1)
-    d
+    return(d)
 }
 
-#decide which connections should exist
-decideConnections <- function(cellTypes, target) {
+#decide which connections should exist.
+#This randomly assigns connections between all cell types and sets a target
+#for the percentage of the total connections that the assigned connection should
+#have.
+
+#target: specifies the target percentage of connections for cell types that
+#should be connected.
+decideConnections <- function(
+    cellTypes,
+    target
+){
     
     done <- c()
     count <- 0
@@ -363,13 +405,127 @@ decideConnections <- function(cellTypes, target) {
     ))
 }
 
+.adjustSelf <- function(
+    multuplets,
+    singlets
+){
+    
+    #count number of current connections
+    conn <- .quantifyConnections(colnames(multuplets))
+    currConn <- sum(conn$Freq)
+    
+    #calculate connections to add per cell type
+    #currently dilutes the perfered connections by 3
+    cellNames <- unique(c(conn$type1, conn$type2))
+    perCellType <- (currConn * 2) / length(cellNames)
+    mess <- paste(
+        "Adding ",
+        perCellType * length(cellNames),
+        " self connections",
+        sep = ""
+    )
+    print(mess)
+    
+    #add self connections
+    #doublets = 1 connection
+    #triplets = 3 connections
+    #quadruplets = 6 connections
+    connPerCellComb <- perCellType / 3
+    dToAdd <- ceiling(connPerCellComb)
+    tToAdd <- ceiling(connPerCellComb / 3)
+    qToAdd <- ceiling(connPerCellComb / 6)
+    
+    for(i in cellNames) {
+        #set valid self connections
+        valid <- c(
+            paste(rep(i, 2), collapse = ""),
+            paste(rep(i, 3), collapse = ""),
+            paste(rep(i, 4), collapse = "")
+        )
+        valid <- paste("^", valid, "$", sep="")
+        
+        #generate multuplets
+        #doublets
+        tmp <- data.frame()
+        for(u in 1:dToAdd) {
+            if(u == 1) {
+                tmp <- .makeMultuplet(
+                    2,
+                    c(i, i),
+                    tmp,
+                    tmp,
+                    singlets
+                )
+            } else {
+                tmp <- .makeMultuplet(
+                    2,
+                    c(i, i),
+                    tmp[[1]],
+                    tmp[[2]],
+                    singlets
+                )
+            }
+        }
+        
+        bool <- grepl(valid[1], tmp[[2]])
+        tmp[[1]] <- tmp[[1]][, bool]
+        tmp[[2]] <- tmp[[2]][grepl(valid[1], tmp[[2]])]
+        
+        #triplets
+        for(u in 1:tToAdd) {
+            tmp <- .makeMultuplet(
+                3,
+                c(i, i),
+                tmp[[1]],
+                tmp[[2]],
+                singlets
+            )
+        }
+        
+        bool1 <- grepl(valid[1], tmp[[2]])
+        bool2 <- grepl(valid[2], tmp[[2]])
+        bool <- bool1 | bool2
+        tmp[[1]] <- tmp[[1]][, bool]
+        tmp[[2]] <- tmp[[2]][bool]
+        
+        #quadruplets
+        for(u in 1:qToAdd) {
+            tmp <- .makeMultuplet(
+                4,
+                c(i, i),
+                tmp[[1]],
+                tmp[[2]],
+                singlets
+            )
+        }
+        
+        bool1 <- grepl(valid[1], tmp[[2]])
+        bool2 <- grepl(valid[2], tmp[[2]])
+        bool3 <- grepl(valid[3], tmp[[2]])
+        bool <- bool1 | bool2 | bool3
+        tmp[[1]] <- tmp[[1]][, bool]
+        tmp[[2]] <- tmp[[2]][bool]
+        
+        colnames(tmp[[1]]) <- tmp[[2]]
+        
+        #add
+        multuplets <- cbind(multuplets, tmp[[1]])
+        
+    }
+    
+    return(multuplets)
+}
+
+
 ################################################################################
 #                                                                              #
 # Plot distribution of connections per cell type.                              #
 #                                                                              #
 ################################################################################
 
-.plotConnectionDist <- function(multupletNames) {
+.plotConnectionDist <- function(
+    multupletNames
+){
     freq <- .quantifyConnections(multupletNames)
     cellTypes <- unique(c(freq$type1, freq$type2))
     percents <- sapply(cellTypes, function(x) {
@@ -386,16 +542,31 @@ decideConnections <- function(cellTypes, target) {
         gather(to, percent, -from) %>%
         add_column(connection = paste(.$from, .$to, sep="-")) %>%
         ggplot(., aes(connection, percent)) +
-        geom_bar(aes(fill = to), stat = "identity", position = position_dodge(width = 1)) +
+        geom_bar(
+            aes(fill = to),
+            stat = "identity",
+            position = position_dodge(width = 1)
+        ) +
         facet_grid(from~to, scales = "free", space = "free") +
         ggthemes::scale_fill_ptol() +
         ggthemes::theme_few() +
         theme(
             axis.text.x = element_text(angle = 90)
         ) +
-        guides(fill = FALSE)
+        guides(fill = FALSE) +
+        labs(
+            x = "Connection",
+            y = "Percent"
+        )
+    p
+    return(p)
 }
 
+################################################################################
+#                                                                              #
+# Plot distribution of doublets, triplets, quadruplets in testing data.        #
+#                                                                              #
+################################################################################
 
 
 
