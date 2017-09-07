@@ -152,7 +152,7 @@ syntheticDataTest <- function(
 ){
     synth <- sapply(1:cellTypes, function(x) {
         set.seed(x)
-        rnbinom(ngenes * ncells, mu = 2^runif(ngenes, 0, 5), size = i)
+        rnbinom(ngenes * ncells, mu = 2^runif(ngenes, 0, 5), size = x)
     })
     
     singlets <- matrix(as.numeric(synth), nrow = ngenes)
