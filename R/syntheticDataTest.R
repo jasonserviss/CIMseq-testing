@@ -33,7 +33,7 @@ NULL
 syntheticDataTest <- function(
     outPath = './data',
     cores = 6,
-    n = 20,
+    n = 100,
     ngenes = 2000,
     ncells = 100,
     cellTypes = 10,
@@ -152,7 +152,7 @@ syntheticDataTest <- function(
         }
     }
     colnames(singlets) <- paste(
-        sort(rep(letters, ncells))[1:(cellTypes * ncells)],
+        sort(rep(LETTERS, ncells))[1:(cellTypes * ncells)],
         1:ncells,
         sep = ""
     )
@@ -208,7 +208,7 @@ syntheticDataTest <- function(
     
     colnames(multuplets) <- names
     
-    multuplets <- .adjustMultuplets(singlets, multuplets)
+    multuplets <- .adjustMultuplets(singlets, multuplets, ngenes, cellTypes)
     
     return(list(singlets, multuplets, uObj))
 }
@@ -255,8 +255,7 @@ syntheticDataTest <- function(
     return(list(multuplets, names))
 }
 
-
-.adjustMultuplets <- function(singlets, multuplets) {
+.adjustMultuplets <- function(singlets, multuplets, ngenes, cellTypes) {
     
     #decide which connection preferences should exist
     targetConnections <- decideConnections(unique(colnames(singlets)), 30)
@@ -294,7 +293,7 @@ syntheticDataTest <- function(
                 c(type1, type2),
                 multuplets,
                 colnames(multuplets),
-                singlets #IT WOULD SEEM BETTER TO REGENERATE THESE, this also reflects reality better since its impossible for the exact same singlet to be a singlet and in a multiplets
+                .syntheticSinglets(ngenes, 1, cellTypes)[,c(type1, type2)]
             )
             multuplets <- tmp[[1]]
             
@@ -318,6 +317,7 @@ syntheticDataTest <- function(
     return(multuplets)
 }
 
+#Uses the multuplet naming convention to quantify the connections.
 .quantifyConnections <- function(multupletNames) {
     split <- trimws(gsub("(.{2})", "\\1 ", multupletNames))
     suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", split)
@@ -330,7 +330,6 @@ syntheticDataTest <- function(
     d$type2 <- gsub("^...(..)$", "\\1", d$Var1)
     d
 }
-
 
 #decide which connections should exist
 decideConnections <- function(cellTypes, target) {
@@ -363,5 +362,44 @@ decideConnections <- function(cellTypes, target) {
         stringsAsFactors = FALSE
     ))
 }
+
+################################################################################
+#                                                                              #
+# Plot distribution of connections per cell type.                              #
+#                                                                              #
+################################################################################
+
+.plotConnectionDist <- function(multupletNames) {
+    freq <- .quantifyConnections(multupletNames)
+    cellTypes <- unique(c(freq$type1, freq$type2))
+    percents <- sapply(cellTypes, function(x) {
+        curr <- subset(freq, type1 == x | type2 == x)
+        sum <- sum(curr$Freq)
+        curr$percent <- 100 * (curr$Freq / sum)
+    })
+    rownames(percents) <- cellTypes
+    
+    p <- percents %>%
+        as.data.frame() %>%
+        rownames_to_column() %>%
+        rename(from = rowname) %>%
+        gather(to, percent, -from) %>%
+        add_column(connection = paste(.$from, .$to, sep="-")) %>%
+        ggplot(., aes(connection, percent)) +
+        geom_bar(aes(fill = to), stat = "identity", position = position_dodge(width = 1)) +
+        facet_grid(from~to, scales = "free", space = "free") +
+        ggthemes::scale_fill_ptol() +
+        ggthemes::theme_few() +
+        theme(
+            axis.text.x = element_text(angle = 90)
+        ) +
+        guides(fill = FALSE)
+}
+
+
+
+
+
+
 
 

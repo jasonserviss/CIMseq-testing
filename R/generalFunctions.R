@@ -79,7 +79,8 @@ calculateConnections <- function(
 .processSampleNames <- function(data) {
     realConn1 <- gsub("m.([A-Z]1[A-Z]1)", "\\1", rownames(data))
     realConn2 <- trimws(gsub("(.{2})", "\\1 ", realConn1), which = "both")
-    realConn3 <- strsplit(realConn2, " ")
+    suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", realConn2)
+    realConn3 <- strsplit(suffixRemove, " ")
     realConn4 <- lapply(realConn3, function(x) combn(x, 2))
     realConn5 <- lapply(realConn4, function(o) apply(o, 2, sort))
     nConnections <- lapply(realConn5, function(y) ncol(y))
