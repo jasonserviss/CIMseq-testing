@@ -14,7 +14,8 @@
 
 \item{ncells}{Number of cells per cell type in generated synthetic data.}
 
-\item{cellTypes}{Number of cell types in generated synthetic data.}
+\item{cellTypes}{Number of cell types in generated synthetic data. For the
+frequency adjustment to work this should be an even number.}
 
 \item{distFun}{The distance function to use for swarm optimization.}
 

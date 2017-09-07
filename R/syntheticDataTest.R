@@ -38,7 +38,7 @@ syntheticDataTest <- function(
     ncells = 100,
     cellTypes = 10,
     distFun = bic,
-    target = 20
+    target = 20,
     ...
 ){
     
@@ -205,22 +205,23 @@ syntheticDataTest <- function(
     
     #doublets
     cellNames <- unique(colnames(singlets))
-    tmp <- .makeMultuplet(2, cellNames, data.frame(), data.frame(), singlets)
+    tmp <- .makeMultuplet(
+        2,
+        cellNames,
+        data.frame(row.names = 1:ngenes),
+        singlets
+    )
     
     #triplets
-    tmp <- .makeMultuplet(3, cellNames, tmp[[1]], tmp[[2]], singlets)
+    tmp <- .makeMultuplet(3, cellNames, tmp, singlets)
     
     #quadruplets
-    tmp <- .makeMultuplet(4, cellNames, tmp[[1]], tmp[[2]], singlets)
-    multuplets <- tmp[[1]]
-    names <- tmp[[2]]
-    
-    colnames(multuplets) <- names
+    tmp <- .makeMultuplet(4, cellNames, tmp, singlets)
     
     #adjust perfered connections
     multuplets <- .adjustMultuplets(
         singlets,
-        multuplets,
+        tmp3[[1]],
         ngenes,
         cellTypes,
         target
@@ -237,7 +238,6 @@ syntheticDataTest <- function(
     n,
     cellNames,
     multuplets,
-    names,
     singlets
 ){
     switch(n - 1,
@@ -249,30 +249,15 @@ syntheticDataTest <- function(
     dat.sort <- t(apply(combos, 1, sort))
     combos <- t(combos[!duplicated(dat.sort),])
     
-    for(u in 1:ncol(combos)) {
-        current <- combos[ ,u]
-        
-        set.seed(2918834 + u)
-        idxs <- c()
-        for(i in 1:length(current)) {
-            idxs[i] <- sample(
-                which(colnames(singlets) == current[1]),
-                size = 1,
-                replace = FALSE
-            )
-        }
-        
-        new <- data.frame(rowMeans(singlets[, idxs]))
-        
-        if(ncol(multuplets) == 0) {
-            multuplets <- new
-            names <- paste(current, collapse = "")
-        } else {
-            multuplets <- cbind(multuplets, new)
-            names <- c(names,  paste(current, collapse = ""))
-        }
-    }
-    return(list(multuplets, names))
+    add <- sapply(1:ncol(combos), function(x) {
+        idxs <- sapply(combos[, x], function(y) which(colnames(singlets) == y))
+        pick <- sapply(1:ncol(idxs), function(x) sample(idxs[, x], size = 1))
+        rowMeans(singlets[, pick])
+    })
+    
+    colnames(add) <- sapply(1:ncol(combos), function(i) paste(combos[, i], collapse = ""))
+    multuplets <- cbind(multuplets, add)
+    return(multuplets)
 }
 
 .adjustMultuplets <- function(
