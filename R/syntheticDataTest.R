@@ -210,7 +210,7 @@ syntheticDataTest <- function(
     #adjust perfered connections
     multuplets <- .adjustMultuplets(
         singlets,
-        tmp3[[1]],
+        tmp[[1]],
         ngenes,
         cellTypes,
         target
@@ -230,13 +230,13 @@ syntheticDataTest <- function(
     singlets
 ){
     switch(n - 1,
-        {combos <- expand.grid(cellNames, cellNames)},
-        {combos <- expand.grid(cellNames, cellNames, cellNames)},
-        {combos <- expand.grid(cellNames, cellNames, cellNames, cellNames)}
+        {combos <- t(expand.grid(cellNames, cellNames))},
+        {combos <- t(expand.grid(cellNames, cellNames, cellNames))},
+        {combos <- t(expand.grid(cellNames, cellNames, cellNames, cellNames))}
     )
     
-    dat.sort <- t(apply(combos, 1, sort))
-    combos <- t(combos[!duplicated(dat.sort),])
+    dat.sort <- apply(combos, 2, sort)
+    combos <- dat.sort[, !duplicated(t(dat.sort))]
     
     add <- sapply(1:ncol(combos), function(x) {
         idxs <- sapply(combos[, x], function(y) which(colnames(singlets) == y))
@@ -269,21 +269,25 @@ syntheticDataTest <- function(
     #adjust connection frequency
     
     for(i in 1:nrow(targetConnections)) {
-        
         #calculate current percent
         type1 <- gsub("^(..)...$", "\\1", targetConnections[i, "conn"])
         type2 <- gsub("^...(..)$", "\\1", targetConnections[i, "conn"])
 
         f <- current[current$Var1 == targetConnections[i, "conn"], "Freq"]
+        print(f)
         types <- c(type1, type2)
         bool <- current$type1 %in% types | current$type2 %in% types
         s <- sum(current[bool, "Freq"])
+        print(s)
         currentPercent <- (f / s) * 100
         
         #calculate number to add
         numerator <- (100 * f) - (s * targetConnections[i, "target"])
+        print(numerator)
         denominator <- targetConnections[i, "target"] - 100
+        print(denominator)
         add <- ceiling(numerator / denominator)
+        print(add)
         mess <- paste(
             "Adjusting connections percentages by adding ",
             add,
