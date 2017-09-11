@@ -1,51 +1,279 @@
-freq
-.quantifyConnections <- function(mulNames) {#
-    split <- strsplit(trimws(gsub("(.{2})", "\\1 ", mulNames)), " ")#
-    l <- lapply(#
-        split,#
-        function(x)#
-            paste(combn(x, 2)[1, ], combn(x, 2)[2, ], sep = "-")#
+test_that("check that the .makeMultuplet with doublets", {#
+    #set up input data#
+    n <- 2#
+    ngenes <- 100#
+    cellNames <- paste(LETTERS[1:3], 1, sep = "")#
+    singlets <- .syntheticSinglets(ngenes, 3, length(cellNames))#
+    multuplets <- data.frame(row.names = 1:nrow(singlets))#
+    colnames(singlets) <- sort(rep(cellNames, 3))#
+    #setup expected data#
+    expectedDim <- c(ngenes, sum(length(cellNames), ncol(combn(cellNames, 2))))#
+    expectedMultuplets <- c("A1A1", "A1B1", "A1C1", "B1B1", "B1C1", "C1C1")#
+    #run function#
+    output <- .makeMultuplet(#
+        n,#
+        cellNames,#
+        multuplets,#
+        singlets#
     )#
-    out <- as.data.frame(table(unlist(l)))#
-    out$type1 <- gsub("^(..)...$", "\\1", out$Var1)#
-    out$type2 <- gsub("^...(..)$", "\\1", out$Var1)#
-    out$percent <- out$Freq / sum(out$Freq)#
-    return(out)#
-}
-freq <- .quantifyConnections(rownames(register)[gtOne])
-freq
-sum(freq$Freq)
-.targetFreq <- function(mulNames, fixed) {#
-    split <- strsplit(trimws(gsub("(.{2})", "\\1 ", mulNames)), " ")#
-    l <- lapply(#
-        split,#
-        function(x)#
-            paste(combn(x, 2)[1, ], combn(x, 2)[2, ], sep = "-")#
+    #test#
+    expect_equivalent(dim(output), expectedDim)#
+    expect_equivalent(colnames(output), expectedMultuplets)#
+})#
+#
+test_that("check that the .makeMultuplet with triplets", {#
+    #set up input data#
+    n <- 3#
+    ngenes <- 100#
+    cellNames <- paste(LETTERS[1:3], 1, sep = "")#
+    singlets <- .syntheticSinglets(ngenes, 3, length(cellNames))#
+    multuplets <- data.frame(row.names = 1:nrow(singlets))#
+    colnames(singlets) <- sort(rep(cellNames, 3))#
+    #setup expected data#
+    expectedDim <- c(ngenes, sum(length(cellNames), 7))#
+    expectedMultuplets <- c(#
+        "A1A1A1", "A1A1B1", "A1A1C1", "A1B1B1", "A1B1C1",#
+        "A1C1C1", "B1B1B1", "B1B1C1", "B1C1C1", "C1C1C1"#
     )#
-    conTypes <- data.frame(unique(unlist(l)))#
-    conTypes$type1 <- gsub("^(..)...", "\\1", conTypes[, 1])#
-    conTypes$type2 <- gsub("...(..)$", "\\1", conTypes[, 1])#
-    conTypes$target <- NA#
-    conTypes$self <- ifelse(conTypes$type1 == conTypes$type2, TRUE, FALSE)#
-    done <- c()#
-    for(i in fixed) {#
-        if(!all(is.na(conTypes[conTypes$type1 == i | conTypes$type2 == i, 4]))) {#
-            next#
-        }#
-        idxs <- which(#
-            (conTypes$type1 == i | conTypes$type2 == i ) &#
-            conTypes$self == FALSE &#
-            !conTypes$type1 %in% done &#
-            !conTypes$type2 %in% done#
-        )#
-        set.seed(23089)#
-        idx <- sample(idxs, size = 1)#
-        conTypes[idx, "target"] <- 50#
-        done <- c(done, i)#
-    }#
-    return(subset(conTypes, type1 %in% fixed | type2 %in% fixed))#
-}
-targetFreq <- .targetFreq(rownames(register)[gtOne], fixed)
-targetFreq
-freq
-library(tidyverse)
+    #run function#
+    output <- .makeMultuplet(#
+        n,#
+        cellNames,#
+        multuplets,#
+        singlets#
+    )#
+    #test#
+    expect_equivalent(dim(output), expectedDim)#
+    expect_equivalent(colnames(output), expectedMultuplets)#
+})#
+#
+test_that("check that the .makeMultuplet with quadruplets", {#
+    #set up input data#
+    n <- 4#
+    ngenes <- 100#
+    cellNames <- paste(LETTERS[1:3], 1, sep = "")#
+    singlets <- .syntheticSinglets(ngenes, 3, length(cellNames))#
+    multuplets <- data.frame(row.names = 1:nrow(singlets))#
+    colnames(singlets) <- sort(rep(cellNames, 3))#
+    #setup expected data#
+    expectedDim <- c(ngenes, sum(length(cellNames), 12))#
+    expectedMultuplets <- c(#
+        "A1A1A1A1", "A1A1A1B1", "A1A1A1C1", "A1A1B1B1", "A1A1B1C1",#
+        "A1A1C1C1", "A1B1B1B1", "A1B1B1C1", "A1B1C1C1", "A1C1C1C1",#
+        "B1B1B1B1", "B1B1B1C1", "B1B1C1C1", "B1C1C1C1", "C1C1C1C1"#
+    )#
+    #run function#
+    output <- .makeMultuplet(#
+        n,#
+        cellNames,#
+        multuplets,#
+        singlets#
+    )#
+    #test#
+    expect_equivalent(dim(output), expectedDim)#
+    expect_equivalent(colnames(output), expectedMultuplets)#
+})#
+#
+#################################################################################
+#                                                                              ##
+# Adjust multiplets.                                                           ##
+#                                                                              ##
+#################################################################################
+#
+##run test .decideConnections#
+test_that("check that the .decideConnections function outputs the expected result", {#
+    ###TEST1#####
+    #set up input data#
+    cellTypes <- paste(LETTERS[1:4], 1, sep = "")#
+    target <- 20#
+    #setup expected data#
+    expectedConn <- c("A1-D1", "B1-C1")#
+    expectedTarget <- rep(target, 2)#
+    expectedCurrent <- rep(0, 2)#
+    #run function#
+    output <- .decideConnections(cellTypes, target)#
+    #test#
+    expect_equivalent(expectedConn, output$conn)#
+    expect_equivalent(expectedTarget, output$target)#
+    expect_equivalent(expectedCurrent, output$current)#
+})#
+#
+##run test .quantifyConnections#
+test_that("check that the .quantifyConnections function outputs the expected result", {#
+    ###TEST1#####
+    #set up input data#
+    multupletNames <- c("A1A1A1", "A1A1A1", "A1A1B1")#
+    #setup expected data#
+    expectedVar1 <- c("A1-A1", "A1-B1")#
+    expectedFreq <- c(7, 2)#
+    expectedType1 <- rep("A1", 2)#
+    expectedType2 <- c("A1", "B1")#
+    #run function#
+    output <- .quantifyConnections(multupletNames)#
+    #test#
+    expect_equivalent(expectedVar1, output$Var1)#
+    expect_equivalent(expectedFreq, output$Freq)#
+    expect_equivalent(expectedType1, output$type1)#
+    expect_equivalent(expectedType2, output$type2)#
+})
+test_that("check that the .calculateFreqAndSum function outputs the expected result", {#
+    ###TEST1#####
+    #set up input data#
+    i <- 1#
+    targetConnections <- data.frame(#
+        conn = c("A1-A1", "A1-B1"),#
+        target = rep(20, 2),#
+        current = rep(0, 2)#
+    )#
+    current <- .quantifyConnections(c("A1A1A1", "A1A1A1", "A1A1B1"))#
+    #setup expected data#
+    expectedTypes <- c("A1", "A1")#
+    expectedFreq <- 7#
+    expectedSum <- 9#
+    #run function#
+    output <- .calculateFreqAndSum(i, targetConnections, current)#
+    outputTypes <- output[[1]]#
+    outputFreq <- output[[2]]#
+    outputSum <- output[[3]]#
+#
+    #test#
+    expect_equivalent(expectedTypes, outputTypes)#
+    expect_equivalent(expectedFreq, outputFreq)#
+    expect_equivalent(expectedSum, outputSum)#
+})#
+#
+##run test .calculateNumToAdd#
+test_that("check that the .calculateNumToAdd function outputs the expected result", {#
+    ###TEST1#####
+    #set up input data#
+    i <- 1#
+    currentFreq <- 0#
+    currentSum <- 0#
+    targetConnections <- data.frame(#
+        conn = c("A1-A1", "A1-B1"),#
+        target = rep(20, 2),#
+        current = rep(0, 2)#
+    )#
+    #setup expected data#
+    expected <- 0#
+    #run function#
+    output <- .calculateNumToAdd(i, currentFreq, currentSum, targetConnections)#
+    #test#
+    expect_equivalent(expected, output)#
+    ###TEST2#####
+    #set up input data#
+    i <- 1#
+    currentFreq <- 0#
+    currentSum <- 100#
+    targetConnections <- data.frame(#
+        conn = c("A1-A1", "A1-B1"),#
+        target = rep(20, 2),#
+        current = rep(0, 2)#
+    )#
+    #setup expected data#
+    expected <- 25#
+    #run function#
+    output <- .calculateNumToAdd(i, currentFreq, currentSum, targetConnections)#
+    #test#
+    expect_equivalent(expected, output)#
+#
+})
+test_that("check that the .makeMultuplet with doublets", {#
+    #set up input data#
+    n <- 2#
+    nGenes <- 100#
+    cellTypes <- paste(LETTERS[1:3], 1, sep = "")#
+    singlets <- .syntheticSinglets(nGenes, 3, length(cellTypes))#
+    multuplets <- data.frame(row.names = 1:nrow(singlets))#
+    colnames(singlets) <- sort(rep(cellTypes, 3))#
+    #setup expected data#
+    expectedDim <- c(ngenes, sum(length(cellTypes), ncol(combn(cellTypes, 2))))#
+    expectedMultuplets <- c("A1A1", "A1B1", "A1C1", "B1B1", "B1C1", "C1C1")#
+    #run function#
+    output <- .makeMultuplet(#
+        n,#
+        cellTypes,#
+        multuplets,#
+        singlets#
+    )#
+    #test#
+    expect_equivalent(dim(output), expectedDim)#
+    expect_equivalent(colnames(output), expectedMultuplets)#
+})
+rm(list=ls())
+test_that("check that the .makeMultuplet with doublets", {#
+    #set up input data#
+    nCellsInMultiplet <- 2#
+    nGenes <- 100#
+    cellTypes <- paste(LETTERS[1:3], 1, sep = "")#
+    singlets <- .syntheticSinglets(nGenes, 3, length(cellTypes))#
+    multuplets <- data.frame(row.names = 1:nrow(singlets))#
+    colnames(singlets) <- sort(rep(cellTypes, 3))#
+    #setup expected data#
+    expectedDim <- c(nGenes, sum(length(cellTypes), ncol(combn(cellTypes, 2))))#
+    expectedMultuplets <- c("A1A1", "A1B1", "A1C1", "B1B1", "B1C1", "C1C1")#
+    #run function#
+    output <- .makeMultuplet(#
+        nCellsInMultiplet,#
+        cellTypes,#
+        multuplets,#
+        singlets#
+    )#
+    #test#
+    expect_equivalent(dim(output), expectedDim)#
+    expect_equivalent(colnames(output), expectedMultuplets)#
+})
+test_that("check that the .makeMultuplet with triplets", {#
+    #set up input data#
+    nCellsInMultiplet <- 3#
+    nGenes <- 100#
+    cellTypes <- paste(LETTERS[1:3], 1, sep = "")#
+    singlets <- .syntheticSinglets(nGenes, 3, length(cellTypes))#
+    multuplets <- data.frame(row.names = 1:nrow(singlets))#
+    colnames(singlets) <- sort(rep(cellTypes, 3))#
+    #setup expected data#
+    expectedDim <- c(nGenes, sum(length(cellTypes), 7))#
+    expectedMultuplets <- c(#
+        "A1A1A1", "A1A1B1", "A1A1C1", "A1B1B1", "A1B1C1",#
+        "A1C1C1", "B1B1B1", "B1B1C1", "B1C1C1", "C1C1C1"#
+    )#
+    #run function#
+    output <- .makeMultuplet(#
+        nCellsInMultiplet,#
+        cellTypes,#
+        multuplets,#
+        singlets#
+    )#
+    #test#
+    expect_equivalent(dim(output), expectedDim)#
+    expect_equivalent(colnames(output), expectedMultuplets)#
+})
+test_that("check that the .makeMultuplet with quadruplets", {#
+    #set up input data#
+    nCellsInMultiplet <- 4#
+    nGenes <- 100#
+    cellTypes <- paste(LETTERS[1:3], 1, sep = "")#
+    singlets <- .syntheticSinglets(nGenes, 3, length(cellTypes))#
+    multuplets <- data.frame(row.names = 1:nrow(singlets))#
+    colnames(singlets) <- sort(rep(cellTypes, 3))#
+    #setup expected data#
+    expectedDim <- c(nGenes, sum(length(cellTypes), 12))#
+    expectedMultuplets <- c(#
+        "A1A1A1A1", "A1A1A1B1", "A1A1A1C1", "A1A1B1B1", "A1A1B1C1",#
+        "A1A1C1C1", "A1B1B1B1", "A1B1B1C1", "A1B1C1C1", "A1C1C1C1",#
+        "B1B1B1B1", "B1B1B1C1", "B1B1C1C1", "B1C1C1C1", "C1C1C1C1"#
+    )#
+    #run function#
+    output <- .makeMultuplet(#
+        nCellsInMultiplet,#
+        cellTypes,#
+        multuplets,#
+        singlets#
+    )#
+    #test#
+    expect_equivalent(dim(output), expectedDim)#
+    expect_equivalent(colnames(output), expectedMultuplets)#
+})
+devtools::test()
+devtools::test()
+devtools::test()
