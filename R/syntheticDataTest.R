@@ -643,7 +643,8 @@ quantifyConnections <- function(
     multupletNames,
     ...
 ){
-    split <- trimws(gsub("(.{2})", "\\1 ", multupletNames))
+    suffix <- gsub("^[m-s]\\.(.*)", "\\1", multupletNames)
+    split <- trimws(gsub("(.{2})", "\\1 ", suffix))
     suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", split)
     ss <- strsplit(suffixRemove, " ")
     l <- lapply(ss, function  (x) combn(x, 2))
@@ -988,10 +989,10 @@ adjustSelf <- function(
 #                                                                              #
 ################################################################################
 
-.plotConnectionDist <- function(
+plotConnectionDist <- function(
     multupletNames
 ){
-    freq <- .quantifyConnections(multupletNames)
+    freq <- quantifyConnections(multupletNames)
     cellTypes <- unique(c(freq$type1, freq$type2))
     percents <- sapply(cellTypes, function(x) {
         curr <- subset(freq, type1 == x | type2 == x)

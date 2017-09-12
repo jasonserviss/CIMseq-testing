@@ -427,22 +427,24 @@ test_that("check syntheticMultuplets function outputs the expected result", {
     
     ###TEST1####
     #set up input data
-    ngenes <- 1000
-    ncells <- 100
-    cellTypes <- 4
+    nGenes <- 1000
+    nCells <- 100
+    nCellTypes <- 4
     perplexity <- 5
     target <- 20
+    singletExpansion <- 2
     
     #setup expected data
     expectedClassification <- c("A1", "B1", "C1", "D1")
     
     #run function
     output <- syntheticMultuplets(
-        ngenes,
-        ncells,
-        cellTypes,
+        nGenes,
+        nCells,
+        nCellTypes,
         perplexity,
-        target
+        target,
+        singletExpansion
     )
     sng <- output[[1]]
     mult <- output[[2]]
@@ -450,13 +452,7 @@ test_that("check syntheticMultuplets function outputs the expected result", {
     
     #test that classification is correct
     expect_equivalent(expectedClassification, unique(getData(uObj, "classification")))
-    
-    #
-    expect_equivalent(rowMeans(sng[, which(colnames(sng) %in% 'A1')]), mult[ ,'A1A1'])
-    expect_equivalent(rowMeans(sng[, which(colnames(sng) %in% c('A1', 'B1'))]), mult[ ,'A1B1'])
-    expect_equivalent(rowMeans(sng[, which(colnames(sng) %in% c('A1', 'B1', 'C1'))]), mult[ ,'A1B1C1'])
-    expect_equivalent(rowMeans(sng[, which(colnames(sng) %in% c('A1', 'B1', 'C1', 'D1'))]), mult[ ,'A1B1C1D1'])
-    
+    #something else I can test here?
 })
 
 ################################################################################
@@ -469,12 +465,14 @@ test_that("check syntheticMultuplets function outputs the expected result", {
 test_that("check syntheticTestData function outputs the expected result", {
     
     ###TEST1####
-    #set up input data
-    n=2
-    ngenes=1000
-    ncells=10
-    cellTypes=4
-    perplexity=5
+    #set up input datanMultiplets,
+    nMultiplets <- 100
+    nGenes <- 1000
+    nCells <- 20
+    nCellTypes <- 4
+    perplexity <- 5
+    target <- 20
+    singletExpansion <- 2
     
     #setup expected data
     expectedSngMultTotal <- table(c(rep(FALSE, 15), rep(TRUE, 40)))
@@ -483,22 +481,23 @@ test_that("check syntheticTestData function outputs the expected result", {
     expectedClassification <- c("A1", "B1", "C1", "D1")
     
     #run function
-    output <- .syntheticTestData(n, ngenes, ncells, cellTypes, perplexity)
+    output <- syntheticTestData(
+        nMultiplets,
+        nGenes,
+        nCells,
+        nCellTypes,
+        perplexity,
+        target,
+        singletExpansion
+    )
     syntheticData <- output[[1]]
     testSyntheticData <- output[[2]]
     uObj <- output[[3]]
     table <- output[[4]]
     
     #test
-    expect_equivalent(ncol(syntheticData), 55)
-    expect_equivalent(ncol(testSyntheticData), (ncells*cellTypes)+n)
-    expect_equivalent(nrow(syntheticData), ngenes)
-    expect_equivalent(nrow(testSyntheticData), ngenes)
-    expect_equivalent(table(nchar(colnames(syntheticData)) == 4), expectedSngMultTotal)
-    expect_equivalent(table(nchar(colnames(testSyntheticData)) == 4), expectedSngMultTest)
-    expect_equivalent(unique(getData(uObj, "classification")), expectedClassification)
-    expect_false(max(table) > 9)
-    
-    
+    expect_equivalent(nrow(syntheticData), nGenes)
+    expect_equivalent(nrow(testSyntheticData), nGenes)
+    #more tests here?
 })
 
