@@ -6,8 +6,8 @@
 #                                                                              #
 ################################################################################
 
-##run test .syntheticSinglets
-test_that("check .syntheticSinglets function outputs the expected result", {
+##run test syntheticSinglets
+test_that("check syntheticSinglets function outputs the expected result", {
     
     ###TEST1####
     #setup input
@@ -47,11 +47,11 @@ test_that("check .syntheticSinglets function outputs the expected result", {
 #                                                                              #
 ################################################################################
 
-##run test .makeMultuplet
-test_that("check .makeMultuplet with doublets", {
+##run test makeMultuplet
+test_that("check makeMultuplet with doublets", {
     
     #set up input data
-    ##arguments to .syntheticSinglets
+    ##arguments to syntheticSinglets
     cellTypes <- paste(LETTERS[1:3], 1, sep = "")
     nGenes <- 100
     nCells <- 3
@@ -59,9 +59,8 @@ test_that("check .makeMultuplet with doublets", {
     singletExpansion <- 2
     
 
-    ##arguments to .makeMultuplet
+    ##arguments to makeMultuplet
     nCellsInMultiplet <- 2
-    multuplets <- data.frame(row.names = 1:nrow(singlets))
     singlets <- .syntheticSinglets(
         nGenes,
         nCells,
@@ -69,13 +68,14 @@ test_that("check .makeMultuplet with doublets", {
         singletExpansion
     )[[2]]
     colnames(singlets) <- sort(rep(cellTypes, 3))
-    
+    multuplets <- data.frame(row.names = 1:nrow(singlets))
+
     #setup expected data
     expectedDim <- c(nGenes, sum(length(cellTypes), ncol(combn(cellTypes, 2))))
     expectedMultuplets <- c("A1A1", "A1B1", "A1C1", "B1B1", "B1C1", "C1C1")
     
     #run function
-    output <- .makeMultuplet(
+    output <- makeMultuplet(
         nCellsInMultiplet,
         cellTypes,
         multuplets,
@@ -87,27 +87,27 @@ test_that("check .makeMultuplet with doublets", {
     expect_equivalent(colnames(output), expectedMultuplets)
 })
 
-test_that("check .makeMultuplet with triplets", {
+test_that("check makeMultuplet with triplets", {
     
     #set up input data
-    ##arguments to .syntheticSinglets
+    ##arguments to syntheticSinglets
     cellTypes <- paste(LETTERS[1:3], 1, sep = "")
     nGenes <- 100
     nCells <- 3
     nCellTypes <- length(cellTypes)
     singletExpansion <- 2
     
-    ##arguments to .makeMultuplet
+    ##arguments to makeMultuplet
     nCellsInMultiplet <- 3
-    multuplets <- data.frame(row.names = 1:nrow(singlets))
-    singlets <- .syntheticSinglets(
+    singlets <- syntheticSinglets(
         nGenes,
         nCells,
         nCellTypes,
         singletExpansion
     )[[2]]
     colnames(singlets) <- sort(rep(cellTypes, 3))
-    
+    multuplets <- data.frame(row.names = 1:nrow(singlets))
+
     #setup expected data
     expectedDim <- c(nGenes, sum(length(cellTypes), 7))
     expectedMultuplets <- c(
@@ -116,7 +116,7 @@ test_that("check .makeMultuplet with triplets", {
     )
     
     #run function
-    output <- .makeMultuplet(
+    output <- makeMultuplet(
         nCellsInMultiplet,
         cellTypes,
         multuplets,
@@ -128,10 +128,10 @@ test_that("check .makeMultuplet with triplets", {
     expect_equivalent(colnames(output), expectedMultuplets)
 })
 
-test_that("check .makeMultuplet with quadruplets", {
+test_that("check makeMultuplet with quadruplets", {
     
     #set up input data
-    ##arguments to .syntheticSinglets
+    ##arguments to syntheticSinglets
     cellTypes <- paste(LETTERS[1:3], 1, sep = "")
     nGenes <- 100
     nCells <- 3
@@ -139,17 +139,17 @@ test_that("check .makeMultuplet with quadruplets", {
     singletExpansion <- 2
     
     
-    ##arguments to .makeMultuplet
+    ##arguments to makeMultuplet
     nCellsInMultiplet <- 4
-    multuplets <- data.frame(row.names = 1:nrow(singlets))
-    singlets <- .syntheticSinglets(
+    singlets <- syntheticSinglets(
         nGenes,
         nCells,
         nCellTypes,
         singletExpansion
     )[[2]]
     colnames(singlets) <- sort(rep(cellTypes, 3))
-    
+    multuplets <- data.frame(row.names = 1:nrow(singlets))
+
     #setup expected data
     expectedDim <- c(nGenes, sum(length(cellTypes), 12))
     expectedMultuplets <- c(
@@ -159,7 +159,7 @@ test_that("check .makeMultuplet with quadruplets", {
     )
     
     #run function
-    output <- .makeMultuplet(
+    output <- makeMultuplet(
         nCellsInMultiplet,
         cellTypes,
         multuplets,
@@ -178,8 +178,8 @@ test_that("check .makeMultuplet with quadruplets", {
 #                                                                              #
 ################################################################################
 
-##run test .decideConnections
-test_that("check .decideConnections function outputs the expected result", {
+##run test decideConnections
+test_that("check decideConnections function outputs the expected result", {
     
     ###TEST1####
     #set up input data
@@ -192,7 +192,7 @@ test_that("check .decideConnections function outputs the expected result", {
     expectedCurrent <- rep(0, 2)
     
     #run function
-    output <- .decideConnections(cellTypes, target)
+    output <- decideConnections(cellTypes, target)
     
     #test
     expect_equivalent(expectedConn, output$conn)
@@ -200,8 +200,8 @@ test_that("check .decideConnections function outputs the expected result", {
     expect_equivalent(expectedCurrent, output$current)
 })
 
-##run test .quantifyConnections
-test_that("check .quantifyConnections function outputs the expected result", {
+##run test quantifyConnections
+test_that("check quantifyConnections function outputs the expected result", {
     
     ###TEST1####
     #set up input data
@@ -214,7 +214,7 @@ test_that("check .quantifyConnections function outputs the expected result", {
     expectedType2 <- c("A1", "B1")
     
     #run function
-    output <- .quantifyConnections(multupletNames)
+    output <- quantifyConnections(multupletNames)
     
     #test
     expect_equivalent(expectedVar1, output$Var1)
@@ -223,8 +223,8 @@ test_that("check .quantifyConnections function outputs the expected result", {
     expect_equivalent(expectedType2, output$type2)
 })
 
-##run test .calculateFreqAndSum
-test_that("check .calculateFreqAndSum function outputs the expected result", {
+##run test calculateFreqAndSum
+test_that("check calculateFreqAndSum function outputs the expected result", {
     
     ###TEST1####
     #set up input data
@@ -234,7 +234,7 @@ test_that("check .calculateFreqAndSum function outputs the expected result", {
         target = rep(20, 2),
         current = rep(0, 2)
     )
-    current <- .quantifyConnections(c("A1A1A1", "A1A1A1", "A1A1B1"))
+    current <- quantifyConnections(c("A1A1A1", "A1A1A1", "A1A1B1"))
     
     #setup expected data
     expectedTypes <- c("A1", "A1")
@@ -242,7 +242,7 @@ test_that("check .calculateFreqAndSum function outputs the expected result", {
     expectedSum <- 9
     
     #run function
-    output <- .calculateFreqAndSum(i, targetConnections, current)
+    output <- calculateFreqAndSum(i, targetConnections, current)
     outputTypes <- output[[1]]
     outputFreq <- output[[2]]
     outputSum <- output[[3]]
@@ -253,8 +253,8 @@ test_that("check .calculateFreqAndSum function outputs the expected result", {
     expect_equivalent(expectedSum, outputSum)
 })
 
-##run test .calculateNumToAdd
-test_that("check .calculateNumToAdd function outputs the expected result", {
+##run test calculateNumToAdd
+test_that("check calculateNumToAdd function outputs the expected result", {
     
     ###TEST1####
     #set up input data
@@ -271,7 +271,7 @@ test_that("check .calculateNumToAdd function outputs the expected result", {
     expected <- 0
     
     #run function
-    output <- .calculateNumToAdd(i, currentFreq, currentSum, targetConnections)
+    output <- calculateNumToAdd(i, currentFreq, currentSum, targetConnections)
     
     #test
     expect_equivalent(expected, output)
@@ -291,36 +291,93 @@ test_that("check .calculateNumToAdd function outputs the expected result", {
     expected <- 25
     
     #run function
-    output <- .calculateNumToAdd(i, currentFreq, currentSum, targetConnections)
+    output <- calculateNumToAdd(i, currentFreq, currentSum, targetConnections)
     
     #test
     expect_equivalent(expected, output)
 })
 
-##run test .synthesizeAndAdd
-test_that("check .synthesizeAndAdd function outputs the expected result", {
+##run test synthesizeAndAdd
+test_that("check synthesizeAndAdd function outputs the expected result", {
     
     ###TEST1####
     #set up input data
-    add <- 2
+    add <- 13
     currentTypes <- c("A1", "B1")
     nGenes <- 1000
     multuplets <- data.frame(row.names = 1:nGenes)
-    nCellTypes <- 3
+    singlets <- syntheticSinglets(
+        nGenes = nGenes,
+        nCells = 5,
+        nCellTypes = 2,
+        singletExpansion = 2
+    )[[2]]
+    colnames(singlets) <- sort(rep(paste(LETTERS[1:2], 1, sep = ""), 5))
     
     #setup expected data
-    expectedTypes <- c("A1", "A1")
+    expectedTypes <- c("A1", "B1")
     expectedFreq <- 7
     expectedSum <- 9
     
     #run function
-    output <- .synthesizeAndAdd(add, currentTypes, nGenes, multuplets, nCellTypes)
+    output <- synthesizeAndAdd(
+        add,
+        currentTypes,
+        multuplets,
+        singlets
+    )
     
     #test
+    outputTypes <- colnames(output) %>%
+        gsub("(.{2})", "\\1 ", .) %>%
+        trimws %>% strsplit(., "\\s+") %>%
+        unlist %>%
+        unique
     expect_equivalent(expectedTypes, outputTypes)
-    expect_equivalent(expectedFreq, outputFreq)
-    expect_equivalent(expectedSum, outputSum)
+    
+    freq <- quantifyConnections(colnames(output))
+    outputFreq <- freq[freq$Var1 == "A1-B1", "Freq"]
+    expect_true(all.equal(expectedFreq, outputFreq, tolerance = 5))
+    
 })
+
+##run test checkFrequency
+test_that("check checkFrequency function outputs the expected result", {
+    
+    ###TEST1####
+    #set up input data
+    multuplets <- data.frame(1,2,3,4,5,6)
+    colnames(multuplets) <- c(rep("A1B1", 3), rep("C1D1", 2), "C1E1")
+    targetConnections <- data.frame(
+        conn = c("A1-B1", "C1-D1"),
+        target = 20,
+        current = 0,
+        stringsAsFactors = FALSE
+    )
+    
+    #setup expected data
+    expectedA1B1 <- 100
+    expectedC1D1 <- round(100 * (2 / 3))
+    
+    #run function
+    tmp <- checkFrequency(
+        1,
+        multuplets,
+        targetConnections,
+        currentTypes = c("A1", "B1")
+    )
+    output <- checkFrequency(
+        2,
+        multuplets,
+        tmp,
+        currentTypes = c("C1", "D1")
+    )
+    
+    #test
+    expect_equivalent(expectedA1B1, output[output$conn == "A1-B1", "current"])
+    expect_equivalent(expectedC1D1, output[output$conn == "C1-D1", "current"])
+})
+
 
 ################################################################################
 #                                                                              #
@@ -328,18 +385,35 @@ test_that("check .synthesizeAndAdd function outputs the expected result", {
 #                                                                              #
 ################################################################################
 
-test_that("check .syntheticMultuplets function outputs the expected result", {
+test_that("check syntheticMultuplets function outputs the expected result", {
     
     ###TEST1####
     #set up input data
+    multuplets <- data.frame(lapply(1:20, function(x) 1:10))
+    colnames(multuplets) <- c(
+        rep("A1A1", 10),
+        rep("B1B1", 10)
+    )
+    singlets <- .syntheticSinglets(
+        nGenes = 10,
+        nCells = 5,
+        nCellTypes = 2,
+        singletExpansion = 2
+    )[[2]]
+    colnames(singlets) <- c(rep("A1", 5), rep("B1", 5))
     
     #setup expected data
+    expectedTotal <- 20
     
     #run function
+    output <- adjustSelf(multuplets = multuplets, singlets = singlets)
+    outputNewCols <- output[, (ncol(multuplets) - 1):ncol(output)]
+    colnames(outputNewCols) <- gsub("(.*)\\.[0-9]", "\\1", colnames(outputNewCols))
+    addedConns <- quantifyConnections(colnames(outputNewCols))
     
     #test
-    expect_equivalent(expectedClassification, unique(getData(uObj, "classification")))
-    
+    expect_true(all.equal(addedConns[1, "Freq"], expectedTotal, tolerance = 5))
+    expect_true(all.equal(addedConns[2, "Freq"], expectedTotal, tolerance = 5))
 })
 
 ################################################################################
@@ -348,8 +422,8 @@ test_that("check .syntheticMultuplets function outputs the expected result", {
 #                                                                              #
 ################################################################################
 
-##run test .syntheticMultuplets
-test_that("check .syntheticMultuplets function outputs the expected result", {
+##run test syntheticMultuplets
+test_that("check syntheticMultuplets function outputs the expected result", {
     
     ###TEST1####
     #set up input data
@@ -363,7 +437,7 @@ test_that("check .syntheticMultuplets function outputs the expected result", {
     expectedClassification <- c("A1", "B1", "C1", "D1")
     
     #run function
-    output <- .syntheticMultuplets(
+    output <- syntheticMultuplets(
         ngenes,
         ncells,
         cellTypes,
@@ -391,8 +465,8 @@ test_that("check .syntheticMultuplets function outputs the expected result", {
 #                                                                              #
 ################################################################################
 
-##run test .syntheticTestData
-test_that("check .syntheticTestData function outputs the expected result", {
+##run test syntheticTestData
+test_that("check syntheticTestData function outputs the expected result", {
     
     ###TEST1####
     #set up input data

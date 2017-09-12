@@ -50,7 +50,7 @@ syntheticDataTest <- function(
 ){
     
     #create synthetic data
-    tmp <- .syntheticTestData(
+    tmp <- syntheticTestData(
         nMultiplets,
         nGenes,
         nCells,
@@ -801,12 +801,16 @@ synthesizeAndAdd <- function(
     
     #add random quadruplets
     set.seed(2938230)
-    quadrupletIdx <- sample(1:ncol(quadruplets), size = ceiling(add / 5), replace = FALSE)
-    mat <- quadruplets[, quadrupletIdx]
+    quadrupletIdx <- sample(
+        1:ncol(quadruplets),
+        size = ceiling(add / 6),
+        replace = FALSE
+    )
+    mat <- matrix(unlist(quadruplets[, quadrupletIdx]), nrow = nrow(multuplets))
     names <- colnames(quadruplets)[quadrupletIdx]
     
     #quantify quadruplet connections
-    qConn <- quantifyConnections(colnames(mat))
+    qConn <- quantifyConnections(names)
     bools <- qConn$Var1 == paste(currentTypes, collapse = "-")
     added <- qConn[bools, "Freq"]
     
@@ -827,7 +831,7 @@ synthesizeAndAdd <- function(
         colnames(mat) <- names
         
     } else {
-        error("quadruplets added too many connections in .synthesizeAndAdd")
+        stop("quadruplets added too many connections in .synthesizeAndAdd")
     }
     
     return(cbind(multuplets, mat))
@@ -931,6 +935,7 @@ adjustSelf <- function(
         #doublets = 1 connection
         #triplets = 3 connections
         #quadruplets = 6 connections
+        #NOTE THAT THE dToAdd, tToAdd, qToAdd rarely give the exact expected amount of added connections. Fix?
         connPerCellComb <- selfConn[i, "add"] / 3
         dToAdd <- ceiling(connPerCellComb)
         tToAdd <- ceiling(connPerCellComb / 3)
