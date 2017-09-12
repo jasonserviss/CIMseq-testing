@@ -14,30 +14,31 @@ test_that("check .syntheticSinglets function outputs the expected result", {
     nGenes <- 100
     nCells <- 10
     nCellTypes <- 3
+    singletExpansion <- 2
     
     #setup expected data
     expectedDim <- c(100, 30)
     expectedDimFull <- c(100, 1500)
-
-    expectedNames <- sort(paste(
-        sort(rep(LETTERS, nCells * 50))[1:(nCellTypes * nCells * 50)],
-        1:(nCells * 50),
-        sep = ""
-    ))
+    
+    prefix <- sort(rep(LETTERS[1:nCellTypes], (nCells * singletExpansion)))
+    suffix <- 1:(nCells * singletExpansion)
+    expectedNames <- paste(prefix, suffix, sep = "")
     expectedClass <- "data.frame"
     
     #run function
-    output <- .syntheticSinglets(nGenes, nCells, nCellTypes)
+    output <- .syntheticSinglets(nGenes, nCells, nCellTypes, singletExpansion)
     outputSingletsFull <- output[[1]]
     outputSinglets <- output[[2]]
+    singletNames <- c(colnames(outputSingletsFull), colnames(outputSinglets))
     
     #test
     expect_equivalent(dim(outputSinglets), expectedDim)
-    expect_equivalent(
-        sort(c(colnames(outputSinglets), colnames(outputSingletsFull))),
-        expectedNames
-    )
+    expect_equivalent(dim(outputSingletsFull), expectedDim)
+
+    expect_true(all(singletNames %in% expectedNames))
+    
     expect_equivalent(class(outputSinglets), expectedClass)
+    expect_equivalent(class(outputSingletsFull), expectedClass)
 })
 
 ################################################################################
@@ -50,11 +51,23 @@ test_that("check .syntheticSinglets function outputs the expected result", {
 test_that("check .makeMultuplet with doublets", {
     
     #set up input data
-    nCellsInMultiplet <- 2
-    nGenes <- 100
+    ##arguments to .syntheticSinglets
     cellTypes <- paste(LETTERS[1:3], 1, sep = "")
-    singlets <- .syntheticSinglets(nGenes, 3, length(cellTypes))
+    nGenes <- 100
+    nCells <- 3
+    nCellTypes <- length(cellTypes)
+    singletExpansion <- 2
+    
+
+    ##arguments to .makeMultuplet
+    nCellsInMultiplet <- 2
     multuplets <- data.frame(row.names = 1:nrow(singlets))
+    singlets <- .syntheticSinglets(
+        nGenes,
+        nCells,
+        nCellTypes,
+        singletExpansion
+    )[[2]]
     colnames(singlets) <- sort(rep(cellTypes, 3))
     
     #setup expected data
@@ -72,17 +85,27 @@ test_that("check .makeMultuplet with doublets", {
     #test
     expect_equivalent(dim(output), expectedDim)
     expect_equivalent(colnames(output), expectedMultuplets)
-    
 })
 
 test_that("check .makeMultuplet with triplets", {
     
     #set up input data
-    nCellsInMultiplet <- 3
-    nGenes <- 100
+    ##arguments to .syntheticSinglets
     cellTypes <- paste(LETTERS[1:3], 1, sep = "")
-    singlets <- .syntheticSinglets(nGenes, 3, length(cellTypes))
+    nGenes <- 100
+    nCells <- 3
+    nCellTypes <- length(cellTypes)
+    singletExpansion <- 2
+    
+    ##arguments to .makeMultuplet
+    nCellsInMultiplet <- 3
     multuplets <- data.frame(row.names = 1:nrow(singlets))
+    singlets <- .syntheticSinglets(
+        nGenes,
+        nCells,
+        nCellTypes,
+        singletExpansion
+    )[[2]]
     colnames(singlets) <- sort(rep(cellTypes, 3))
     
     #setup expected data
@@ -103,17 +126,28 @@ test_that("check .makeMultuplet with triplets", {
     #test
     expect_equivalent(dim(output), expectedDim)
     expect_equivalent(colnames(output), expectedMultuplets)
-    
 })
 
 test_that("check .makeMultuplet with quadruplets", {
     
     #set up input data
-    nCellsInMultiplet <- 4
-    nGenes <- 100
+    ##arguments to .syntheticSinglets
     cellTypes <- paste(LETTERS[1:3], 1, sep = "")
-    singlets <- .syntheticSinglets(nGenes, 3, length(cellTypes))
+    nGenes <- 100
+    nCells <- 3
+    nCellTypes <- length(cellTypes)
+    singletExpansion <- 2
+    
+    
+    ##arguments to .makeMultuplet
+    nCellsInMultiplet <- 4
     multuplets <- data.frame(row.names = 1:nrow(singlets))
+    singlets <- .syntheticSinglets(
+        nGenes,
+        nCells,
+        nCellTypes,
+        singletExpansion
+    )[[2]]
     colnames(singlets) <- sort(rep(cellTypes, 3))
     
     #setup expected data
@@ -261,7 +295,6 @@ test_that("check .calculateNumToAdd function outputs the expected result", {
     
     #test
     expect_equivalent(expected, output)
-
 })
 
 ##run test .synthesizeAndAdd

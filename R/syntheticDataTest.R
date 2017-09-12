@@ -15,6 +15,12 @@
 #' @param nCellTypes Number of cell types in generated synthetic data. For the
 #'    frequency adjustment to work this should be an even number.
 #' @param distFun The distance function to use for swarm optimization.
+#' @param target The target percentage of connections for interacting cells.
+#' @param singletExpansion This argument is multiplied by the nCells argument to
+#'    give the total number of singlets synthesized per cell type. nCells
+#'    singlets are then reserved for the singlets used in testing whereas the
+#'    extra singlets created are used to adjust the connection frequencies via
+#'    the .adjustMultuplets and .adjustSelf units. Argument must be > 1.
 #' @param ... additional arguments to pass on
 #' @return Saves results in .rda file.
 #' @author Jason T. Serviss
@@ -96,16 +102,51 @@ syntheticDataTest <- function(
     )
 }
 
-.syntheticTestData <- function(
+#' syntheticTestData
+#'
+#' This unit and the corresponding units synthesize the synthetic test data
+#' that is subsequently saved and, as well, is used for testing.
+#'
+#'
+#' @name syntheticTestData
+#' @aliases syntheticTestData
+#' @param nMultiplets Number of multiplets.
+#' @param nGenes Number of genes in generated synthetic data.
+#' @param nCells Number of cells per cell type in generated synthetic data.
+#' @param nCellTypes Number of cell types in generated synthetic data. For the
+#'    frequency adjustment to work this should be an even number.
+#' @param perplexity The perplexity parameter supplied to spUnsupervised.
+#' @param target The target percentage of connections for interacting cells.
+#' @param singletExpansion This argument is multiplied by the nCells argument to
+#'    give the total number of singlets synthesized per cell type. nCells
+#'    singlets are then reserved for the singlets used in testing whereas the
+#'    extra singlets created are used to adjust the connection frequencies via
+#'    the .adjustMultuplets and .adjustSelf units. Argument must be > 1.
+#' @param ... additional arguments to pass on
+#' @return A list containing variables syntheticData (all data generated),
+#'    testSyntheticData (data to be used in the testing), uObj (spUnsupervised
+#'    output using the generated singlets), table (a table of the connections
+#'    synthesized).
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+syntheticTestData <- function(
     nMultiplets,
     nGenes,
     nCells,
     nCellTypes,
     perplexity = 10,
     target,
-    singletExpansion
+    singletExpansion,
+    ...
 ){
-    tmp <- .syntheticMultuplets(
+    tmp <- syntheticMultuplets(
         nGenes,
         nCells,
         nCellTypes,
@@ -157,11 +198,41 @@ syntheticDataTest <- function(
     return(list(syntheticData, testSyntheticData, uObj, table))
 }
 
-.syntheticSinglets <- function(
+#' syntheticSinglets
+#'
+#' This unit uses the negative binomial distribution to synthesize the
+#' singlets used in the synthetic data test.
+#'
+#'
+#' @name syntheticSinglets
+#' @aliases syntheticSinglets
+#' @param nGenes Number of genes in generated synthetic data.
+#' @param nCells Number of cells per cell type in generated synthetic data.
+#' @param nCellTypes Number of cell types in generated synthetic data. For the
+#'    frequency adjustment to work this should be an even number.
+#' @param singletExpansion This argument is multiplied by the nCells argument to
+#'    give the total number of singlets synthesized per cell type. nCells
+#'    singlets are then reserved for the singlets used in testing whereas the
+#'    extra singlets created are used to adjust the connection frequencies via
+#'    the .adjustMultuplets and .adjustSelf units. Argument must be > 1.
+#' @param ... additional arguments to pass on
+#' @return A list containing the singlets generated for connection adjustments
+#'    and the singlets for use with spUnsupervised in the testing procedure.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+syntheticSinglets <- function(
     nGenes,
     nCells,
     nCellTypes,
-    singletExpansion
+    singletExpansion,
+    ...
 ){
     nCellsIncrease <- nCells * singletExpansion
     synth <- sapply(1:nCellTypes, function(x) {
@@ -181,20 +252,59 @@ syntheticDataTest <- function(
         typeIdx <- which(grepl(LETTERS[t], colnames(singlets)))
         sample(typeIdx, size = nCells, replace = FALSE)
     })
-    singletsProper <- as.data.frame(singlets[, unlist(idx)])
-    singletsFull <- as.data.frame(singlets[, -unlist(idx)])
+    singletsProper <- as.data.frame(singlets[, as.numeric(idx)])
+    singletsFull <- as.data.frame(singlets[, -as.numeric(idx)])
     return(list(singletsFull, singletsProper))
 }
 
-.syntheticMultuplets <- function(
+#' syntheticMultuplets
+#'
+#' This unit synthesizes "all possible" multiplets combinations from the
+#' singlets that were generated. Currently, doublets, triplets, and quadruplets
+#' are synthesized. The unit also calls the adjustMultuplets and adjustSelf
+#' units to adjust the connections in a manner that 1) self connections are the
+#' most prevelant connection type (currently 2/3 connections) and 2) that each
+#' cell type has a high percentage of connections to one other cell type.
+#'
+#' @name syntheticMultuplets
+#' @aliases syntheticMultuplets
+#' @param nGenes numeric. Number of genes in generated synthetic data.
+#' @param nCells numeric. Number of cells per cell type in generated synthetic
+#'    data.
+#' @param nCellTypes numeric. Number of cell types in generated synthetic data.
+#'    For the frequency adjustment to work this should be an even number.
+#' @param perplexity numeric. The perplexity parameter supplied to
+#'    spUnsupervised.
+#' @param target numeric. The target percentage of connections for interacting
+#'    cells.
+#' @param singletExpansion numeric. This argument is multiplied by the nCells
+#'    argument to give the total number of singlets synthesized per cell type.
+#'    nCells singlets are then reserved for the singlets used in testing whereas
+#'    the extra singlets created are used to adjust the connection frequencies
+#'    via the .adjustMultuplets and .adjustSelf units. Argument must be > 1.
+#' @param ... additional arguments to pass on
+#' @return A list containing singlets, multuplets, and the spUnsupervised
+#'    object.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+
+syntheticMultuplets <- function(
     nGenes,
     nCells,
     nCellTypes,
     perplexity,
     target,
-    singletExpansion
+    singletExpansion,
+    ...
 ){
-    sng <- .syntheticSinglets(nGenes, nCells, nCellTypes, singletExpansion)
+    sng <- syntheticSinglets(nGenes, nCells, nCellTypes, singletExpansion)
     singletsFull <- sng[[1]]
     singlets <- sng[[2]]
     
@@ -245,16 +355,16 @@ syntheticDataTest <- function(
     tmp <- data.frame(row.names = 1:nGenes)
     
     #doublets
-    doublets <- .makeMultuplet(2, cellTypes, tmp, singletsFull)
+    doublets <- makeMultuplet(2, cellTypes, tmp, singletsFull)
     
     #triplets
-    triplets <- .makeMultuplet(3, cellTypes, doublets, singletsFull)
+    triplets <- makeMultuplet(3, cellTypes, doublets, singletsFull)
     
     #quadruplets
-    quadruplets <- .makeMultuplet(4, cellTypes, triplets, singletsFull)
+    quadruplets <- makeMultuplet(4, cellTypes, triplets, singletsFull)
     
     #adjust perfered connections
-    multuplets <- .adjustMultuplets(
+    multuplets <- adjustMultuplets(
         singletsFull,
         quadruplets,
         nGenes,
@@ -263,18 +373,54 @@ syntheticDataTest <- function(
     )
     
     #adjust self connections
-    multuplets <- .adjustSelf(multuplets, singletsFull)
+    multuplets <- adjustSelf(multuplets, singletsFull)
     
     return(list(singlets, multuplets, uObj))
 }
 
-.makeMultuplet <- function(
+#' makeMultuplet
+#'
+#' This unit synthesizes "all possible" multiplets combinations from the
+#' singlets that were generated. Currently, doublets, triplets, and quadruplets
+#' are synthesized. The unit also calls the adjustMultuplets and adjustSelf
+#' units to adjust the connections in a manner that 1) self connections are the
+#' most prevelant connection type (currently 2/3 connections) and 2) that each
+#' cell type has a high percentage of connections to one other cell type.
+#'
+#' @name makeMultuplet
+#' @aliases makeMultuplet
+#' @param nCellsInMultiplet numeric. Defines the number of cells to be included
+#'    in the multiplet. Currently can only be 2, 3, or 4.
+#' @param cellTypes character. Provides the names of the cell types to include
+#'    in the multiplet(s). These must be present in the singlets matrix and the
+#'    names specified correctly in the colnames.
+#' @param multuplets data.frame. The multiplets data.frame or a empty data.frame
+#'    with rows equal to the number of genes in the desired multiplets variable.
+#' @param singlets data.frame The singlets variable output from the
+#'    syntheticSinglets function.
+#' @param repetitions numeric. The number of times the connections should be
+#'    repeated or NULL if they should only be repeated once.
+#' @param self logical. Indicates if self connections should be included.
+#' @param ... additional arguments to pass on
+#' @return The multuplets variable.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+
+makeMultuplet <- function(
     nCellsInMultiplet,
     cellTypes,
     multuplets,
     singlets,
     repetitions = NULL,
-    self = TRUE
+    self = TRUE,
+    ...
 ){
     switch(nCellsInMultiplet - 1,
         {combos <- t(expand.grid(cellTypes, cellTypes))},
@@ -293,7 +439,10 @@ syntheticDataTest <- function(
     }
     
     if(!is.null(repetitions)) {
-        combos <- matrix(combos[, rep(seq_len(ncol(combos)), repetitions)], nrow = nrow(combos))
+        combos <- matrix(
+            combos[, rep(seq_len(ncol(combos)), repetitions)],
+            nrow = nrow(combos)
+        )
     }
     
     add <- sapply(1:ncol(combos), function(x) {
@@ -320,36 +469,69 @@ syntheticDataTest <- function(
     return(multuplets)
 }
 
-.adjustMultuplets <- function(
+#' adjustMultuplets
+#'
+#' This unit adjusts the multuplets so that each cell type has one prevelant
+#' connection. Which connection a cell type prefers is decided randomly. The
+#' strength of the preference is determined by the target argument. This works
+#' well as long as the number of cell types in the dataset is even (and not
+#' odd).
+#'
+#' @name adjustMultuplets
+#' @aliases adjustMultuplets
+#' @param singletsFull data.frame The singlets variable output from the
+#'    syntheticSinglets function.
+#' @param multuplets data.frame. The multiplets data.frame or a empty data.frame
+#'    with rows equal to the number of genes in the desired multiplets variable.
+#' @param nGenes numeric. Number of genes in generated synthetic data.
+#' @param nCellTypes numeric. Number of cell types in generated synthetic data.
+#'    For the frequency adjustment to work this should be an even number.
+#' @param perplexity numeric. The perplexity parameter supplied to
+#'    spUnsupervised.
+#' @param target numeric. The target percentage of connections for interacting
+#'    cells.
+#' @param ... additional arguments to pass on
+#' @return The multuplets variable.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+adjustMultuplets <- function(
     singletsFull,
     multuplets,
     nGenes,
     nCellTypes,
-    target
+    target,
+    ...
 ){
     
     #decide which connection preferences should exist
     cellTypes <- unique(colnames(singletsFull))
-    targetConnections <- .decideConnections(cellTypes, target)
+    targetConnections <- decideConnections(cellTypes, target)
     
     #quantify current connections
-    current <- .quantifyConnections(colnames(multuplets))
+    current <- quantifyConnections(colnames(multuplets))
     
     #adjust connection frequency
     
     for(i in 1:nrow(targetConnections)) {
         
         #calculate current percent
-        tmp <- .calculateFreqAndSum(i, targetConnections, current)
+        tmp <- calculateFreqAndSum(i, targetConnections, current)
         currentTypes <- tmp[[1]]
         currentFreq <- tmp[[2]]
         currentSum <- tmp[[3]]
         
         #calculate number to add
-        add <- .calculateNumToAdd(i, currentFreq, currentSum, targetConnections)
+        add <- calculateNumToAdd(i, currentFreq, currentSum, targetConnections)
         
         #synthesize and add connections to achieve target percentages
-        multuplets <- .synthesizeAndAdd(
+        multuplets <- synthesizeAndAdd(
             add,
             currentTypes,
             multuplets,
@@ -357,7 +539,7 @@ syntheticDataTest <- function(
         )
         
         #check frequency
-        targetConnections <- .checkFrequency(
+        targetConnections <- checkFrequency(
             i,
             multuplets,
             targetConnections,
@@ -378,16 +560,34 @@ syntheticDataTest <- function(
     return(multuplets)
 }
 
-#decide which connections should exist.
-#This randomly assigns connections between all cell types and sets a target
-#for the percentage of the total connections that the assigned connection should
-#have.
+#' decideConnections
+#'
+#' This randomly assigns connections between all cell types and returns a
+#' data.frame to allow tracking of the target and current connection percentage
+#' per connection.
+#'
+#' @name decideConnections
+#' @aliases decideConnections
+#' @param cellTypes character. Provides the names of the cell types to include
+#'    in the multiplet(s). These must be present in the singlets matrix and the
+#'    names specified correctly in the colnames.
+#' @param target numeric. The target percentage of connections for interacting
+#'    cells.
+#' @param ... additional arguments to pass on.
+#' @return data.frame
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
 
-#target: specifies the target percentage of connections for cell types that
-#should be connected.
-.decideConnections <- function(
+decideConnections <- function(
     cellTypes,
-    target
+    target,
+    ...
 ){
     
     done <- c()
@@ -419,9 +619,29 @@ syntheticDataTest <- function(
     ))
 }
 
-#Uses the multuplet naming convention to quantify the connections.
-.quantifyConnections <- function(
-    multupletNames
+#' quantifyConnections
+#'
+#' Uses the multuplet naming convention to quantify the frequency of each
+#' connection.
+#'
+#' @name quantifyConnections
+#' @aliases quantifyConnections
+#' @param multupletNames character. Names of the multiplets specified using the
+#'    typical LETTER NUMBER convention.
+#' @param ... additional arguments to pass on.
+#' @return data.frame
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+quantifyConnections <- function(
+    multupletNames,
+    ...
 ){
     split <- trimws(gsub("(.{2})", "\\1 ", multupletNames))
     suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", split)
@@ -435,8 +655,31 @@ syntheticDataTest <- function(
     return(d)
 }
 
+#' calculateFreqAndSum
+#'
+#' Calculates statistics concerning the current connection. These are used
+#' downstream to calculate the number of connections that need to be added to
+#' meet the target percentage.
+#'
+#' @name calculateFreqAndSum
+#' @aliases calculateFreqAndSum
+#' @param i integer. Current iteration.
+#' @param targetConnections data.frame. Output from the decideConnections unit.
+#' @param current data.frame. Output from the quantifyConnections unit.
+#' @param ... additional arguments to pass on.
+#' @return A list containing the current cell types, the current frequency of
+#'    of the prefered connection, and the sum of the current number of
+#'    connections between the cell types.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
 
-.calculateFreqAndSum <- function(
+calculateFreqAndSum <- function(
     i,
     targetConnections,
     current
@@ -452,11 +695,36 @@ syntheticDataTest <- function(
     return(list(types, currentFreq, currentSum))
 }
 
-.calculateNumToAdd <- function(
+#' calculateNumToAdd
+#'
+#' Calculates the number of connections that need to be added to meet the target
+#' percentage for each connection.
+#'
+#' @name calculateNumToAdd
+#' @aliases calculateNumToAdd
+#' @param i integer. Current iteration.
+#' @param currentFreq numeric. The current frequency of of the prefered
+#'    connection.
+#' @param currentSum numeric.
+#' @param targetConnections data.frame. Output from the decideConnections unit.
+#' @param ... additional arguments to pass on.
+#' @return Integer specifying the number of connections to add in order to meet
+#'    the target percentage.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+calculateNumToAdd <- function(
     i,
     currentFreq,
     currentSum,
-    targetConnections
+    targetConnections,
+    ...
 ){
     target <- targetConnections[i, "target"]
     numerator <- (100 * currentFreq) - (currentSum * target)
@@ -470,14 +738,41 @@ syntheticDataTest <- function(
     return(add)
 }
 
-.synthesizeAndAdd <- function(
+#' synthesizeAndAdd
+#'
+#' Synthesizes the number of connections necessary to meet the target
+#' percentages according to the add argument. Doublets, triplets, and
+#' quadruplets are synthesized.
+#'
+#' @name synthesizeAndAdd
+#' @aliases synthesizeAndAdd
+#' @param add integer. The number of connections to add.
+#' @param currentTypes data.frame. Output from the quantifyConnections unit.
+#' @param multuplets data.frame. The multiplets data.frame or a empty data.frame
+#'    with rows equal to the number of genes in the desired multiplets variable.
+#' @param singletsFull data.frame The singlets variable output from the
+#'    syntheticSinglets function.
+#' @param ... additional arguments to pass on.
+#' @return The multiplets variable with the additional multiplets added by the
+#'    unit.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+synthesizeAndAdd <- function(
     add,
     currentTypes,
     multuplets,
-    singletsFull
+    singletsFull,
+    ...
 ){
     tmp <- data.frame(row.names = 1:nrow(multuplets))
-    doublets <- .makeMultuplet(
+    doublets <- makeMultuplet(
         nCellsInMultiplet = 2,
         cellTypes = currentTypes,
         multuplets = tmp,
@@ -486,7 +781,7 @@ syntheticDataTest <- function(
         self = FALSE
     )
     
-    triplets <- .makeMultuplet(
+    triplets <- makeMultuplet(
         nCellsInMultiplet = 3,
         cellTypes = currentTypes,
         multuplets = tmp,
@@ -495,7 +790,7 @@ syntheticDataTest <- function(
         self = FALSE
     )
     
-    quadruplets <- .makeMultuplet(
+    quadruplets <- makeMultuplet(
         nCellsInMultiplet = 4,
         cellTypes = currentTypes,
         multuplets = tmp,
@@ -511,7 +806,7 @@ syntheticDataTest <- function(
     names <- colnames(quadruplets)[quadrupletIdx]
     
     #quantify quadruplet connections
-    qConn <- .quantifyConnections(colnames(mat))
+    qConn <- quantifyConnections(colnames(mat))
     bools <- qConn$Var1 == paste(currentTypes, collapse = "-")
     added <- qConn[bools, "Freq"]
     
@@ -538,11 +833,36 @@ syntheticDataTest <- function(
     return(cbind(multuplets, mat))
 }
 
-.checkFrequency <- function(
+#' checkFrequency
+#'
+#' Performs a final check to see if the target frequencies have been met. The
+#' current percentages are added to the targetConnections data.frame which is
+#' subsequently checked outside of the unit.
+#'
+#' @name checkFrequency
+#' @aliases checkFrequency
+#' @param i integer. Current iteration.
+#' @param currentTypes data.frame. Output from the quantifyConnections unit.
+#' @param multuplets data.frame. The multiplets data.frame.
+#' @param targetConnections data.frame. Output from the decideConnections unit.
+#' @param currentTypes The current cell types being examined.
+#' @param ... additional arguments to pass on.
+#' @return The targetConnections data.frame.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+checkFrequency <- function(
     i,
     multuplets,
     targetConnections,
-    currentTypes
+    currentTypes,
+    ...
 ){
     after <- .quantifyConnections(colnames(multuplets))
     bool <- after$Var1 == targetConnections[i, "conn"]
@@ -554,7 +874,29 @@ syntheticDataTest <- function(
     return(targetConnections)
 }
 
-.adjustSelf <- function(
+#' adjustSelf
+#'
+#' Adjust the number of self connections. This currently dilutes the current
+#' connections into a third of the total connections by adding twice as many
+#' self connections.
+#'
+#' @name adjustSelf
+#' @aliases adjustSelf
+#' @param multuplets data.frame. The multiplets data.frame.
+#' @param singletsFull data.frame The singlets variable output from the
+#'    syntheticSinglets function.
+#' @param ... additional arguments to pass on.
+#' @return The targetConnections data.frame.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+adjustSelf <- function(
     multuplets,
     singletsFull
 ){
