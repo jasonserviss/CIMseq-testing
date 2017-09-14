@@ -328,10 +328,10 @@ syntheticMultuplets <- function(
         cObjSngFull,
         theta = 0,
         k = 2,
-        max_iter = 2000,
+        max_iter = 500,
         perplexity = 10,
         initial_dims = ncol(singlets),
-        Gmax = 50,
+        Gmax = nCellTypes,
         seed = 11,
         type = "max"
     )
@@ -340,10 +340,10 @@ syntheticMultuplets <- function(
         cObjSng,
         theta = 0,
         k = 2,
-        max_iter = 2000,
+        max_iter = 500,
         perplexity = 10,
         initial_dims = ncol(singlets),
-        Gmax = 50,
+        Gmax = nCellTypes,
         seed = 11,
         type = "max"
     )
@@ -869,7 +869,7 @@ checkFrequency <- function(
     currentTypes,
     ...
 ){
-    after <- .quantifyConnections(colnames(multuplets))
+    after <- quantifyConnections(colnames(multuplets))
     bool <- after$Var1 == targetConnections[i, "conn"]
     currentFreq <- after[bool, "Freq"]
     bool <- after$type1 %in% currentTypes | after$type2 %in% currentTypes
@@ -907,7 +907,7 @@ adjustSelf <- function(
 ){
     
     #count number of current connections
-    conn <- .quantifyConnections(colnames(multuplets))
+    conn <- quantifyConnections(colnames(multuplets))
     selfConn <- subset(conn, type1 == type2)
     
     #calculate total connections per cell type
@@ -946,7 +946,7 @@ adjustSelf <- function(
         #doublets
         
         tmp <- data.frame(row.names = 1:nrow(multuplets))
-        doublets <- .makeMultuplet(
+        doublets <- makeMultuplet(
             nCellsInMultiplet = 2,
             cellTypes = c(selfConn[i, "type1"], selfConn[i, "type2"]),
             multuplets = tmp,
@@ -955,7 +955,7 @@ adjustSelf <- function(
             self = TRUE
         )
         
-        triplets <- .makeMultuplet(
+        triplets <- makeMultuplet(
             nCellsInMultiplet = 3,
             cellTypes = c(selfConn[i, "type1"], selfConn[i, "type2"]),
             multuplets = tmp,
@@ -964,7 +964,7 @@ adjustSelf <- function(
             self = TRUE
         )
         
-        quadruplets <- .makeMultuplet(
+        quadruplets <- makeMultuplet(
             nCellsInMultiplet = 4,
             cellTypes = c(selfConn[i, "type1"], selfConn[i, "type2"]),
             multuplets = tmp,
