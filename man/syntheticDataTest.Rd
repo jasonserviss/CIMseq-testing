@@ -27,6 +27,9 @@ singlets are then reserved for the singlets used in testing whereas the
 extra singlets created are used to adjust the connection frequencies via
 the .adjustMultuplets and .adjustSelf units. Argument must be > 1.}
 
+\item{perplexity}{The perplexity provided to Rtsne during the spUnsupervised
+stage.}
+
 \item{...}{additional arguments to pass on}
 }
 \value{
@@ -38,7 +41,7 @@ Subtitle
 \examples{
 
 #use demo data
-syntheticDataTest()
+\dontrun{syntheticDataTest()}
 
 
 
@@ -46,4 +49,3 @@ syntheticDataTest()
 \author{
 Jason T. Serviss
 }
-\keyword{syntheticDataTest}

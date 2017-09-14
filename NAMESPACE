@@ -3,6 +3,7 @@
 export(calculateConnections)
 export(cellTypesIncludedTest)
 export(experimentalDataTest)
+export(expressionBigTest)
 export(expressionDataTest)
 export(groupSizeTest)
 export(noiseDataTest)

@@ -21,14 +21,15 @@
 #'    singlets are then reserved for the singlets used in testing whereas the
 #'    extra singlets created are used to adjust the connection frequencies via
 #'    the .adjustMultuplets and .adjustSelf units. Argument must be > 1.
+#' @param perplexity The perplexity provided to Rtsne during the spUnsupervised
+#'    stage.
 #' @param ... additional arguments to pass on
 #' @return Saves results in .rda file.
 #' @author Jason T. Serviss
-#' @keywords syntheticDataTest
 #' @examples
 #'
 #' #use demo data
-#' syntheticDataTest()
+#' \dontrun{syntheticDataTest()}
 #'
 #'
 #'
@@ -46,6 +47,7 @@ syntheticDataTest <- function(
     distFun = bic,
     target = 20,
     singletExpansion = 20,
+    perplexity = 10,
     ...
 ){
     
@@ -56,7 +58,8 @@ syntheticDataTest <- function(
         nCells,
         nCellTypes,
         target,
-        singletExpansion
+        singletExpansion,
+        perplexity
     )
     syntheticData <- tmp[[1]]
     syntheticDataTest <- tmp[[2]]
@@ -141,9 +144,9 @@ syntheticTestData <- function(
     nGenes,
     nCells,
     nCellTypes,
-    perplexity = 10,
     target,
     singletExpansion,
+    perplexity,
     ...
 ){
     tmp <- syntheticMultuplets(

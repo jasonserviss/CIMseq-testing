@@ -1,25 +1,31 @@
-freq <- quantifyConnections(multupletNames)
-freq
-quantifyConnections <- function(#
-    multupletNames,#
-    ...#
-){#
-    suffix <- gsub("^[m-s]\\.(.*)", "\\1", multupletNames)#
-    split <- trimws(gsub("(.{2})", "\\1 ", suffix))#
-    suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", split)#
-    ss <- strsplit(suffixRemove, " ")#
-    l <- lapply(ss, function  (x) combn(x, 2))#
-    srt <- lapply(l, function(x) apply(x, 2, sort))#
-    p <- lapply(srt, function(x) paste(x[1, ], x[2, ], sep = "-"))#
-    d <- as.data.frame(table(unlist(p)), stringsAsFactors = FALSE)#
-    d$type1 <- gsub("^(..)...$", "\\1", d$Var1)#
-    d$type2 <- gsub("^...(..)$", "\\1", d$Var1)#
-    return(d)#
-}
-freq <- quantifyConnections(multupletNames)
-freq
-plotConnectionDist(colnames(mul))
-library(tidyverse)
-plotConnectionDist(colnames(mul))
-table(nchar(colnames(syntheticData)) == 4)
-devtools::test()
+library(sp.scRNAseqTesting)
+res <- syntheticDataTest()
+sp.scRNAseqTesting::syntheticDataTest
+session.info()
+sessionInfo()
+tmp <- syntheticTestData(#
+        500,#
+        2000,#
+        100,#
+        10,#
+        20,#
+        20#
+    )
+tmp <- sp.scRNAseqTesting:::syntheticTestData(#
+        500,#
+        2000,#
+        100,#
+        10,#
+        20,#
+        20#
+    )
+devtools::install()
+tmp <- sp.scRNAseqTesting:::syntheticTestData(#
+        500,#
+        2000,#
+        100,#
+        10,#
+        20,#
+        20#
+    )
+devtools::document()
