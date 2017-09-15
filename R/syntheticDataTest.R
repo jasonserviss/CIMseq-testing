@@ -66,14 +66,21 @@ syntheticDataTest <- function(
     syntheticDataUnsupervised <- tmp[[3]]
     syntheticDataTable <- tmp[[4]]
     
+    
     #make spCounts object
     single <- grepl("^s", colnames(syntheticDataTest))
     syntheticDataCountsSng <- spCounts(
         syntheticDataTest[, single],
         matrix(NA, ncol = length(single[single == TRUE]))
     )
+    
+    #fix colnames (repeat colnames on multiplets won't work with the spSwarm
+    #method)
+    mul <- syntheticDataTest[, !single]
+    tmpNames <- paste(colnames(mul), 1:nMultiplets, sep = "_")
+    colnames(mul) <- tmpNames
     syntheticDataCountsMul <- spCounts(
-        syntheticDataTest[, !single],
+        mul,
         matrix(NA, ncol = length(single[single == FALSE]))
     )
 
