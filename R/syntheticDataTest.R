@@ -679,8 +679,11 @@ quantifyConnections <- function(
     ...
 ) {
     ss <- strsplit(adjNames, " ")
-    l <- lapply(ss, function  (x) combn(unique(x), 2))
-    #add self back
+    l <- lapply(ss, function(x) {
+        if(length(unique(x)) > 1) {
+            combn(unique(x), 2)
+        }
+    })
     self <- lapply(ss, function(x) which(duplicated(x)))
     add <- lapply(1:length(ss), function(o) unique(ss[[o]][self[[o]]]))
     complete <- lapply(1:length(add), function(x) {
