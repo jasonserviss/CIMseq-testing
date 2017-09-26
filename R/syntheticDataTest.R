@@ -655,10 +655,10 @@ NULL
 #' @import sp.scRNAseq
 
 quantifyConnections <- function(
-    multupletNames,
+    multipletNames,
     ...
 ){
-    adjNames <- .adjustNames(multupletNames)
+    adjNames <- .adjustNames(multipletNames)
     combs <- .findCombos(adjNames)
     .buildOutput(combs)
 }
@@ -689,8 +689,13 @@ quantifyConnections <- function(
     complete <- lapply(1:length(add), function(x) {
         if(length(add[[x]]) == 0) {
             l[[x]]
-        } else {
+        } else if(length(add[[x]]) == 1) {
             cbind(l[[x]], matrix(add[[x]], nrow = 2))
+        } else {
+            cbind(
+                l[[x]],
+                matrix(rep(add[[x]], length(add[[x]])), nrow = 2, byrow = TRUE)
+            )
         }
     })
     srt <- lapply(complete, function(x) apply(x, 2, sort))
@@ -1186,7 +1191,7 @@ plotExpVSObs <- function(spSwarm, edge.cutoff, summary = FALSE) {
             ) +
             geom_label(
                 aes(label = Sum, group = Phase),
-                vjust = -0.5,
+                vjust = -0.2,
                 position = position_dodge(width = 1)
             ) +
             theme_few() +
@@ -1236,6 +1241,7 @@ getUndetectedMultiplets <- function(
         ungroup() %>%
         group_by(multiplet, connection) %>%
         summarise(detected = n()) %>%
+        ungroup() %>%
         #expected
         full_join(
             .edgesPerMultiplet(rownames(getData(spSwarm, "spSwarm"))) %>%
@@ -1243,12 +1249,13 @@ getUndetectedMultiplets <- function(
                 summarise(expected = n()) %>%
                 rename(multiplet = names, connection = variables)
         ) %>%
-        filter(detected != expected) %>%
+        #filter(detected != expected) %>%
         mutate(
             from = str_extract(connection, "^.."),
             to = str_extract(connection, "..$"),
             self = ifelse(from == to, TRUE, FALSE)
-        )
+        ) %>%
+        mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .)))
 
 }
 
@@ -1257,15 +1264,9 @@ getUndetectedMultiplets <- function(
 .edgesPerMultiplet <- function(
     multipletNames
 ){
-    suffix <- gsub("^[m-s]\\.(.*)", "\\1", multipletNames)
-    prefix <- gsub("^(.*)_[0-9]*", "\\1", suffix)
-    split <- trimws(gsub("(.{2})", "\\1 ", prefix))
-    suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", split)
-    ss <- strsplit(suffixRemove, " ")
-    l <- lapply(ss, function  (x) combn(x, 2))
-    srt <- lapply(l, function(x) apply(x, 2, sort))
-    p <- lapply(srt, function(x) paste(x[1, ], x[2, ], sep = "-"))
-    names(p) <- multipletNames
-    namedListToTibble(p)
+    adjNames <- .adjustNames(multipletNames)
+    combs <- .findCombos(adjNames)
+    names(combs) <- multipletNames
+    namedListToTibble(combs)
 }
 
