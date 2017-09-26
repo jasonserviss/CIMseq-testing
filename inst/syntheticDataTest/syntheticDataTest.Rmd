@@ -1,0 +1,45 @@
+---
+title: "Synthetic data test"
+author: "Jason T. Serviss"
+date: "20/09/2017"
+output:
+  html_document:
+    code_folding: hide
+    highlight: pygments
+    theme: readable
+---
+
+```{r loadLibraries, message=FALSE, warning = FALSE}
+packages <- c(
+    "sp.scRNAseq",
+    "sp.scRNAseqTesting",
+    "printr",
+    "ggthemes",
+    "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+```
+
+To test that the software works as expected, we generated singlet cell expression profiles using the negative binomial distribution. 10 synthetic cell types were generated with 100 individual cells per cell type. 2000 genes were included per cell. Below the results for the unsupervised classification of the singlet cells indicate that each cell type is represented and distinct.
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+s <- grepl("^s", colnames(syntheticDataTest))
+cObjSng <- spCounts(syntheticDataTest[, s], matrix(1, ncol = length(s[s])))
+cObjMul <- spCounts(syntheticDataTest[, !s], matrix(1, ncol = length(s[!s])))
+plotUnsupervised(syntheticDataUnsupervised)
+```
+
+Next, singlets were combined to make multiplets. In the singlet generation step an excess of 1900 (factor of x20) cells per cell type were synthesized to be used to synthesize the multiplets. 500 multiplets of either 2, 3, or 4 cells were then synthesized in the following manner. First, singlets underwent unsupervised classification (shown above). Multiplets were then generated for all possible combinations of the individual cell types with either 2, 3, or 4 cells per multiplet. The connections present in the multiplets were then adjusted by randomly assigning a perfered connection for each individual cell type to one other cell type. Multiplets including this connection were then synthesized (using the extra singlets previously generated) and added to the dataset until the percentage of the perfered connection for those two cell types met the target connection percentage, which in this case was set to 20%. The self connections in the dataset were then asjusted. This was necessary to allow the dataset to reflect expectations in real tissue and due to the fact that we expect cells of the same type to represent the majority of connections in any given tissue. This was accomplished by diluting the number of connections currently in the dataset by a factor of 3 minus the self connections already present. Multiplets representing self connections were synthesized (again, using the extra singlets previously generated) in the previously mentioned amount and added to the dataset. Note that the addition of the self connections diluted the percentage of perfered connections by 
+a factor of 3 from its previous 20% leaving the prefered connection percentage at ~7%. Next, from the total dataset (1000 multiplets) 500 multiplets were randomly selected and the connections between all cell types were calculated in the final test dataset. Finally, the swarm optimization was run for 1000 iterations with a swarm size of 500 and the "bic" distance function. The expected number of connections and the actual results are shown below:
+
+```{r}
+syntheticDataTable
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotSwarm(syntheticDataSwarm, syntheticDataUnsupervised, cObjSng, cObjMul, type = "edgeBar")
+```
+
+Probably better to show expected vs. observed connections (per multiplet)
+
+Underestimation of self connections.

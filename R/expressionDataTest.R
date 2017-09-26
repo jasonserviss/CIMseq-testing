@@ -225,27 +225,27 @@ expressionBigTest <- function(
     
     #run pySwarm
     expressionTestSwarm <- spSwarm(
-    cObjMul,
-    expressionTestUnsupervised,
-    maxiter = 10^4,
-    swarmsize = 250,
-    cores = cores,
-    distFun = distFun
+        cObjMul,
+        expressionTestUnsupervised,
+        maxiter = 10^4,
+        swarmsize = 250,
+        cores = cores,
+        distFun = distFun
     )
     
     #save
     save(
-    expressionTestData,
-    file = paste(outPath, "expressionTestData.rda", sep = "/"),
-    compress = "bzip2"
+        expressionTestData,
+        file = paste(outPath, "expressionTestData.rda", sep = "/"),
+        compress = "bzip2"
     )
     save(
-    testExpTestData,
-    expressionTestUnsupervised,
-    expressionTestTable,
-    expressionTestSwarm,
-    file = paste(outPath, "expressionTest.rda", sep = "/"),
-    compress = "bzip2"
+        testExpTestData,
+        expressionTestUnsupervised,
+        expressionTestTable,
+        expressionTestSwarm,
+        file = paste(outPath, "expressionTest.rda", sep = "/"),
+        compress = "bzip2"
     )
 }
 
@@ -254,15 +254,6 @@ expressionBigTest <- function(
     #load data
     counts <- bigPancreasDataset
     classification <- pull(bigPancreasClasses, class)
-    
-    #calculate group means
-    c <- unique(classification)
-    means <- lapply(c, function(x) {
-        rowMeans(counts[, classification == x])
-    })
-    means <- as.matrix(as.data.frame(means))
-    colnames(means) <- c
-    
     dataset <- data.frame(row.names = 1:nrow(counts))
     names <- c()
     
@@ -288,21 +279,20 @@ expressionBigTest <- function(
     
     #adjust colnames
     colnames(dataset) <- paste("m.", names, sep = "")
-    colnames(sng) <- paste("s.", classification, sep = "")
+    colnames(counts) <- paste("s.", classification, sep = "")
     
     #select multuplets for current test
     testMultuplets <- dataset[ ,sample(1:ncol(dataset), n, replace = FALSE)]
     table <- calculateConnections(testMultuplets, type = "multuplets")
     
-    expTestData <- as.matrix(cbind(sng, dataset))
-    testExpTestData <- as.matrix(cbind(sng, testMultuplets))
-    
-    #add new data to uObj
-    #counts(unsupervised) <- testExpTestData
-    #counts.log(unsupervised) <- sp.scRNAseq:::.norm.log.counts(testExpTestData)
-    #sampleType(unsupervised) <- c(rep("Singlet", ncol(sng)), rep("Multuplet", n))
+    expTestData <- as.matrix(cbind(counts, dataset))
+    testExpTestData <- as.matrix(cbind(counts, testMultuplets))
     
     return(list(expTestData, testExpTestData, uObj, table))
+    
+}
+
+.uObj <- function() {
     
 }
 

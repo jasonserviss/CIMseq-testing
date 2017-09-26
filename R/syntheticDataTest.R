@@ -44,7 +44,7 @@ syntheticDataTest <- function(
     nGenes = 2000,
     nCells = 100,
     nCellTypes = 10,
-    distFun = bic,
+    distFun = "bic",
     target = 20,
     singletExpansion = 20,
     perplexity = 10,
@@ -92,7 +92,7 @@ syntheticDataTest <- function(
         swarmsize = 500,
         cores = cores,
         distFun = bic,
-        report = TRUE,
+        report = FALSE,
         reportRate = 10
     )
     
@@ -423,6 +423,11 @@ NULL
 #' @import sp.scRNAseq
 
 
+########################
+#NOTE!!!
+#add an option to weight the contribution of individual cell types in the multiplet!!
+#######################
+
 makeMultuplet <- function(
     nCellsInMultiplet,
     cellTypes,
@@ -653,17 +658,50 @@ quantifyConnections <- function(
     multupletNames,
     ...
 ){
+    adjNames <- .adjustNames(multupletNames)
+    combs <- .findCombos(adjNames)
+    .buildOutput(combs)
+}
+
+.adjustNames <- function(
+    multupletNames,
+    ...
+){
     suffix <- gsub("^[m-s]\\.(.*)", "\\1", multupletNames)
-    split <- trimws(gsub("(.{2})", "\\1 ", suffix))
+    prefix <- gsub("^(.*)_[0-9]*", "\\1", suffix)
+    split <- trimws(gsub("(.{2})", "\\1 ", prefix))
     suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", split)
-    ss <- strsplit(suffixRemove, " ")
-    l <- lapply(ss, function  (x) combn(x, 2))
-    srt <- lapply(l, function(x) apply(x, 2, sort))
-    p <- lapply(srt, function(x) paste(x[1, ], x[2, ], sep = "-"))
-    d <- as.data.frame(table(unlist(p)), stringsAsFactors = FALSE)
+
+}
+
+.findCombos <- function(
+    adjNames,
+    ...
+) {
+    ss <- strsplit(adjNames, " ")
+    l <- lapply(ss, function  (x) combn(unique(x), 2))
+    #add self back
+    self <- lapply(ss, function(x) which(duplicated(x)))
+    add <- lapply(1:length(ss), function(o) unique(ss[[o]][self[[o]]]))
+    complete <- lapply(1:length(add), function(x) {
+        if(length(add[[x]]) == 0) {
+            l[[x]]
+        } else {
+            cbind(l[[x]], matrix(add[[x]], nrow = 2))
+        }
+    })
+    srt <- lapply(complete, function(x) apply(x, 2, sort))
+    lapply(srt, function(x) paste(x[1, ], x[2, ], sep = "-"))
+}
+
+.buildOutput <- function(
+    combs,
+    ...
+) {
+    d <- as.data.frame(table(unlist(combs)), stringsAsFactors = FALSE)
     d$type1 <- gsub("^(..)...$", "\\1", d$Var1)
     d$type2 <- gsub("^...(..)$", "\\1", d$Var1)
-    return(d)
+    d
 }
 
 #' calculateFreqAndSum
@@ -1004,19 +1042,38 @@ plotConnectionDist <- function(
 ){
     freq <- quantifyConnections(multupletNames)
     cellTypes <- unique(c(freq$type1, freq$type2))
+    
+    #there is a problem here since the percents don't sum to 100
+    #furthermore, the percent for A1-B1 and B1-A1 are not identical
     percents <- sapply(cellTypes, function(x) {
         curr <- subset(freq, type1 == x | type2 == x)
         sum <- sum(curr$Freq)
-        curr$percent <- 100 * (curr$Freq / sum)
+
+        sapply(cellTypes, function(y) {
+            if(y == x) {
+                100 * (subset(curr, type1 == y & type2 == y)$Freq / sum)
+            } else {
+                c <- subset(curr, type1 == y | type2 == y)$Freq
+                if(length(c) == 0) {
+                    0
+                } else {
+                    100 * (c / sum)
+                }
+            }
+        })
     })
-    rownames(percents) <- cellTypes
+    
+    .conn <- function(x, y) {
+        data.frame(paste(sort(c(x, y)), collapse = "-"), stringsAsFactors = FALSE)
+    }
     
     p <- percents %>%
         as.data.frame() %>%
         rownames_to_column() %>%
         rename(from = rowname) %>%
         gather(to, percent, -from) %>%
-        add_column(connection = paste(.$from, .$to, sep="-")) %>%
+        rowwise() %>%
+        mutate(connection = paste(sort(c(from, to)), collapse = "-")) %>%
         ggplot(., aes(connection, percent)) +
         geom_bar(
             aes(fill = to),
@@ -1044,9 +1101,168 @@ plotConnectionDist <- function(
 #                                                                              #
 ################################################################################
 
+plotMultipletsCellNrs <- function(multipletNames) {
+    p <- gsub("^[m-s]\\.(.*)", "\\1", multupletNames) %>%
+        gsub("^(.*)_[0-9]*", "\\1", .) %>%
+        nchar(.) %>%
+        `/`(2) %>%
+        table() %>%
+        as_tibble() %>%
+        setNames(c("Cell number", "n")) %>%
+        ggplot(., aes(`Cell number`, n)) +
+        geom_bar(stat = "identity", aes(fill = `Cell number`)) +
+        theme_few() +
+        scale_fill_ptol()
+    p
+    return(p)
+}
 
 
+################################################################################
+#                                                                              #
+# Plot expected vs observed connections post-swarm.                            #
+#                                                                              #
+################################################################################
 
+plotExpVSObs <- function(spSwarm, edge.cutoff, summary = FALSE) {
+    
+    p <- spSwarmPoisson(
+        spSwarm,
+        edge.cutoff = edge.cutoff,
+        min.pval = 1,
+        min.num.edges = 0
+    ) %>%
+    mutate(Var1 = paste(from, to, sep = "-")) %>%
+    select(Var1, weight) %>%
+    rename(Detected = weight) %>%
+    left_join(
+        quantifyConnections(rownames(getData(spSwarm, "spSwarm"))),
+        by = "Var1"
+    ) %>%
+    select(Var1, Detected, Freq) %>%
+    rename(
+        Connection = Var1,
+        Expected = Freq
+    ) %>%
+    mutate(Expected = ifelse(is.na(Expected) & Detected == 0, 0, Expected)) %>%
+    gather(Phase, n, -Connection) %>%
+    {
+        
+        if(summary) {
+            .plotExpVSObs_summary(.)
+        } else {
+            .plotExpVSObs_noSummary(.)
+        }
+    }
+    
+    p
+    return(p)
+}
 
+.plotExpVSObs_summary <- function(
+    data
+){
+    str_extract <- stringr::str_extract
+    data %>%
+        mutate(`Self connection` = ifelse(
+            str_extract(.$Connection, "^..") == str_extract(.$Connection, "..$"),
+            TRUE,
+            FALSE
+        )) %>%
+        group_by(., Phase, `Self connection`) %>%
+        summarise(Sum = sum(n)) %>%
+        ungroup() %>%
+        mutate(
+            Phase = readr::parse_factor(Phase, c("Expected", "Detected"))
+        ) %>%
+        ggplot(., aes(`Self connection`, Sum)) +
+            geom_bar(
+                aes(fill = Phase),
+                stat = "identity",
+                position = position_dodge(width = 1)
+            ) +
+            geom_label(
+                aes(label = Sum, group = Phase),
+                vjust = -0.5,
+                position = position_dodge(width = 1)
+            ) +
+            theme_few() +
+            scale_fill_ptol() +
+            theme(
+                axis.text.x = element_text(angle = 90),
+                legend.title = element_blank()
+            )
+}
 
+.plotExpVSObs_noSummary <- function(
+    data
+){
+    data %>%
+    ggplot(., aes(Connection, n)) +
+        geom_bar(
+            aes(fill = Phase),
+            stat = "identity",
+            position = position_dodge(width = 1)
+        ) +
+        theme_few() +
+        scale_fill_ptol() +
+        theme(
+            axis.text.x = element_text(angle = 90),
+            legend.title = element_blank()
+        )
+}
+
+################################################################################
+#                                                                              #
+# Get multiplets with undetected connections.                                  #
+#                                                                              #
+################################################################################
+
+getUndetectedMultiplets <- function(
+    spSwarm,
+    edge.cutoff
+){
+    #detected
+    getEdgesForMultiplet(
+        spSwarm,
+        edge.cutoff,
+        rownames(getData(spSwarm, "spSwarm"))
+    ) %>%
+        rowwise() %>%
+        mutate(connection = paste(sort(c(from, to)), collapse = "-")) %>%
+        ungroup() %>%
+        group_by(multiplet, connection) %>%
+        summarise(detected = n()) %>%
+        #expected
+        full_join(
+            .edgesPerMultiplet(rownames(getData(spSwarm, "spSwarm"))) %>%
+                group_by(names, variables) %>%
+                summarise(expected = n()) %>%
+                rename(multiplet = names, connection = variables)
+        ) %>%
+        filter(detected != expected) %>%
+        mutate(
+            from = str_extract(connection, "^.."),
+            to = str_extract(connection, "..$"),
+            self = ifelse(from == to, TRUE, FALSE)
+        )
+
+}
+
+#Uses the multiplets names to report the connections expected per multiplet
+#in a long form tibble
+.edgesPerMultiplet <- function(
+    multipletNames
+){
+    suffix <- gsub("^[m-s]\\.(.*)", "\\1", multipletNames)
+    prefix <- gsub("^(.*)_[0-9]*", "\\1", suffix)
+    split <- trimws(gsub("(.{2})", "\\1 ", prefix))
+    suffixRemove <- gsub("^([A-Z0-9]* [A-Z0-9]*) \\..*$", "\\1", split)
+    ss <- strsplit(suffixRemove, " ")
+    l <- lapply(ss, function  (x) combn(x, 2))
+    srt <- lapply(l, function(x) apply(x, 2, sort))
+    p <- lapply(srt, function(x) paste(x[1, ], x[2, ], sep = "-"))
+    names(p) <- multipletNames
+    namedListToTibble(p)
+}
 
