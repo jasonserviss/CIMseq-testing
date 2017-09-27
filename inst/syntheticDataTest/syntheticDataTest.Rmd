@@ -29,17 +29,39 @@ cObjMul <- spCounts(syntheticDataTest[, !s], matrix(1, ncol = length(s[!s])))
 plotUnsupervised(syntheticDataUnsupervised)
 ```
 
-Next, singlets were combined to make multiplets. In the singlet generation step an excess of 1900 (factor of x20) cells per cell type were synthesized to be used to synthesize the multiplets. 500 multiplets of either 2, 3, or 4 cells were then synthesized in the following manner. First, singlets underwent unsupervised classification (shown above). Multiplets were then generated for all possible combinations of the individual cell types with either 2, 3, or 4 cells per multiplet. The connections present in the multiplets were then adjusted by randomly assigning a perfered connection for each individual cell type to one other cell type. Multiplets including this connection were then synthesized (using the extra singlets previously generated) and added to the dataset until the percentage of the perfered connection for those two cell types met the target connection percentage, which in this case was set to 20%. The self connections in the dataset were then asjusted. This was necessary to allow the dataset to reflect expectations in real tissue and due to the fact that we expect cells of the same type to represent the majority of connections in any given tissue. This was accomplished by diluting the number of connections currently in the dataset by a factor of 3 minus the self connections already present. Multiplets representing self connections were synthesized (again, using the extra singlets previously generated) in the previously mentioned amount and added to the dataset. Note that the addition of the self connections diluted the percentage of perfered connections by 
-a factor of 3 from its previous 20% leaving the prefered connection percentage at ~7%. Next, from the total dataset (1000 multiplets) 500 multiplets were randomly selected and the connections between all cell types were calculated in the final test dataset. Finally, the swarm optimization was run for 1000 iterations with a swarm size of 500 and the "bic" distance function. The expected number of connections and the actual results are shown below:
+Next, singlets were combined to make multiplets. In the singlet generation step an excess of 1900 (factor of x20) cells per cell type were synthesized to be used to synthesize the multiplets. 500 multiplets of either 2, 3, or 4 cells were then synthesized in the following manner. First, singlets underwent unsupervised classification (shown above). Multiplets were then generated for all possible combinations of the individual cell types with either 2, 3, or 4 cells per multiplet. 
 
-```{r}
+The connections present in the multiplets were then adjusted by randomly assigning a preferred connection for each individual cell type to one other cell type allowing us to forsight regarding the expected connections. Multiplets including this connection were then synthesized (using the extra singlets previously generated) and added to the dataset until the percentage of the preferred connection for those two cell types met the target connection percentage, which in this case was set to 20%. 
+
+The self connections in the dataset were then adjusted. This was necessary to allow the dataset to reflect expectations in real tissue and due to the fact that we expect cells of the same type to represent the majority of connections in any given tissue. This was accomplished by diluting the number of connections currently in the dataset by a factor of 3 minus the self connections already present. Multiplets representing self connections were synthesized (again, using the extra singlets previously generated) in the previously mentioned amount and added to the dataset. Note that the addition of the self connections diluted the percentage of preferred connections by 
+a factor of 3 from its previous 20% leaving the prefered connection percentage at ~7%. Next, from the total dataset (1000 multiplets) 500 multiplets were randomly selected and the connections between all cell types were calculated in the final test dataset. 
+
+First we can examine the distribution of different multiplet types in the final dataset. The plot below indicates that approximatley 60% of the dataset consists of doublets where as the remaining 40% is roughly divided equally between triplets and quadruplets.
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+s <- grepl("^s", colnames(syntheticDataTest))
+multipletNames <- colnames(syntheticDataTest)[!s]
+plotMultipletsCellNrs(multipletNames)
+```
+
+We can examine the connections included in the dataset below. As expected, the connections for each cell type are dominated by self connections. In addition, each cell type has a preferred connection as was expected due to the design of the multiplets. We can see that, for example, A1 and C1, B1 and H1, D1 and I1 all have a preferred connection with each other compared to other cell types.
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
+plotConnectionDist(multipletNames)
+```
+
+Finally, the swarm optimization was run for 1000 iterations with a swarm size of 500 and the "bic" distance function. The expected number of connections vs the detected connections are shown below:
+
+```{r, eval = FALSE, echo = FALSE}
 syntheticDataTable
 ```
 
 ```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE}
-plotSwarm(syntheticDataSwarm, syntheticDataUnsupervised, cObjSng, cObjMul, type = "edgeBar")
+plotExpVSObs(syntheticDataSwarm, 1/10.5, TRUE)
 ```
 
-Probably better to show expected vs. observed connections (per multiplet)
+The results indicate that we are presently underestimating the self connections although all of the non-self connections were detected. The final network plot can be observed below and reflects the expected connection preferences that were expected. Although, only a subset of the expected connections are statistically significant, we can see the prefered connection for each cell type due to the weight of the connection edges. The lack of statistical significance most likely reflects the target level for perfered connections, 20%, which could be increased in the future if so desired.
 
-Underestimation of self connections.
+```{r, fig.align='center', fig.height=8, fig.width=10, eval=TRUE, message=FALSE, echo = TRUE}
+plotSwarm(syntheticDataSwarm, syntheticDataUnsupervised, cObjSng, cObjMul, type = "edgeBar")
+```

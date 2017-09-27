@@ -653,6 +653,7 @@ decideConnections <- function(
 #'
 NULL
 #' @import sp.scRNAseq
+#' @export
 
 quantifyConnections <- function(
     multipletNames,
@@ -1045,14 +1046,36 @@ adjustSelf <- function(
 #                                                                              #
 ################################################################################
 
+#' plotConnectionDist
+#'
+#' Plots the results from the testing of the synthetic dataset.
+#'
+#' @name plotConnectionDist
+#' @aliases plotConnectionDist
+#' @param multipletNames character. A character vector of multiplet adhering to
+#'    the "m.A1B1_1" convention.
+#' @param ... additional arguments to pass on.
+#' @return data.frame
+#' @author Jason T. Serviss
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+#' @import ggplot2
+#' @importFrom tibble rownames_to_column
+#' @importFrom dplyr rename rowwise mutate
+#' @importFrom tidyr gather
+#' @importFrom ggthemes scale_fill_ptol theme_few
+#' @export
+
 plotConnectionDist <- function(
     multupletNames
 ){
     freq <- quantifyConnections(multupletNames)
     cellTypes <- unique(c(freq$type1, freq$type2))
-    
-    #there is a problem here since the percents don't sum to 100
-    #furthermore, the percent for A1-B1 and B1-A1 are not identical
+
     percents <- sapply(cellTypes, function(x) {
         curr <- subset(freq, type1 == x | type2 == x)
         sum <- sum(curr$Freq)
@@ -1072,33 +1095,36 @@ plotConnectionDist <- function(
     })
     
     .conn <- function(x, y) {
-        data.frame(paste(sort(c(x, y)), collapse = "-"), stringsAsFactors = FALSE)
+        data.frame(
+            paste(sort(c(x, y)), collapse = "-"),
+            stringsAsFactors = FALSE
+        )
     }
     
     p <- percents %>%
-        as.data.frame() %>%
-        rownames_to_column() %>%
-        rename(from = rowname) %>%
-        gather(to, percent, -from) %>%
-        rowwise() %>%
-        mutate(connection = paste(sort(c(from, to)), collapse = "-")) %>%
-        ggplot(., aes(connection, percent)) +
-        geom_bar(
-            aes(fill = to),
-            stat = "identity",
-            position = position_dodge(width = 1)
-        ) +
-        facet_grid(from~to, scales = "free", space = "free") +
-        ggthemes::scale_fill_ptol() +
-        ggthemes::theme_few() +
-        theme(
-            axis.text.x = element_text(angle = 90)
-        ) +
-        guides(fill = FALSE) +
-        labs(
-            x = "Connection",
-            y = "Percent"
-        )
+            as.data.frame() %>%
+            rownames_to_column() %>%
+            rename(from = rowname) %>%
+            gather(to, percent, -from) %>%
+            rowwise() %>%
+            mutate(connection = paste(sort(c(from, to)), collapse = "-")) %>%
+            ggplot(aes(connection, percent)) +
+                geom_bar(
+                    aes(fill = to),
+                    stat = "identity",
+                    position = position_dodge(width = 1)
+                ) +
+                facet_grid(from~to, scales = "free", space = "free") +
+                ggthemes::scale_fill_ptol() +
+                ggthemes::theme_few() +
+                theme(
+                    axis.text.x = element_text(angle = 90)
+                ) +
+                guides(fill = FALSE) +
+                labs(
+                    x = "Connection",
+                    y = "Percent"
+                )
     p
     return(p)
 }
@@ -1109,18 +1135,39 @@ plotConnectionDist <- function(
 #                                                                              #
 ################################################################################
 
+#' plotMultipletsCellNrs
+#'
+#'
+#' @name plotMultipletsCellNrs
+#' @aliases plotMultipletsCellNrs
+#' @param multipletNames character. A character vector of multiplet adhering to
+#'    the "m.A1B1_1" convention.
+#' @param ... additional arguments to pass on.
+#' @return data.frame
+#' @author Jason T. Serviss
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+#' @import ggplot2
+#' @importFrom ggthemes theme_few scale_fill_ptol
+#' @importFrom tibble as_tibble
+#' @export
+
 plotMultipletsCellNrs <- function(multipletNames) {
-    p <- gsub("^[m-s]\\.(.*)", "\\1", multupletNames) %>%
-        gsub("^(.*)_[0-9]*", "\\1", .) %>%
-        nchar(.) %>%
-        `/`(2) %>%
-        table() %>%
-        as_tibble() %>%
-        setNames(c("Cell number", "n")) %>%
-        ggplot(., aes(`Cell number`, n)) +
-        geom_bar(stat = "identity", aes(fill = `Cell number`)) +
-        theme_few() +
-        scale_fill_ptol()
+    p <- gsub("^[m-s]\\.(.*)", "\\1", multipletNames) %>%
+            gsub("^(.*)_[0-9]*", "\\1", .) %>%
+            nchar(.) %>%
+            `/`(2) %>%
+            table() %>%
+            as_tibble() %>%
+            setNames(c("Cell number", "n")) %>%
+            ggplot(., aes(`Cell number`, n)) +
+                geom_bar(stat = "identity", aes(fill = `Cell number`)) +
+                theme_few() +
+                scale_fill_ptol()
     p
     return(p)
 }
@@ -1132,36 +1179,63 @@ plotMultipletsCellNrs <- function(multipletNames) {
 #                                                                              #
 ################################################################################
 
-plotExpVSObs <- function(spSwarm, edge.cutoff, summary = FALSE) {
-    
+#' plotExpVSObs
+#'
+#'
+#' @name plotExpVSObs
+#' @aliases plotExpVSObs
+#' @param spSwarm spSwarm. An spSwarm object.
+#' @param edge.cutoff numeric. The minimum fraction to consider (?).
+#' @param summary logical. Indicates if edges should be summarized or not.
+#' @param ... additional arguments to pass on.
+#' @return data.frame
+#' @author Jason T. Serviss
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+#' @import ggplot2
+#' @importFrom ggthemes theme_few scale_fill_ptol
+#' @importFrom dplyr mutate select rename left_join group_by summarise ungroup
+#' @importFrom tidyr gather
+#' @importFrom stringr str_extract
+#' @export
+
+plotExpVSObs <- function(
+    spSwarm,
+    edge.cutoff,
+    summary = FALSE
+){
     p <- spSwarmPoisson(
         spSwarm,
         edge.cutoff = edge.cutoff,
         min.pval = 1,
         min.num.edges = 0
     ) %>%
-    mutate(Var1 = paste(from, to, sep = "-")) %>%
-    select(Var1, weight) %>%
-    rename(Detected = weight) %>%
-    left_join(
-        quantifyConnections(rownames(getData(spSwarm, "spSwarm"))),
-        by = "Var1"
-    ) %>%
-    select(Var1, Detected, Freq) %>%
-    rename(
-        Connection = Var1,
-        Expected = Freq
-    ) %>%
-    mutate(Expected = ifelse(is.na(Expected) & Detected == 0, 0, Expected)) %>%
-    gather(Phase, n, -Connection) %>%
-    {
-        
-        if(summary) {
-            .plotExpVSObs_summary(.)
-        } else {
-            .plotExpVSObs_noSummary(.)
+        mutate(Var1 = paste(from, to, sep = "-")) %>%
+        select(Var1, weight) %>%
+        rename(Detected = weight) %>%
+        left_join(
+            quantifyConnections(rownames(getData(spSwarm, "spSwarm"))),
+            by = "Var1"
+        ) %>%
+        select(Var1, Detected, Freq) %>%
+        rename(
+            Connection = Var1,
+            Expected = Freq
+        ) %>%
+        mutate(Expected = ifelse(is.na(Expected) & Detected == 0, 0, Expected)) %>%
+        gather(Phase, n, -Connection) %>%
+        {
+            
+            if(summary) {
+                .plotExpVSObs_summary(.)
+            } else {
+                .plotExpVSObs_noSummary(.)
+            }
         }
-    }
     
     p
     return(p)
@@ -1170,7 +1244,6 @@ plotExpVSObs <- function(spSwarm, edge.cutoff, summary = FALSE) {
 .plotExpVSObs_summary <- function(
     data
 ){
-    str_extract <- stringr::str_extract
     data %>%
         mutate(`Self connection` = ifelse(
             str_extract(.$Connection, "^..") == str_extract(.$Connection, "..$"),
@@ -1183,7 +1256,7 @@ plotExpVSObs <- function(spSwarm, edge.cutoff, summary = FALSE) {
         mutate(
             Phase = readr::parse_factor(Phase, c("Expected", "Detected"))
         ) %>%
-        ggplot(., aes(`Self connection`, Sum)) +
+        ggplot(aes(`Self connection`, Sum)) +
             geom_bar(
                 aes(fill = Phase),
                 stat = "identity",
@@ -1206,18 +1279,18 @@ plotExpVSObs <- function(spSwarm, edge.cutoff, summary = FALSE) {
     data
 ){
     data %>%
-    ggplot(., aes(Connection, n)) +
-        geom_bar(
-            aes(fill = Phase),
-            stat = "identity",
-            position = position_dodge(width = 1)
-        ) +
-        theme_few() +
-        scale_fill_ptol() +
-        theme(
-            axis.text.x = element_text(angle = 90),
-            legend.title = element_blank()
-        )
+        ggplot(aes(Connection, n)) +
+            geom_bar(
+                aes(fill = Phase),
+                stat = "identity",
+                position = position_dodge(width = 1)
+            ) +
+            theme_few() +
+            scale_fill_ptol() +
+            theme(
+                axis.text.x = element_text(angle = 90),
+                legend.title = element_blank()
+            )
 }
 
 ################################################################################
