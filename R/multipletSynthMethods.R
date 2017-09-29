@@ -1,3 +1,31 @@
+
+#' generateMultiplets
+#'
+#'
+#' @name generateMultiplets
+#' @aliases generateMultiplets
+#' @param ... additional arguments to pass on
+#' @return The multiplets variable.
+#' @author Jason T. Serviss
+#' @examples
+#'
+#' cat("No example")
+#'
+NULL
+#' @import sp.scRNAseq
+
+generateMultiplets <- function(
+
+) {
+    #make a wrapper
+}
+
+
+
+
+
+
+
 #' makeMultuplet
 #'
 #' This unit synthesizes "all possible" multiplets combinations from the
@@ -74,7 +102,7 @@ makeMultuplet <- function(
         idxs <- lapply(combos[, x], function(y) which(colnames(singlets) == y))
         set.seed(x)
         pick <- unlist(lapply(idxs, function(x)
-        sample(x, size = 1)
+            sample(x, size = 1)
         ))
         rowMeans(singlets[, pick])
     })
@@ -109,6 +137,14 @@ makeMultuplet <- function(
 #' @param repetitions numeric. The number of times the connections should be
 #'    repeated or NULL if they should only be repeated once.
 #' @param self logical. Indicates if self connections should be included.
+#' @param fractions data.frame. A data frame indicating the fraction that each
+#'    cell type should contribute to a multiplet. For example, if the fraction
+#'    is 0.2, 0.4, 0.4 and the multiplet being synthesized is cell types A, B,
+#'    and C then A contributes 20%  of the multiplet counts whereas B and C both
+#'    contribute 40%. The data frame should contain 2 columns named
+#'    \code{cellTypes} and including the cell type names and the other,
+#'    named \code{fraction}, containing the fraction of each cell types
+#'    contribution.
 #' @param ... additional arguments to pass on
 #' @return The multiplets variable.
 #' @author Jason T. Serviss
@@ -133,7 +169,47 @@ makeMultuplet2 <- function(
     singlets,
     repetitions = NULL,
     self = TRUE,
+    fractions,
     ...
+){
+    if(is.null(fractions)) {
+        fractions <- tibble(
+            cellTypes = cellTypes,
+            fractions = rep(1, length(cellTypes))
+        )
+    }
+    
+    #setup singlet combinations to synthesize
+    combos <- .makeMultCombos(
+        nCellsInMultiplet,
+        cellTypes,
+        self,
+        repetitions
+    )
+    
+    #synthesize multiplets
+    #make read pool for each cell type
+    pool <- .readPool(cellTypes, singlets)
+    
+    #calculate mean total counts per cell type
+    means <- .meanCountsPerType(cellTypes, singlets)
+    
+    #for each combo: get pool for each cell type, sample, and count
+    countsList <- .makeMultipletsList(combos, fractions, pool, means)
+    
+    #convert to matrix
+    add <- .convertMultipletListToMatrix(countsList, combos)
+    
+    multiplets <- cbind(multiplets, add)
+    return(multiplets)
+}
+
+#setup singlet combinations to synthesize
+.makeMultCombos <- function(
+    nCellsInMultiplet,
+    cellTypes,
+    self,
+    repetitions
 ){
     switch(nCellsInMultiplet - 1,
         {combos <- t(expand.grid(cellTypes, cellTypes))},
@@ -158,22 +234,101 @@ makeMultuplet2 <- function(
         )
     }
     
-    add <- sapply(1:ncol(combos), function(x) {
-        idxs <- lapply(combos[, x], function(y) which(colnames(singlets) == y))
-        set.seed(x)
-        pick <- unlist(lapply(idxs, function(x)
-            sample(x, size = 1)
-        ))
-        rowMeans(singlets[, pick])
-    })
-    
-    colnames(add) <- sapply(1:ncol(combos), function(i) {
-        paste(combos[, i], collapse = "")
-    })
-    multiplets <- cbind(multiplets, add, row.names = NULL)
-    return(multiplets)
+    return(combos)
 }
 
+#make read pool for each cell type
+.readPool <- function(
+    cellTypes,
+    singlets
+){
+    check1 <- !all(cellTypes %in% colnames(singlets))
+    check2 <- !all(colnames(singlets) %in% cellTypes)
+    if(check1 | check2) {
+        sm <- "Some cell types not found in singlets or cellTypes variables."
+        stop(sm)
+    }
+    
+    output <- map(cellTypes, (function(x) {
+        idx <- which(colnames(singlets) == x)
+        rep(
+            rep(rownames(singlets), length(idx)),
+            as.numeric(singlets[, idx])
+        )
+    })) %>%
+    setNames(cellTypes)
+    
+    if(any(unlist(lapply(output, function(x) length(x))) == 0)) {
+        stop("No counts found for some cell types.")
+    }
+    
+    return(out)
+}
+
+#calculate mean total counts per cell type
+.meanCountsPerType <- function(
+    cellTypes,
+    singlets
+){
+    #check that there is > 1 sample for all cell types
+    if(any(as.numeric(table(colnames(singlets))) == 1)) {
+        idx <- which(as.numeric(table(colnames(singlets))) == 1)
+        m <- paste(colnames(singlets)[idx], collapse = " ")
+        stop(paste("Only one sample found for cell type(s):", m))
+    }
+    
+    map_dbl(cellTypes, (function(x) {
+        mean(colSums(singlets[, which(colnames(singlets) == x)]))
+    })) %>%
+    setNames(cellTypes)
+}
+
+#for each combo: get pool for each cell type, sample, and count
+.makeMultipletsList <- function(
+    combos,
+    fractions,
+    pool,
+    means
+){
+    map(1:ncol(combos), (function(x) {
+        comboFracs <- .getCurrentFractions(combos, fractions, x)
+        map(1:nrow(combos), (function(y, comboFracs) {
+            idx <- which(names(pool) == combos[y, x])
+            set.seed(x * y)
+            sample(
+                pool[[idx]],
+                size = (means[[idx]] / 2) * comboFracs[y],
+                replace = FALSE
+            )
+        }), comboFracs) %>%
+            unlist() %>%
+            table()
+    }))
+}
+
+.getCurrentFractions <- function(combos, fractions, x) {
+    map_int(combos[, x], (function(i)
+        which(fractions$cellTypes == i)
+    )) %>%
+        slice(fractions, .) %>%
+        pull(fractions) %>%
+        `/` (sum(.))
+}
+
+.convertMultipletListToMatrix <- function(
+    countsList,
+    combos
+){
+    countsList %>%
+        setNames(paste(combos[1,], combos[2, ], sep = "-")) %>%
+        namedListToTibble() %>%
+        spread(names, variables) %>%
+        mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
+        as.data.frame() %>%
+        remove_rownames() %>%
+        column_to_rownames("inner.names") %>%
+        as.matrix()
+}
 
 #' adjustMultuplets
 #'
@@ -213,6 +368,7 @@ adjustMultuplets <- function(
     nGenes,
     nCellTypes,
     target,
+    frac,
     ...
 ){
     
@@ -241,7 +397,8 @@ adjustMultuplets <- function(
             add,
             currentTypes,
             multiplets,
-            singletsFull
+            singletsFull,
+            frac
         )
         
         #check frequency
@@ -518,16 +675,19 @@ synthesizeAndAdd <- function(
     currentTypes,
     multiplets,
     singletsFull,
+    frac,
     ...
 ){
     tmp <- data.frame(row.names = 1:nrow(multiplets))
-        doublets <- makeMultuplet(
+    
+    doublets <- makeMultuplet(
         nCellsInMultiplet = 2,
         cellTypes = currentTypes,
         multiplets = tmp,
         singlets = singletsFull,
         repetitions = add,
-        self = FALSE
+        self = FALSE,
+        frac
     )
     
     triplets <- makeMultuplet(
@@ -536,7 +696,8 @@ synthesizeAndAdd <- function(
         multiplets = tmp,
         singlets = singletsFull,
         repetitions = add,
-        self = FALSE
+        self = FALSE,
+        frac
     )
     
     quadruplets <- makeMultuplet(
@@ -545,7 +706,8 @@ synthesizeAndAdd <- function(
         multiplets = tmp,
         singlets = singletsFull,
         repetitions = add,
-        self = FALSE
+        self = FALSE,
+        frac
     )
     
     #add random quadruplets
