@@ -27,7 +27,7 @@ via the .adjustMultuplets and .adjustSelf units. Argument must be > 1.}
 \item{...}{additional arguments to pass on}
 }
 \value{
-A list containing singlets, multuplets, and the spUnsupervised
+A list containing singlets, multiplets, and the spUnsupervised
    object.
 }
 \description{

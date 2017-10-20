@@ -220,7 +220,7 @@ anyDataTest <- function(
     nGenes = 2000,
     distFun = "bic",
     target = 20,
-    frac = NULL
+    frac = NULL,
     ...
 ){
     
@@ -279,7 +279,7 @@ anyDataTest <- function(
     mulFrac,
     target,
     uObj,
-    frac
+    frac,
     ...
 ){
     
