@@ -1,10 +1,3 @@
-*.rda
-*.history
-
-*.history
-
-*.history
-
-*.history
-
-*.history
+.rda
+.history
+.DS_Store
