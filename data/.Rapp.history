@@ -1,6 +1,0 @@
-load("/Users/jasonserviss/GitHub/sp.scRNAseqTesting/data/expData.rda")
-ls()
-class(expData)
-load("/Users/jasonserviss/GitHub/sp.scRNAseqTesting/data/expressionTestData.rda")
-ls()
-expressionTestData
