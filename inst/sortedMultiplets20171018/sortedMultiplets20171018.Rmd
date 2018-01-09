@@ -1,0 +1,252 @@
+---
+title: "Sorted multiplets 20171018"
+author: "Jason T. Serviss"
+date: "18/10/2017"
+output:
+  html_document:
+    code_folding: hide
+    highlight: pygments
+    theme: readable
+---
+
+```{r loadLibraries, message=FALSE, warning = FALSE}
+packages <- c(
+    "sp.scRNAseq",
+    "sp.scRNAseqTesting",
+    "printr",
+    "ggthemes",
+    "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+```
+
+
+```{r}
+plate <- matrix(NA, ncol=12, nrow=8)
+#doublets
+plate[1:2, 1:4] <- "AB"
+plate[3, 1:2] <- "AB"
+plate[3, 3:4] <- "AC"
+plate[4:5, 1:4] <- "AC"
+plate[6:8, 1:4] <- "BC"
+
+#triplets 
+plate[1:2, 5:8] <- "ABC"
+plate[3, 5:6] <- "ABC"
+plate[3, 7:8] <- "AAC"
+plate[4:5, 5:8] <- "AAC"
+plate[6:8, 5:8] <- "BCC"
+
+#quadruplets 
+plate[1:2, 9:12] <- "BCCC"
+plate[3, 9:10] <- "BCCC"
+plate[3, 11:12] <- "AABB"
+plate[4:5, 9:12] <- "AABB"
+plate[6:8, 9:12] <- "ABBC"
+
+rownames(plate) <- LETTERS[1:8]
+colnames(plate) <- ifelse(nchar(1:ncol(plate)) == 1, paste(0, 1:ncol(plate), sep = ""), 1:ncol(plate))
+
+plateLong <- plate %>%
+  as.data.frame(stringsAsFactors = FALSE) %>%
+  rownames_to_column() %>%
+  rename(row = rowname) %>%
+  as_tibble() %>%
+  gather(colname, comb, -row) %>%
+  mutate(plateIdx = paste(row, colname, sep = "")) %>%
+  select(-row, -colname) %>%
+  mutate(multipletType = nchar(comb))
+```
+
+```{r}
+setwd('~/Github/sp.scRNAseqTesting')
+path <- './inst/rawData/counts_171018.txt'
+countsMe <- read.table(path, sep = "\t", header = TRUE)
+
+#move genes to rownames
+rownames(countsMe) <- countsMe$HGN
+countsMe$HGN <- NULL
+
+#annotate singlets and multiplets
+s <- grepl("NJB00101", colnames(countsMe))
+colnames(countsMe) <- ifelse(
+    s,
+    paste("s.", colnames(countsMe), sep = ""),
+    paste("m.", colnames(countsMe), sep = "")
+)
+
+#remove "htseq" suffix
+colnames(countsMe) <- gsub("(.*)\\.htseq$", "\\1", colnames(countsMe))
+
+#extract ERCC
+ercc <- grepl("^ERCC\\-[0-9]*$", rownames(countsMe))
+countsERCC <- countsMe[ercc, ]
+
+if(dim(countsERCC)[1] != 92) {
+    stop("Couldn't detect all ERCC reads.")
+}
+
+countsMe <- countsMe[!ercc, ]
+
+#remove "bad" genes
+countsMe <- countsMe[rowSums(countsMe) > 0, ]
+
+nonGenes <- c(
+"__no_feature", "__ambiguous", "__too_low_aQual",
+"__not_aligned", "__alignment_not_unique"
+)
+
+countsMe <- countsMe[!rownames(countsMe) %in% nonGenes, ]
+
+#remove cells with poor coverage
+mincount <- 1e5
+countsERCC <- countsERCC[, colSums(countsMe) > mincount]
+countsMe <- countsMe[, colSums(countsMe) > mincount]
+
+countsMe <- as.matrix(countsMe)
+countsERCC <- as.matrix(countsERCC)
+
+countsSorted1 <- countsMe
+countsSortedERCC1 <- countsERCC
+```
+DO QC!
+
+```{r}
+countsSorted1 %>%
+  sp.scRNAseq:::.norm.log.counts(.) %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  rename(gene = rowname) %>%
+  as_tibble() %>%
+  gather(sample, value, -gene) %>%
+  ggplot(aes(value)) +
+    geom_histogram(bins = 10) +
+    facet_wrap(~sample)
+    
+```
+
+```{r}
+s <- grepl("s.", colnames(countsSorted1))
+cObjSng <- spCounts(countsSorted1[, s], countsSortedERCC1[, s])
+cObjMul <- spCounts(countsSorted1[, !s], countsSortedERCC1[, !s])
+
+plotCounts(cObjSng, cObjMul, type = "ercc") #CALCULATE THIS MANUALLY AND CHECK THE PLOT
+
+fracErcc <- function(.) {
+    colSums(getData(., "counts.ercc")) / (colSums(getData(., "counts")) + colSums(getData(., "counts.ercc"))) %>%
+    as.data.frame() %>%
+    setNames(c('frac.ercc'))
+} 
+
+frac.ercc.s <- fracErcc(cObjSng) %>%
+  rownames_to_column() %>%
+  rename(sample = rowname) %>%
+  as_tibble() %>%
+  mutate(sampleType = "Singlet")
+
+frac.ercc.m <- fracErcc(cObjMul) %>%
+  rownames_to_column() %>%
+  rename(sample = rowname) %>%
+  as_tibble() %>%
+  mutate(sampleType = "Multiplet")
+
+rbind(frac.ercc.s, frac.ercc.m) %>%
+  mutate(sampleType = readr::parse_factor(sampleType, levels = c("Singlet", "Multiplet"))) %>%
+  ggplot(aes(x = sampleType, y = frac.ercc)) +
+    geom_boxplot() +
+    theme_few()
+    
+percentERCC <- function(., x) {
+  getData(., "counts.ercc") %>%
+    as.data.frame() %>%
+    rownames_to_column() %>%
+    rename(gene = rowname) %>%
+    as_tibble() %>%
+    gather(sample, value, -gene) %>%
+    group_by(sample) %>%
+    summarize(percentERCCDect = 100 * (length(which(value != 0)) / length(value))) %>%
+    mutate(sampleType = x)
+}
+
+rbind(percentERCC(cObjSng, "Singlet"), percentERCC(cObjMul, "Multiplet")) %>%
+  ggplot(aes(percentERCCDect)) +
+    geom_histogram(bins = 10) +
+    facet_wrap(~sampleType) +
+    theme_few()
+
+rbind(percentERCC(cObjSng, "Singlet"), percentERCC(cObjMul, "Multiplet")) %>%
+  mutate(sampleType = readr::parse_factor(sampleType, levels = c("Singlet", "Multiplet"))) %>%
+  ggplot(aes(sampleType, percentERCCDect)) +
+    geom_jitter() +
+    theme_few()
+```
+
+Look at correlation between ERCC fraction and cell number
+```{r}
+rbind(frac.ercc.s, frac.ercc.m) %>%
+  mutate(plateIdx = gsub("^.*(...$)", "\\1", sample)) %>%
+  full_join(plateLong, by = "plateIdx") %>%
+  mutate(cellNumber = case_when(
+    sampleType == "Singlet" ~ as.integer(1),
+    TRUE ~ multipletType
+  )) %>%
+  select(-multipletType) %>%
+  ggplot(aes(factor(cellNumber), frac.ercc)) + 
+  geom_boxplot() +
+  theme_few()
+
+#Somehow take average cell reads into account after unsupervised?
+```
+
+```{r}
+uObj <- spUnsupervised(cObjSng, max_iter = 10000, perplexity = 15, seed = 8567456, Gmax = 50)
+plotUnsupervised(uObj)
+
+#look at frac.ercc per cell type
+class <- getData(uObj, "classification")
+names(class) <- colnames(getData(cObjSng, "counts"))
+
+getData(uObj, "tsne") %>%
+  as_tibble() %>%
+  rename(dim1 = V1, dim2 = V2) %>%
+  add_column(sample = colnames(getData(cObjSng, "counts"))) %>%
+  full_join(frac.ercc.s) %>%
+  ggplot(aes(dim1, dim2)) +
+    geom_point(aes(size = frac.ercc))
+
+```
+
+```{r, eval=FALSE}
+sObjBIC <- spSwarm(cObjMul, uObj, distFun = "bic", maxiter = 100, swarmsize = 500)
+sObjDistToSlice <- spSwarm(cObjMul, uObj, distFun = "distToSlice", maxiter = 100, swarmsize = 500)
+#sObjDistToSliceNorm <- spSwarm(cObjMul, uObj, distFun = "distToSliceNorm", maxiter = 100, swarmsize = 500)
+
+pFun <- . %>%
+  getData(., "spSwarm") %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  rename(multiplet = rowname) %>%
+  as_tibble()
+
+swarmBIC <- pFun(sObjBIC)
+swarmDistToSlice <- pFun(sObjDistToSlice)
+
+getEdgesForMultiplet(sObjBIC, 1/3.5, rownames(getData(sObjBIC, "spSwarm"))) %>%
+  mutate(plateIdx = gsub(".*\\.(...)$", "\\1", multiplet)) %>%
+  full_join(plateLong) %>%
+  full_join(swarmBIC) %>%
+  arrange(multiplet) %>%
+  filter(!is.na(multiplet)) %>%
+  print(n = nrow(.))
+
+getEdgesForMultiplet(sObjDistToSlice, 1/3, rownames(getData(sObjDistToSlice, "spSwarm"))) %>%
+  mutate(plateIdx = gsub(".*\\.(...)$", "\\1", multiplet)) %>%
+  full_join(plateLong) %>%
+  full_join(swarmDistToSlice) %>%
+  arrange(multiplet) %>%
+  filter(!is.na(multiplet)) %>%
+  print(n = nrow(.))
+
+frac <- getData(sObjDistToSlice, "spSwarm")
+```
