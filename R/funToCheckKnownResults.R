@@ -48,7 +48,7 @@ checkResults <- function(
     tp = .tp(.),
     fp = .fp(.),
     fn = .fn(.),
-    tn = .tn(.),
+    tn = .tn(., sObj, known),
     TPR = .TPR(tp, fn),
     TNR = .TNR(tn, fp),
     ACC = .ACC(tp, tn, fp, fn),
@@ -82,8 +82,8 @@ checkResults <- function(
 #calculates the true negatives
 #in order to know which comdinations are possible and which are missing from
 # both expected and detected, the .possibleCombs function is used.
-.tn <- function(data) {
-  possibleCombs <- .possibleCombs(data)
+.tn <- function(data, sObj, known) {
+  possibleCombs <- .possibleCombs(sObj, known)
   
   data %>%
   add_column(possibleCombs = list(possibleCombs)) %>%
@@ -99,12 +99,11 @@ checkResults <- function(
 
 #Calculates all possible connections with all cell types
 #Helper for .tn
-.possibleCombs <- function(data) {
-  data %>%
-  select(data.x, data.y) %>%
-  unlist() %>%
-  str_split("-") %>%
-  unlist() %>%
+.possibleCombs <- function(sObj, known) {
+  ctKnown <- colnames(getData(known, "spSwarm"))
+  ctDetected <- colnames(getData(sObj, "spSwarm"))
+  
+  c(ctKnown, ctDetected) %>%
   unique() %>%
   combn(., 2) %>%
   t() %>%
