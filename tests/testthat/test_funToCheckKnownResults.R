@@ -149,3 +149,67 @@ test_that("check that .tn outputs the expected result", {
   #test
   expect_equivalent(expected, output)
 })
+
+##run test .getCellTypes
+test_that("check that .getCellTypes outputs the expected result", {
+  
+  ###TEST1####
+  #prepare normal input data
+  data <- tibble(multipletComposition = c("A1-B1", "A1-C1-D1", "A1-S1-F1-V1"))
+  
+  #setup expected data
+  expected <- c("A1", "B1", "C1", "D1", "F1", "S1", "V1")
+  
+  #run function
+  output <- .getCellTypes(data)
+  
+  #test
+  expect_equivalent(expected, output)
+})
+
+##run test setupPlate
+test_that("check that setupPlate outputs the expected result", {
+  
+  ###TEST1####
+  #prepare normal input data
+  data <- tibble(
+    row = "A",
+    column = 1,
+    multipletName = "test1",
+    multipletComposition = "A1-B1",
+    connections = list(combn(c("A1", "B1"), 2)),
+  )
+  
+  #setup expected data
+  expected <- data.frame(A1 = 0.5, B1 = 0.5, row.names = "test1")
+  
+  #run function
+  output <- getData(setupPlate(data), "spSwarm")
+  
+  #test
+  expect_equivalent(expected, output)
+})
+
+##run test viewAsPlate
+test_that("check that viewAsPlate outputs the expected result", {
+  
+  ###TEST1####
+  #prepare normal input data
+  data <- structure(list(row = c("A", "B", "C", "D", "E"), column = c("01",
+  "01", "01", "01", "01"), multipletComposition = c("HCT116-HOS", 
+  "HCT116-HOS", "HCT116-HOS", "HCT116-HOS", "HCT116-HOS")), row.names = c(NA,
+  -5L), class = c("tbl_df", "tbl", "data.frame"), .Names = c("row",
+  "column", "multipletComposition"))
+  
+  #setup expected data
+  expected <- tibble(
+    row = LETTERS[1:5],
+    `01` = rep("HCT116-HOS", 5)
+  )
+  
+  #run function
+  output <- viewAsPlate(data)
+  
+  #test
+  expect_equivalent(expected, output)
+})
