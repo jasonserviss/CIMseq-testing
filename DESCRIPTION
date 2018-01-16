@@ -4,7 +4,7 @@ Version: 0.0.0.9000
 Author: Jason T. Serviss
 Description: The sp.scRNAseq package performs testing of the sp.scNRAseq package and produces informative plots. This is primarily used to test the sp.scRNAseq package using different data types as well as the sensitivity and specificity of the package.
 Depends:
-    R (>= 3.3.0),
+    R (>= 3.4.2),
     sp.scRNAseq
 Imports:
     plyr
