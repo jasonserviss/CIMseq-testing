@@ -1,8 +1,8 @@
 #' permuteMeans
 #'
-#' Sets up permutations of the classes for evaluating the performance
-#' of various distance functions used with the spSwarm method. Subsequently
-#' used with the \code{permutationMeans} function.
+#' Sets up permutations of the classes corresponding to the grouMeans matrix
+#' for evaluating the performance of various distance functions used with the
+#' spSwarm method.
 #'
 #' @name permuteMeans
 #' @rdname permuteMeans
@@ -47,6 +47,98 @@ permuteMeans <- function(
     dimnames = list(sort(rep(1:nPerms, length(idx))), colnames(means)),
     byrow = TRUE
   )
+  
+  #%>%
+  #as.data.frame() %>%
+  #rownames_to_column(var = "permutation") %>%
+  #as_tibble() %>%
+  #group_by("permutation") %>%
+  #nest(-permutation) %>%
+  #{map(.$data, as.matrix)}
+}
+
+#' permuteClass
+#'
+#' Sets up permutations of the classes corresponding to the counts matrix
+#' for evaluating the performance of various distance functions used with the
+#' spSwarm method.
+#'
+#' @name permuteClass
+#' @rdname permuteClass
+#' @aliases permuteClass
+#' @param spCountsMul A spCounts object containing multiplets.
+#' @param spUnsupervised An spUnsupervised object.
+#' @param nPerms Number of total permutations. If NULL set to 100 per multiplet.
+#' @param ... additional arguments to pass on
+#' @return data.frame
+#' @author Jason T. Serviss
+#'
+#'
+#'
+NULL
+#' @export
+#' @import sp.scRNAseq
+#' @importFrom purrr map
+
+permuteClass <- function(
+  spCountsMul,
+  spUnsupervised,
+  nPerms = NULL
+){
+  classes <- getData(spUnsupervised, "classification")
+  l <- length(classes)
+  if(is.null(nPerms)) {nPerms <- 100 * ncol(getData(spCountsMul, "counts"))}
+  
+  pIdx <- map(1:nPerms, function(x) {
+    sample(seq(1, l, 1), l, replace = FALSE)
+  }) %>%
+  unlist()
+  
+  perms <- classes[pIdx]
+  names(perms) <- sort(rep(1:nPerms, l))
+  lapply(1:nPerms, function(x) perms[names(perms) == x])
+}
+
+#' calculateMeans
+#'
+#' Calculates the group means using output from the permuteClass function.
+#'
+#' @name permuteCounts
+#' @rdname permuteCounts
+#' @aliases permuteCounts
+#' @param perms Output from \code{permuteClass} function.
+#' @param spCountsSng A spCounts object containing singlets.
+#' @param spUnsupervised An spUnsupervised object.
+#' @param ... additional arguments to pass on
+#' @return data.frame
+#' @author Jason T. Serviss
+#'
+#'
+#'
+NULL
+#' @export
+#' @import sp.scRNAseq
+#' @importFrom purrr map
+
+calculateMeans <- function(
+  perms,
+  spCountsSng,
+  spUnsupervised,
+  ...
+){
+  idx <- getData(spUnsupervised, "selectInd")
+  counts <- getData(spCountsSng, "counts.cpm")[idx, ]
+  classes <- getData(spUnsupervised, "classification")
+  c <- unique(classes)
+  id <- sort(rep(1:length(perms), nrow(counts)))
+  
+  map_dfr(1:length(perms), ~.calcMeans(perms[[.]], c, counts)) %>%
+  unlist() %>%
+  matrix(., ncol = length(c), dimnames = list(id, c))
+}
+
+.calcMeans <- function(classes, c, counts) {
+  map_dfc(c, function(x) {data.frame(rowMeans(counts[, classes == x]))})
 }
 
 #' permutationCosts
@@ -93,11 +185,8 @@ permutationCosts <- function(
 ){
   idx <- getData(spUnsupervised, "selectInd")
   multiplets <- getData(spCountsMul, "counts.cpm")[idx, ]
+  fracs <- getData(spSwarm, "spSwarm")
   if(is.null(nPermsPerMul)) {nPermsPerMul <- 100}
-  
-  l <- getData(spUnsupervised, "classification") %>%
-  unique() %>%
-  length()
   
   real <- tibble(
     key = rownames(getData(spSwarm, "spSwarm")),
@@ -106,7 +195,7 @@ permutationCosts <- function(
   
   map_dfc(
     1:ncol(multiplets),
-    ~.cost(., multiplets[, .], nPermsPerMul, permutationMeans, l, distFun)
+    ~.cost(.x, multiplets, fracs, nPermsPerMul, permutationMeans, distFun)
   ) %>%
   setNames(colnames(multiplets)) %>%
   add_column(tmp = 1:nPermsPerMul) %>%
@@ -118,12 +207,26 @@ permutationCosts <- function(
   select(-iteration)
 }
 
-.cost <- function(i, multiplet, nperms, means, l, distFun) {
-  pIdx <- ((i * nperms) - (nperms - 1)):(i * nperms)
+.cost <- function(
+  i,
+  multiplets,
+  fracs,
+  nPermsPerMul,
+  permutationMeans,
+  distFun
+){
+  pIdx <- ((i * nPermsPerMul) - (nPermsPerMul - 1)):(i * nPermsPerMul)
+  multiplet <- multiplets[, i]
+  frac <- as.numeric(fracs[i, ])
   
-  map_dbl(1:nperms, function(x) {
-    distFun(rep(1/l, l), means[rownames(means) == pIdx[x], ], multiplet)
-  }) %>%
+  map_dbl(
+    1:length(pIdx),
+    ~ distFun(
+      frac,
+      permutationMeans[rownames(permutationMeans) == pIdx[.x], ],
+      multiplet
+    )
+  ) %>%
   as_tibble()
 }
 

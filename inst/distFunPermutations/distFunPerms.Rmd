@@ -58,13 +58,16 @@ tm$classification <- pull(corresp, newClass)[match(tm$classification, pull(corre
 tsneMeans(uObj) <- tm
 
 #spSwarm
-sObj_distToSlice <- spSwarm(cObjMul, uObj, distFun = "distToSlice", swarmsize = 500, maxiter = 100)
-sObj_distToSliceNorm <- spSwarm(cObjMul, uObj, distFun = "distToSliceNorm", swarmsize = 500, maxiter = 100)
-sObj_distToSliceTop <- spSwarm(cObjMul, uObj, distFun = "distToSliceTop", swarmsize = 500, maxiter = 100, cells = 4)
-sObj_distToSliceEuclid <- spSwarm(cObjMul, uObj, distFun = "distToSliceEuclid", swarmsize = 500, maxiter = 100)
-sObj_distToSlicePearson <- spSwarm(cObjMul, uObj, distFun = "distToSlicePearson", swarmsize = 500, maxiter = 100)
-sObj_bic <- spSwarm(cObjMul, uObj, distFun = "bic", swarmsize = 500, maxiter = 100)
+sObj_distToSlice <- spSwarm(cObjMul, uObj, distFun = "distToSlice", swarmsize = 50, maxiter = 10)
+sObj_bic <- spSwarm(cObjMul, uObj, distFun = "bic", swarmsize = 50, maxiter = 10)
+
+#sObj_distToSliceNorm <- spSwarm(cObjMul, uObj, distFun = "distToSliceNorm", swarmsize = 500, maxiter = 10)
+#sObj_distToSliceTop <- spSwarm(cObjMul, uObj, distFun = "distToSliceTop", swarmsize = 500, maxiter = 10, cells = 4)
+#sObj_distToSliceEuclid <- spSwarm(cObjMul, uObj, distFun = "distToSliceEuclid", swarmsize = 500, maxiter = 10)
+#sObj_distToSlicePearson <- spSwarm(cObjMul, uObj, distFun = "distToSlicePearson", swarmsize = 500, maxiter = 10)
 ```
+
+Evaluate the information still contained in the permuted data. Do this by randomly selecting 5000 genes from the matrix and running pca
 
 Use class means, calculated from the permuted counts matrix, to calculate the 
 ```{r, fig.align='center', fig.height=8, fig.width=10}
@@ -79,42 +82,6 @@ cost_distToSlice <- permutationCosts(
   distFun = sp.scRNAseq:::distToSlice
 )
 
-cost_distToSliceNorm <- permutationCosts(
-  groupMeanPermutations,
-  cObjMul, 
-  uObj,
-  sObj_distToSliceNorm,
-  100,
-  distFun = sp.scRNAseq:::distToSliceNorm
-)
-
-cost_distToSliceTop <- permutationCosts(
-  groupMeanPermutations,
-  cObjMul, 
-  uObj, 
-  sObj_distToSliceTop, 
-  100, 
-  distFun = sp.scRNAseq:::distToSliceTop
-)
-
-cost_distToSliceEuclid <- permutationCosts(
-  groupMeanPermutations,
-  cObjMul, 
-  uObj, 
-  sObj_distToSliceEuclid,
-  100,
-  distFun = sp.scRNAseq:::distToSliceEuclid
-)
-
-cost_distToSlicePearson <- permutationCosts(
-  groupMeanPermutations,
-  cObjMul,
-  uObj,
-  sObj_distToSlicePearson,
-  100,
-  distFun = sp.scRNAseq:::distToSlicePearson
-)
-
 cost_bic <- permutationCosts(
   groupMeanPermutations,
   cObjMul,
@@ -123,6 +90,42 @@ cost_bic <- permutationCosts(
   100,
   distFun = sp.scRNAseq:::bic
 )
+
+# cost_distToSliceNorm <- permutationCosts(
+#   groupMeanPermutations,
+#   cObjMul, 
+#   uObj,
+#   sObj_distToSliceNorm,
+#   100,
+#   distFun = sp.scRNAseq:::distToSliceNorm
+# )
+
+#cost_distToSliceTop <- permutationCosts(
+#  groupMeanPermutations,
+#  cObjMul, 
+#  uObj, 
+#  sObj_distToSliceTop, 
+#  100, 
+#  distFun = sp.scRNAseq:::distToSliceTop
+#)
+
+# cost_distToSliceEuclid <- permutationCosts(
+#   groupMeanPermutations,
+#   cObjMul, 
+#   uObj, 
+#   sObj_distToSliceEuclid,
+#   100,
+#   distFun = sp.scRNAseq:::distToSliceEuclid
+# )
+
+# cost_distToSlicePearson <- permutationCosts(
+#   groupMeanPermutations,
+#   cObjMul,
+#   uObj,
+#   sObj_distToSlicePearson,
+#   100,
+#   distFun = sp.scRNAseq:::distToSlicePearson
+# )
 ```
 
 Plot results for distToSlice.
@@ -130,23 +133,25 @@ Plot results for distToSlice.
 plotDistPermutations(cost_distToSlice)
 ```
 
-Plot results for distToSliceNorm.
-```{r, fig.align='center', fig.height=8, fig.width=10}
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval = FALSE, echo = FALSE}
+#Plot results for distToSliceNorm.
 plotDistPermutations(cost_distToSliceNorm)
 ```
 
-Plot results for distToSliceTop.
-```{r, fig.align='center', fig.height=8, fig.width=10}
-plotDistPermutations(cost_distToSliceTop)
+```{r, fig.align='center', fig.height=8, fig.width=10, eval = FALSE, echo = FALSE}
+#Plot results for distToSliceTop.
+#plotDistPermutations(cost_distToSliceTop)
 ```
 
-Plot results for distToSliceEuclid.
-```{r, fig.align='center', fig.height=8, fig.width=10}
+```{r, fig.align='center', fig.height=8, fig.width=10, eval = FALSE, echo = FALSE}
+#Plot results for distToSliceEuclid.
 plotDistPermutations(cost_distToSliceEuclid)
 ```
 
-Plot results for distToSlicePearson.
-```{r, fig.align='center', fig.height=8, fig.width=10}
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval = FALSE, echo = FALSE}
+#Plot results for distToSlicePearson.
 plotDistPermutations(cost_distToSlicePearson)
 ```
 
@@ -169,7 +174,7 @@ plotDistPermutations(cost_distToSliceNorm, TRUE)
 
 Plot results for distToSliceTop.
 ```{r, fig.align='center', fig.height=8, fig.width=10}
-plotDistPermutations(cost_distToSliceTop, TRUE)
+#plotDistPermutations(cost_distToSliceTop, TRUE)
 ```
 
 Plot results for distToSliceEuclid.
