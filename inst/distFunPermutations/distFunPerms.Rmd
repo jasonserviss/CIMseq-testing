@@ -60,11 +60,10 @@ tsneMeans(uObj) <- tm
 #spSwarm
 sObj_distToSlice <- spSwarm(cObjMul, uObj, distFun = "distToSlice", swarmsize = 50, maxiter = 10)
 sObj_bic <- spSwarm(cObjMul, uObj, distFun = "bic", swarmsize = 50, maxiter = 10)
-
-#sObj_distToSliceNorm <- spSwarm(cObjMul, uObj, distFun = "distToSliceNorm", swarmsize = 500, maxiter = 10)
-#sObj_distToSliceTop <- spSwarm(cObjMul, uObj, distFun = "distToSliceTop", swarmsize = 500, maxiter = 10, cells = 4)
-#sObj_distToSliceEuclid <- spSwarm(cObjMul, uObj, distFun = "distToSliceEuclid", swarmsize = 500, maxiter = 10)
-#sObj_distToSlicePearson <- spSwarm(cObjMul, uObj, distFun = "distToSlicePearson", swarmsize = 500, maxiter = 10)
+#sObj_distToSliceNorm <- spSwarm(cObjMul, uObj, distFun = "distToSliceNorm", swarmsize = 50, maxiter = 10)
+#sObj_distToSliceTop <- spSwarm(cObjMul, uObj, distFun = "distToSliceTop", swarmsize = 50, maxiter = 10, cells = 4)
+#sObj_distToSliceEuclid <- spSwarm(cObjMul, uObj, distFun = "distToSliceEuclid", swarmsize = 50, maxiter = 10)
+#sObj_distToSlicePearson <- spSwarm(cObjMul, uObj, distFun = "distToSlicePearson", swarmsize = 50, maxiter = 10)
 ```
 
 Evaluate the information still contained in the permuted data. Do this by randomly selecting 5000 genes from the matrix and running pca
