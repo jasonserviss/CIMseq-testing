@@ -13,6 +13,7 @@ editor_options:
 ```{r}
 packages <- c(
     "sp.scRNAseq",
+    "sp.scRNAseqData",
     "sp.scRNAseqTesting",
     "printr",
     "ggthemes",
