@@ -196,7 +196,8 @@ printResults <- function(
 }
 
 .addFractions <- function(expanded, spSwarm) {
-  names <- paste(colnames(getData(spSwarm, "spSwarm")), collapse = ", ")
+  fracs <- getData(spSwarm, "spSwarm")
+  names <- paste(colnames(fracs), collapse = ", ")
   formated <- paste("frac (", names, ")", sep = "")
   
   getData(spSwarm, "spSwarm") %>%
@@ -206,7 +207,7 @@ printResults <- function(
   as_tibble() %>%
   rename(multiplet = rowname) %>%
   full_join(expanded, by = "multiplet") %>%
-  unite(fractions, 2:4, sep = ", ") %>%
+  unite(fractions, 2:(ncol(fracs) + 1), sep = ", ") %>%
   setNames(c(colnames(.)[1], formated, colnames(.)[3:ncol(.)])) %>%
   select(multiplet, cellsInWell, 2, data.expected:ACC) %>%
   arrange(multiplet)
