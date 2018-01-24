@@ -31,15 +31,8 @@ permuteMeans <- function(
   l <- ncol(means)
   if(is.null(nPerms)) {nPerms <- 100 * ncol(getData(spCountsMul, "counts"))}
   
-  pIdx <- map(1:(nPerms * length(idx)), function(x) {
-    sample(seq(1, l, 1), l, replace = FALSE)
-  }) %>%
-  unlist()
-  
-  sIdx <- matrix(
-    c(rep(sort(rep(1:length(idx), l)), nPerms), pIdx),
-    ncol = 2
-  )
+  pIdx <- .colIdx(nPerms, idx, l)
+  sIdx <- .rowIdx(idx, l, nPerms, pIdx)
   
   matrix(
     means[sIdx],
@@ -47,15 +40,22 @@ permuteMeans <- function(
     dimnames = list(sort(rep(1:nPerms, length(idx))), colnames(means)),
     byrow = TRUE
   )
-  
-  #%>%
-  #as.data.frame() %>%
-  #rownames_to_column(var = "permutation") %>%
-  #as_tibble() %>%
-  #group_by("permutation") %>%
-  #nest(-permutation) %>%
-  #{map(.$data, as.matrix)}
 }
+
+.colIdx <- function(nPerms, idx, l) {
+  map(1:(nPerms * length(idx)), function(x) {
+    sample(seq(1, l, 1), l, replace = FALSE)
+  }) %>%
+  unlist()
+}
+
+.rowIdx <- function(idx, l, nPerms, pIdx) {
+  matrix(
+    c(rep(sort(rep(1:length(idx), l)), nPerms), pIdx),
+    ncol = 2
+  )
+}
+
 
 #' permuteClass
 #'
@@ -195,7 +195,7 @@ permutationCosts <- function(
   
   map_dfc(
     1:ncol(multiplets),
-    ~.cost(.x, multiplets, fracs, nPermsPerMul, permutationMeans, distFun)
+    ~.cost2(.x, multiplets, fracs, nPermsPerMul, permutationMeans, distFun)
   ) %>%
   setNames(colnames(multiplets)) %>%
   add_column(tmp = 1:nPermsPerMul) %>%
@@ -230,6 +230,22 @@ permutationCosts <- function(
   as_tibble()
 }
 
+.cost2 <- function(
+  i,
+  multiplets,
+  fracs,
+  nPermsPerMul,
+  permutationMeans,
+  distFun
+){
+  pIdx <- ((i * nPermsPerMul) - (nPermsPerMul - 1)):(i * nPermsPerMul)
+  multiplet <- multiplets[, i]
+  frac <- matrix(rep(as.numeric(fracs[i, ]), length(pIdx)), ncol = length(fracs), byrow = TRUE)
+  
+  distFun(frac, permutationMeans[rownames(permutationMeans) %in% pIdx, ], multiplet) %>%
+  as_tibble()
+}
+
 #' plotDistPermutations
 #'
 #' Plots the results from the \code{permutationCosts} function.
@@ -237,8 +253,9 @@ permutationCosts <- function(
 #' @name plotDistPermutations
 #' @rdname plotDistPermutations
 #' @aliases plotDistPermutations
-#' @param permCosts An spCounts object containing multiplets.
-#' @param facet An spUnsupervised object.
+#' @param permCosts Tibble; Output from the \code{permutationCosts} function.
+#' @param bw Numeric; Binwidth argument to ggplot.
+#' @param facet Logical; Indicates if plot should be faceted by multiplet.
 #' @param ... additional arguments to pass on.
 #' @return matrix
 #' @author Jason T. Serviss
@@ -255,12 +272,13 @@ NULL
 
 plotDistPermutations <- function(
   permCosts,
+  bw = 10000,
   facet = FALSE,
   ...
 ){
   p <- permCosts %>%
   ggplot() +
-  geom_histogram(aes(x = cost, fill = Type), binwidth = 10000) +
+  geom_histogram(aes(x = cost, fill = Type), binwidth = as.numeric(bw)) +
   theme_few() +
   theme(
     axis.text.x = element_text(angle = 90),

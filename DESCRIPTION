@@ -15,7 +15,6 @@ RoxygenNote: 6.0.1
 Suggests: testthat
 Collate: 
     'cellTypesIncludedTest.R'
-    'distFunPermutations.R'
     'experimentalDataTest.R'
     'expressionDataTest.R'
     'funToCheckKnownResults.R'
@@ -23,3 +22,5 @@ Collate:
     'groupSizeTest.R'
     'noiseDataTest.R'
     'syntheticDataTest.R'
+    'complexity171116.R'
+    'permutationFunctions.R'

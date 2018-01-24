@@ -38,6 +38,7 @@ checkResults <- function(
     rownames(getData(sObj, "spSwarm"))
   ) %>%
   unite(connections, from, to, sep = "-") %>%
+  distinct() %>%
   nest(-multiplet)
   
   expected <- getEdgesForMultiplet(
@@ -46,6 +47,7 @@ checkResults <- function(
     rownames(getData(sObj, "spSwarm"))
   ) %>%
   unite(connections, from, to, sep = "-") %>%
+  distinct() %>%
   nest(-multiplet)
   
   full_join(detected, expected, by = "multiplet") %>%

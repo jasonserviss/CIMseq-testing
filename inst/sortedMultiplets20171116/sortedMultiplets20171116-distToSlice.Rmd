@@ -63,36 +63,19 @@ tsneMeans(uObj) <- tm
 #plot
 plotUnsupervised(uObj)
 
-#calculate fold changes in singlets according to plate layout and plot some genes
-#mat <- getData(cObjSng, "counts")
-#mat <- mat[rowSums(mat) > 80, ]
-#hos <- rowMeans(mat[,str_extract(colnames(mat), "..$") %in% c("01", "02", "03", "04")])
-#hct <- rowMeans(mat[,str_extract(colnames(mat), "..$") %in% c("05", "06", "07", "08")])
-#a375 <- rowMeans(mat[,str_extract(colnames(mat), "..$") %in% c("09", "10", "11", "12")])
-
-#hosFC <- hos + 1 / rowMeans(data.frame(hct, a375)) + 1
-#hctFC <- hct / rowMeans(data.frame(hos, a375))
-#a375FC <- a375 / rowMeans(data.frame(hct, hos))
-
-#hosGenes <- rownames(mat)[which(hosFC > 500)]
-#hctGenes <- rownames(mat)[which(hctFC > 500)]
-#a375Genes <- rownames(mat)[which(a375FC > 500)]
-
-#any(hosGenes %in% hctGenes)
-#any(hosGenes %in% a375Genes)
-#any(a375Genes %in% hosGenes)
-#any(a375Genes %in% hctGenes)
-#any(hctGenes %in% hosGenes)
-#any(hctGenes %in% a375Genes)
-
-#hct116: c("ACSL5", "ADIRF", "ANXA3", "AREG", "C1orf172", "CBLC")
-#hos: c("ACTB", "ALDH1A2", "ALPL", "BGN", "BHMT2", "CCBE1")
-#a375: c("ARPP21", "COL19A1", "EDNRB", "GPC6", "MAF", "RRK")
-
 #spSwarm
-sObj <- spSwarm(cObjMul, uObj, distFun = "distToSlice", swarmsize = 500, maxiter = 10)
+sObj <- spSwarm(cObjMul, uObj, distFun = "distToSlice", swarmsize = 50, maxiter = 10)
 plotSwarm(sObj, uObj, cObjSng, cObjMul, type = "heat")
 print(paste("sum of optimization costs: ", sum(getData(sObj, "costs"))))
+```
+
+Plot costs.
+```{r, fig.align='center', fig.height=8, fig.width=10}
+getData(sObj, "costs") %>%
+  as_tibble() %>%
+  ggplot() +
+  geom_histogram(aes(x = value), binwidth = 5000) +
+  theme_few()
 ```
 
 Setup known multiplet compositions.

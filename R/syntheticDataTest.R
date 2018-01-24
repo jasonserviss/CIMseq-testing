@@ -66,7 +66,6 @@ syntheticDataTest <- function(
     syntheticDataUnsupervised <- tmp[[3]]
     syntheticDataTable <- tmp[[4]]
     
-    
     #make spCounts object
     single <- grepl("^s", colnames(syntheticDataTest))
     syntheticDataCountsSng <- spCounts(
@@ -88,8 +87,8 @@ syntheticDataTest <- function(
     syntheticDataSwarm <- spSwarm(
         syntheticDataCountsMul,
         syntheticDataUnsupervised,
-        maxiter = 1000,
-        swarmsize = 500,
+        maxiter = 1000, #this should be adjusted to the lowest possible
+        swarmsize = 500, #this should be adjusted to the lowest possible
         cores = cores,
         distFun = bic,
         report = FALSE,
@@ -144,6 +143,7 @@ syntheticDataTest <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 syntheticTestData <- function(
@@ -156,6 +156,10 @@ syntheticTestData <- function(
     perplexity,
     ...
 ){
+  #load data from sp.scRNAseqData package
+  #subset multiplets for current test and make sure it gets saved (at least save the idx vector and add a func to fix names. potentially the calculateConnections function won't handle the full colnames and thats why I choose not to name anything before using it...)!!
+  #fix colnames etc and return
+  
     tmp <- syntheticMultuplets(
         nGenes,
         nCells,
@@ -235,6 +239,7 @@ syntheticTestData <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 syntheticSinglets <- function(
@@ -302,6 +307,7 @@ syntheticSinglets <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 
@@ -338,7 +344,7 @@ syntheticMultuplets <- function(
         cObjSngFull,
         theta = 0,
         k = 2,
-        max_iter = 500,
+        max_iter = 10,
         perplexity = 10,
         initial_dims = ncol(singlets),
         Gmax = nCellTypes,
@@ -420,6 +426,7 @@ syntheticMultuplets <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 
@@ -514,6 +521,7 @@ makeMultuplet <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 adjustMultuplets <- function(
@@ -597,6 +605,7 @@ adjustMultuplets <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 decideConnections <- function(
@@ -652,8 +661,8 @@ decideConnections <- function(
 #' cat("No example")
 #'
 NULL
-#' @import sp.scRNAseq
 #' @export
+#' @import sp.scRNAseq
 
 quantifyConnections <- function(
     multipletNames,
@@ -735,6 +744,7 @@ quantifyConnections <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 calculateFreqAndSum <- function(
@@ -775,6 +785,7 @@ calculateFreqAndSum <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 calculateNumToAdd <- function(
@@ -820,6 +831,7 @@ calculateNumToAdd <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 synthesizeAndAdd <- function(
@@ -917,6 +929,7 @@ synthesizeAndAdd <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 checkFrequency <- function(
@@ -956,6 +969,7 @@ checkFrequency <- function(
 #' cat("No example")
 #'
 NULL
+#' @export
 #' @import sp.scRNAseq
 
 adjustSelf <- function(

@@ -68,6 +68,83 @@ sObj_bic <- spSwarm(cObjMul, uObj, distFun = "bic", swarmsize = 50, maxiter = 10
 
 Evaluate the information still contained in the permuted data. Do this by randomly selecting 5000 genes from the matrix and running pca
 
+```{r}
+.makeSyntheticSlice.vec <- function(
+  cellTypes,
+  fractions
+){
+  #reformat variables to facilitate vectorized calculations
+  fractions.vec <- as.vector(t(fractions))
+  
+  sVec <- sort(rep(1:nrow(fractions), length(c(cellTypes)) / nrow(fractions)))
+  sepMats <- split(t(cellTypes), sVec)
+  lSepMats <- lapply(sepMats, function(x) t(matrix(x, ncol = ncol(cellTypes))))
+  cellTypes.vec <- do.call(rbind, lSepMats)
+  
+  #perform multiplication calculation
+  multiply <- fractions.vec * cellTypes.vec
+  
+  #reformat for vectorized sum calculation
+  list <- split(c(t(multiply)), sVec)
+  flist <- lapply(list, function(x) matrix(x, ncol = ncol(cellTypes)))
+  mat <- do.call(rbind, flist)
+  
+  #perform sum calculation
+  sums <- rowSums(mat)
+  
+  #reformat for subsequent vectorized calculations with output
+  matrix(sums, ncol = nrow(fractions))
+}
+
+distToSlice.vec <- function(
+  fractions,
+  cellTypes,
+  oneMultiplet,
+  .makeSyntheticSlice.vec = .makeSyntheticSlice.vec,
+  ...
+) {
+  
+  #normalize
+  fractions <- fractions / rowSums(fractions)
+  
+  #makeSyntheticSlice
+  a <- .makeSyntheticSlice.vec(cellTypes, fractions)
+  
+  #distToSlice
+  oneMultiplet.vec <- matrix(
+    rep(oneMultiplet, ncol(a)),
+    ncol = ncol(a)
+  )
+  colSums(abs(a - oneMultiplet.vec))
+}
+
+bic.vec <- function(
+  fractions,
+  cellTypes,
+  oneMultiplet,
+  .makeSyntheticSlice.vec = .makeSyntheticSlice.vec
+  ...
+){
+  #normalize
+  fractions <- fractions / rowSums(fractions)
+  
+  #makeSyntheticSlice
+  a <- .makeSyntheticSlice.vec(cellTypes, fractions)
+  
+  #bic
+  oneMultiplet.vec <- matrix(
+    rep(oneMultiplet, ncol(a)),
+    ncol = ncol(a)
+  )
+  n <- nrow(fractions)
+  e <- colSums(abs(a - oneMultiplet.vec)^2) * 1/n
+  
+  k <- apply(fractions, 1, function(x) length(which(x > 0)))
+  
+  (n * log(e)) + (k * log(n))
+}
+```
+
 Use class means, calculated from the permuted counts matrix, to calculate the 
 ```{r, fig.align='center', fig.height=8, fig.width=10}
 
@@ -125,6 +202,15 @@ cost_bic <- permutationCosts(
 #   100,
 #   distFun = sp.scRNAseq:::distToSlicePearson
 # )
+
+save(
+  sObj_distToSlice,
+  sObj_bic, 
+  cost_distToSlice,
+  cost_bic,
+  file = "~/Desktop/data.rda",
+  compress = "bzip2"
+)
 ```
 
 Plot results for distToSlice.
@@ -132,6 +218,10 @@ Plot results for distToSlice.
 plotDistPermutations(cost_distToSlice)
 ```
 
+Plot results for bic.
+```{r, fig.align='center', fig.height=8, fig.width=10}
+plotDistPermutations(cost_bic, bw = 1)
+```
 
 ```{r, fig.align='center', fig.height=8, fig.width=10, eval = FALSE, echo = FALSE}
 #Plot results for distToSliceNorm.
@@ -154,39 +244,38 @@ plotDistPermutations(cost_distToSliceEuclid)
 plotDistPermutations(cost_distToSlicePearson)
 ```
 
-Plot results for bic.
-```{r, fig.align='center', fig.height=8, fig.width=10}
-plotDistPermutations(cost_bic)
-```
 
 ###Plot for individual multiplets
 
 Plot results for distToSlice.
 ```{r, fig.align='center', fig.height=8, fig.width=10}
-plotDistPermutations(cost_distToSlice, TRUE)
+plotDistPermutations(cost_distToSlice, facet = TRUE)
 ```
 
-Plot results for distToSliceNorm.
-```{r, fig.align='center', fig.height=8, fig.width=10}
-plotDistPermutations(cost_distToSliceNorm, TRUE)
-```
-
-Plot results for distToSliceTop.
-```{r, fig.align='center', fig.height=8, fig.width=10}
-#plotDistPermutations(cost_distToSliceTop, TRUE)
-```
-
-Plot results for distToSliceEuclid.
-```{r, fig.align='center', fig.height=8, fig.width=10}
-plotDistPermutations(cost_distToSliceEuclid, TRUE)
-```
-
-Plot results for distToSlicePearson.
-```{r, fig.align='center', fig.height=8, fig.width=10}
-plotDistPermutations(cost_distToSlicePearson, TRUE)
-```
 
 Plot results for bic.
 ```{r, fig.align='center', fig.height=8, fig.width=10}
-plotDistPermutations(cost_bic, TRUE)
+plotDistPermutations(cost_bic, bw = 1, facet = TRUE)
 ```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval = FALSE, echo = FALSE}
+#Plot results for distToSliceNorm.
+plotDistPermutations(cost_distToSliceNorm, TRUE)
+```
+
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval = FALSE, echo = FALSE}
+#Plot results for distToSliceTop.
+plotDistPermutations(cost_distToSliceTop, TRUE)
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval = FALSE, echo = FALSE}
+#Plot results for distToSliceEuclid.
+plotDistPermutations(cost_distToSliceEuclid, TRUE)
+```
+
+```{r, fig.align='center', fig.height=8, fig.width=10, eval = FALSE, echo = FALSE}
+#Plot results for distToSlicePearson.
+plotDistPermutations(cost_distToSlicePearson, TRUE)
+```
+

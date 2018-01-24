@@ -1,5 +1,5 @@
 ---
-title: "sortedMultiplets20171116-bic"
+title: "sortedMultiplets20171116-bic10.2"
 author: "Jason T. Serviss"
 date: "`r Sys.Date()`"
 output:
@@ -64,7 +64,7 @@ tsneMeans(uObj) <- tm
 plotUnsupervised(uObj)
 
 #spSwarm
-sObj <- spSwarm(cObjMul, uObj, distFun = "bic", swarmsize = 50, maxiter = 10)
+sObj <- spSwarm(cObjMul, uObj, distFun = "bic10.2", swarmsize = 50, maxiter = 10)
 plotSwarm(sObj, uObj, cObjSng, cObjMul, type = "heat")
 print(paste("sum of optimization costs: ", sum(getData(sObj, "costs"))))
 ```
