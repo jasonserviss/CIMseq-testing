@@ -156,27 +156,27 @@ setMethod("permuteSwarm", "spCounts", function(
 #sObj should be the spSwarm object with the real data
 #permData should be the output of the permuteSwarm function
 
-processPermData <- function(sObj, permData) {
+#processPermData <- function(sObj, permData) {
   #setup real data
-  real <- tibble(
-    sample = rownames(getData(sObj, "spSwarm"))
-    cost <- getData(sObj, "cost")
-    
-  )
+#  real <- tibble(
+#    sample = rownames(getData(sObj, "spSwarm"))
+#    cost <- getData(sObj, "cost")
+#
+#  )
   #get cost and fractions (normalized) and ? from permData
   #cost (called "value" in permData object)
-  costs <- map(permData, function(x) {
-    map_dbl(x, function(y) {
-      y[['value']]
-    })
-  }) %>%
-  map(., as_tibble) %>%
-  bind_rows() #output needs to be named
+#  costs <- map(permData, function(x) {
+#    map_dbl(x, function(y) {
+#      y[['value']]
+#    })
+#  }) %>%
+#  map(., as_tibble) %>%
+#  bind_rows() #output needs to be named
   
-  fracs <- map(permData, function(x) {
-    map_dfr(x, function(y) {
-      tibble(list(y[['par']]))
-    })
-  }) %>%
-  bind_rows() #output needs to be named
-}
+#  fracs <- map(permData, function(x) {
+#    map_dfr(x, function(y) {
+#      tibble(list(y[['par']]))
+#    })
+#  }) %>%
+#  bind_rows() #output needs to be named
+#}
