@@ -153,30 +153,203 @@ setMethod("permuteSwarm", "spCounts", function(
   return(permData)
 }
 
-#sObj should be the spSwarm object with the real data
-#permData should be the output of the permuteSwarm function
+#' spSwarmPermutationData
+#'
+#' A function to put the results from the \code{permuteSwarm} function into
+#' spSwarm objects.
+#'
+#' @name spSwarmPermutationData
+#' @rdname spSwarmPermutationData
+#' @aliases spSwarmPermutationData
+#' @param sObj An spSwarm object where the "real" data is included.
+#' @param permData Output from the permuteSwarm function.
+#' @param ... additional arguments to pass on
+#' @return A list of spSwarm objects.
+#' @author Jason T. Serviss
+#'
+#'
+#'
+NULL
+#' @export
+#' @import sp.scRNAseq
+#' @importFrom purrr map
 
-#processPermData <- function(sObj, permData) {
+spSwarmPermutationData <- function(sObj, permData) {
+  map(permData, .onespSwarmObj, sObj)
+}
+
+.onespSwarmObj <- function(data, sObj) {
+  output <- data.frame(t(sapply(data, function(j) j[[1]])))
+  cost <- sapply(data, function(j) j[[2]])
+  counts <- t(sapply(data, function(j) j[[3]]))
+  convergence <- sapply(data, function(j) j[[4]])
+  convergenceKey <- c(
+    "Maximal number of function evaluations reached." = 1,
+    "Maximal number of iterations reached." = 2,
+    "Maximal number of restarts reached." = 3,
+    "Maximal number of iterations without improvement reached." = 4
+  )
+  convergence <- names(convergenceKey)[match(convergence, convergenceKey)]
+  
+  
+  #normalize swarm output
+  output <- output * 1/rowSums(output)
+  
+  #add names
+  spSwarm <- getData(sObj, "spSwarm")
+  colnames(output) <- colnames(spSwarm)
+  rownames(output) <- rownames(spSwarm)
+    
+  #create object
+  new("spSwarm",
+      spSwarm = output,
+      costs = cost,
+      convergence = convergence,
+      stats = list(),
+      arguments = getData(sObj, "arguments")
+  )
+}
+
+#' tidyPermutationData
+#'
+#' A function to wrangle the results from the \code{permuteSwarm} function.
+#'
+#' @name tidyPermutationData
+#' @rdname tidyPermutationData
+#' @aliases tidyPermutationData
+#' @param sObj An spSwarm object where the "real" data is included.
+#' @param permData Output from the permuteSwarm function.
+#' @param ... additional arguments to pass on
+#' @return A tibble with the real and permuted costs and fractions.
+#' @author Jason T. Serviss
+#'
+#'
+#'
+NULL
+#' @export
+#' @import sp.scRNAseq
+#' @importFrom tibble tibble as_tibble
+#' @importFrom dplyr mutate bind_rows rename select group_by full_join
+#' @importFrom purrr map map_dbl simplify_all
+#' @importFrom tidyr nest
+
+tidyPermutationData <- function(sObj, permData) {
   #setup real data
-#  real <- tibble(
-#    sample = rownames(getData(sObj, "spSwarm"))
-#    cost <- getData(sObj, "cost")
-#
-#  )
+  spSwarm <- getData(sObj, "spSwarm")
+  real <- tibble(
+    multiplet = rownames(spSwarm),
+    cost = getData(sObj, "costs")
+  ) %>%
+  mutate(fracs = map(seq_len(nrow(spSwarm)), function(i) spSwarm[i, ]))
+  
   #get cost and fractions (normalized) and ? from permData
   #cost (called "value" in permData object)
-#  costs <- map(permData, function(x) {
-#    map_dbl(x, function(y) {
-#      y[['value']]
-#    })
-#  }) %>%
-#  map(., as_tibble) %>%
-#  bind_rows() #output needs to be named
+  costs <- map(permData, function(x) {
+    map_dbl(x, function(y) {
+      y[['value']]
+    })
+  }) %>%
+  map(., as_tibble) %>%
+  bind_rows() %>%
+  rename(cost = value) %>%
+  mutate(multiplet = rep(rownames(spSwarm), length(permData))) %>%
+  group_by(multiplet) %>%
+  nest(cost, .key = "permCosts")
   
-#  fracs <- map(permData, function(x) {
-#    map_dfr(x, function(y) {
-#      tibble(list(y[['par']]))
-#    })
-#  }) %>%
-#  bind_rows() #output needs to be named
-#}
+  #fractions
+  fracs <- map(permData, function(x) {
+    map(x, function(y) {
+      y[['par']]
+    })
+  }) %>%
+  unlist() %>%
+  matrix(., ncol = 3) %>%
+  `*` (1/rowSums(.)) %>%
+  as_tibble() %>%
+  mutate(multiplet = rep(rownames(spSwarm), length(permData))) %>%
+  group_by(multiplet) %>%
+  nest(-multiplet, .key = "permFracs")
+  
+  #combine all
+  real %>%
+    full_join(costs) %>%
+    full_join(fracs)
+}
+
+#' permCostPlot
+#'
+#' A function to plot the permuted vs real costs.
+#'
+#' @name permCostPlot
+#' @rdname permCostPlot
+#' @aliases permCostPlot
+#' @param data Output from the tidyPermutationData function.
+#' @param ... additional arguments to pass on
+#' @return A tibble with the real and permuted costs and fractions.
+#' @author Jason T. Serviss
+#'
+#'
+#'
+NULL
+#' @export
+#' @import sp.scRNAseq
+#' @import ggplot2
+#' @importFrom ggthemes theme_few
+#' @importFrom dplyr select
+#' @importFrom tidyr unnest
+
+permCostPlot <- function(data, ...) {
+  #setup "real" data
+  real <- select(data, multiplet, cost)
+  
+  #process permuted data and plot
+  p <- data %>%
+  select(multiplet, permCosts) %>%
+  unnest() %>%
+  ggplot(data = .,) +
+  geom_boxplot(aes(x = multiplet, y = cost)) +
+  geom_point(data = real, aes(x = multiplet, y = cost), colour = "red") +
+  theme_few() +
+  theme(axis.text.x = element_text(angle = 90))
+  
+  p
+  return(p)
+}
+
+#' calculateCostP
+#'
+#' A function to plot the permuted vs real costs.
+#'
+#' @name calculateCostP
+#' @rdname calculateCostP
+#' @aliases calculateCostP
+#' @param data Output from the tidyPermutationData function.
+#' @param ... additional arguments to pass on
+#' @return A tibble with the real and permuted costs and fractions.
+#' @author Jason T. Serviss
+#'
+#'
+#'
+NULL
+#' @export
+#' @import sp.scRNAseq
+#' @import ggplot2
+#' @importFrom purrr pmap simplify
+#' @importFrom dplyr if_else pull
+#' @importFrom tibble tibble
+#' @importFrom magrittr "%>%"
+
+calculateCostP <- function(data) {
+  data %>%
+  {pmap(list(.$cost, .$permCosts), function(cost, permCost) {
+    permCost <- as.numeric(permCost[[1]])
+    l <- length(permCost)
+    gt <- sum(permCost < cost) / l
+    if_else(gt == 0, 10^-log10(l), gt)
+  })} %>%
+  simplify() %>%
+  tibble(
+    multiplet = pull(data, multiplet),
+    pValue = .,
+  )
+}
