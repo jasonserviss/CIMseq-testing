@@ -1,0 +1,69 @@
+---
+title: "algoFunCheckMouse"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+#PACKAGES
+packages <- c(
+    "sp.scRNAseq",
+    "sp.scRNAseqData",
+    "sp.scRNAseqTesting",
+    "printr",
+    "ggthemes",
+    "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+```
+
+```{r, warning=FALSE}
+s <- str_detect(colnames(countsMgfp), "^s")
+commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
+
+sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
+mul <- countsMgfp[commonGenes, !s]
+
+erccSng <- cbind(
+  countsMgfpERCC[, s], 
+  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
+)
+erccMul <- cbind(countsMgfpERCC[, !s])
+
+boolMulC <- colnames(mul) %in% filter(countsMgfpMeta, tissue == "colon")$sample
+boolSngC <- colnames(sng) %in% filter(countsMgfpMeta, tissue == "colon")$sample
+
+#setup spCounts
+cObjSng <- spCounts(sng, erccSng)
+cObjMul <- spCounts(mul, erccMul)
+cObjMulSmall <- spCounts(mul[, 1:8], erccMul[, 1:8])
+```
+
+spUnsupervised
+```{r, fig.align="center", fig.width=10, fig.height=8}
+uObj <- spUnsupervised(cObjSng, max_iter = 7000, initial_dims = ncol(sng), seed = 87689)
+plotUnsupervisedClass(uObj, cObjSng)
+plotUnsupervisedMarkers(
+  uObj, cObjSng, 
+  c("Lgr5", "Muc2", "Ptprc", "Chga", "Alpi", "Lyz1", "Dclk1", "Slc40a1"), 
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+spSwarm
+```{r}
+genes <- c("Lgr5", "Muc2", "Ptprc", "Chga", "Alpi", "Lyz1", "Dclk1", "Slc40a1")
+sObj <- spSwarm(
+  cObjSng, cObjMulSmall, uObj, maxiter = 20, swarmsize = 500, 
+  nSyntheticMultiplets = 200, cores = 8, 
+  selectInd = which(rownames(getData(cObjSng, "counts")) %in% genes)
+)
+```
+

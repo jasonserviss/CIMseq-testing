@@ -1,0 +1,723 @@
+---
+title: "Synthetic data algorithm"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c(
+  "sp.scRNAseq",
+  "sp.scRNAseqData",
+  "seqTools",
+  "printr",
+  "ggthemes",
+  "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+```
+
+```{r}
+#' Reorder an x or y axis within facets
+#'
+#' Reorder a column before plotting with faceting, such that the values are ordered
+#' within each facet. This requires two functions: \code{reorder_within} applied to
+#' the column, then either \code{scale_x_reordered} or \code{scale_y_reordered} added
+#' to the plot.
+#' This is implemented as a bit of a hack: it appends ___ and then the facet
+#' at the end of each string.
+#'
+#' @param x Vector to reorder.
+#' @param by Vector of the same length, to use for reordering.
+#' @param within Vector of the same length that will later be used for faceting
+#' @param fun Function to perform within each subset to determine the resulting
+#' ordering. By default, mean.
+#' @param sep Separator to distinguish the two. You may want to set this manually
+#' if ___ can exist within one of your labels.
+#' @param ... In \code{reorder_within} arguments passed on to \code{\link{reorder}}.
+#' In the scale functions, extra arguments passed on to
+#' \code{\link[ggplot2]{scale_x_discrete}} or \code{\link[ggplot2]{scale_y_discrete}}.
+#'
+#' @source "Ordering categories within ggplot2 Facets" by Tyler Rinker:
+#' \url{https://trinkerrstuff.wordpress.com/2016/12/23/ordering-categories-within-ggplot2-facets/}
+#'
+#' @examples
+#'
+#' library(tidyr)
+#' library(ggplot2)
+#'
+#' iris_gathered <- gather(iris, metric, value, -Species)
+#'
+#' # reordering doesn't work within each facet (see Sepal.Width):
+#' ggplot(iris_gathered, aes(reorder(Species, value), value)) +
+#'   geom_boxplot() +
+#'   facet_wrap(~ metric)
+#'
+#' # reorder_within and scale_x_reordered work.
+#' # (Note that you need to set scales = "free_x" in the facet)
+#' ggplot(iris_gathered, aes(reorder_within(Species, value, metric), value)) +
+#'   geom_boxplot() +
+#'   scale_x_reordered() +
+#'   facet_wrap(~ metric, scales = "free_x")
+#'
+#' @export
+reorder_within <- function(x, by, within, fun = mean, sep = "___", ...) {
+  new_x <- paste(x, within, sep = sep)
+  stats::reorder(new_x, by, FUN = fun)
+}
+
+
+#' @rdname reorder_within
+#' @export
+scale_x_reordered <- function(..., sep = "___") {
+  reg <- paste0(sep, ".+$")
+  ggplot2::scale_x_discrete(labels = function(x) gsub(reg, "", x), ...)
+}
+
+
+#' @rdname reorder_within
+#' @export
+scale_y_reordered <- function(..., sep = "___") {
+  reg <- paste0(sep, ".+$")
+  ggplot2::scale_y_discrete(labels = function(x) gsub(reg, "", x), ...)
+}
+```
+
+```{r}
+norm <- function(counts) {
+  if(all(class(counts) == c("tbl_df", "tbl", "data.frame"))) {
+    mat <- counts %>% 
+      as.data.frame() %>%
+      column_to_rownames("gene") %>%
+      as.matrix()
+    
+    t(t(mat) / colSums(mat) * 10^6 + 1) %>%
+      matrix_to_tibble("gene")
+  } else if(class(counts) == "matrix") {
+    t(t(counts) / colSums(counts) * 10^6 + 1)
+  }
+}
+```
+
+#### Algorithm
+
+```{r}
+#generates one multiplet per combo
+#combos: a matrix the combinations of cell types to be included in the 
+# multiplets. Typically generated with combn.
+#adjustment: a numeric vector with length = the number of unique cell types
+#indicating the fraction of contribution for each cell type. Names should 
+#indicate the corresponding cell type.
+#seed: seed for random number initiation. When generating many multiplets by 
+# running the function multiple times in a loop, the seed should be set 
+# dynamically in the function calling the makeSyntheticData function to avoid 
+# all multiplets being identical.
+makeSyntheticData <- function(
+  counts,
+  classes,
+  combos,
+  adjustment,
+  seed = 87909023
+){
+  set.seed(seed)
+  output <- data.frame(gene = rownames(counts), stringsAsFactors = FALSE)
+  
+  combos %>%
+  as.data.frame(stringsAsFactors = FALSE) %>%
+  map(., function(x) {
+    exCounts <- counts[, map_int(x, ~sample(which(classes == .x), 1))]
+    colnames(exCounts) <- x
+    
+    adj <- adjustment[match(x, names(adjustment))]
+    adjusted <- round(t(t(exCounts) * adj))
+    
+    rs <- rowSums(adjusted)
+    expanded <- rep(names(rs), rs)
+    
+    sample(
+      x = expanded, replace = FALSE,
+      size = length(expanded) / length(x)
+    ) %>%
+      table() %>%
+      as.data.frame(., row.names = names(.), stringsAsFactors = FALSE) %>%
+      setNames(c("gene", paste(sort(x), collapse = "-")))
+  }) %>%
+    reduce(full_join, by = "gene") %>%
+    full_join(output, by = "gene") %>%
+    replace(is.na(.), 0) %>%
+    as_tibble()
+}
+```
+
+The synthetic multiplets are based on the mixing of real synthetic singlets. The 
+algorithm for generating the synthetic multiplets works as follows: The sum of 
+raw counts is calculated for each gene in all singlets from the cell types 
+contributing to the multiplet. "Noise" can then optionally be added and this is
+recommended due to the fact that it prevents the generated multiplets from 
+following the mean of the singlets too closley. A vector is generated where each
+gene name is represented one time for each of the total counts (e.g. if gene 
+"A" has a sum of counts from all singlets from the cell types 
+contributing to the multiplet of 10, "A" will be repreated 10 times in the 
+vector). This vector is then sampled without replacment. It is sampled x times, 
+where x is equal to the sum of all the counts in all singlets from the cell 
+types contributing to the multiplet divided by the total number of singlets from
+the cell types contributing to the multiplet. Gene names are then counted which 
+provides the raw counts for the newly synthesized multiplet.
+
+Here we utilize the sorted cell line dataset to generate multiplets from the 
+singlets. The synthesized multiplets are then compared to the real multiplets
+to acertain the quality of the _in silico_ synthesis. 
+
+We begin by synthesizing one multiplet per cell line combination, i.e. a 
+A375-HCT116, A375-HOS, and HCT116-HOS multiplet. Initially we do this without 
+the addition of noise so that the results from "with noise" and "without noise"
+can be compared.
+
+```{r}
+s <- str_detect(colnames(countsSorted2), "^s")
+sng <- countsSorted2[, s]
+classes <- slice(countsSortedMeta2, match(colnames(sng), countsSortedMeta2$sample))$cellTypes
+combos <- apply(combn(unique(classes), 2), 2, sort)
+adjustment <- rep(1, length(unique(classes)))
+names(adjustment) <- unique(classes)
+
+synth <- sng %>%
+  makeSyntheticData(., classes, combos, adjustment) %>%
+  norm()
+
+mul <- countsSorted2[, !s] %>%
+  norm() %>%
+  matrix_to_tibble("gene") %>%
+  gather(sample, counts, -gene) %>%
+  left_join(countsSortedMeta2, by = "sample") %>%
+  select(gene, counts, cellTypes, sample)
+
+#randomly select some genes to facilitate plotting
+genes <- sample(rownames(sng), 500, replace = FALSE)
+concatDat <- gather(synth, cellTypes, synCounts, -gene) %>%
+  inner_join(., mul, by = c("gene", "cellTypes")) %>%
+  filter(gene %in% genes)
+```
+
+Examine drop-out rate in the real data compared to the synthetic data.
+```{r}
+print("real: ")
+countsSorted2[, !s] %>%
+  norm() %>%
+  matrix_to_tibble("gene") %>%
+  select(filter(countsSortedMeta2, cellTypes %in% colnames(synth))$sample) %>%
+  as.matrix() %>%
+  apply(., 2, function(x) length(which(x == 1))) %>%
+  `/` (nrow(countsSorted2)) %>%
+  mean()
+
+print("synthetic: ")
+synth %>%
+  select(-gene) %>%
+  as.matrix() %>%
+  apply(., 2, function(x) length(which(x == 1))) %>%
+  `/` (nrow(countsSorted2)) %>%
+  mean()
+```
+
+Plot the results. The plot below contains...
+
+```{r, fig.align="center", fig.width=8, fig.height=6}
+concatDat %>%
+  ggplot() +
+  geom_point(aes(reorder_within(gene, counts, cellTypes, fun = "mean"), counts), size = 0.1) +
+  geom_line(
+    data = . %>% select(gene, cellTypes, synCounts) %>% distinct(),
+    aes(reorder_within(gene, synCounts, cellTypes, fun = "mean"), synCounts, group = cellTypes),
+    colour = "red"
+  ) +
+  facet_wrap(~cellTypes) +
+  scale_x_reordered() +
+  theme_few() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  labs(x = "Gene", y = "cpm")
+
+concatDat %>%
+  ggplot() +
+  geom_point(aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1) +
+  geom_point(
+    data = . %>% select(gene, cellTypes, synCounts) %>% distinct(),
+    aes(reorder_within(gene, log2(synCounts), cellTypes, fun = "mean"), log2(synCounts)),
+    colour = "red", size = 0.3
+  ) +
+  facet_wrap(~cellTypes) +
+  scale_x_reordered() +
+  theme_few() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  labs(x = "Gene", y = "log2(cpm)")
+
+genes <- sample(rownames(sng), 50, replace = FALSE)
+concatDat <- gather(synth, cellTypes, synCounts, -gene) %>%
+  inner_join(., mul, by = c("gene", "cellTypes")) %>%
+  filter(gene %in% genes)
+
+concatDat %>%
+  ggplot() +
+  geom_violin(aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1) +
+  geom_point(aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1) +
+  geom_point(
+    data = . %>% select(gene, cellTypes, synCounts) %>% distinct(),
+    aes(reorder_within(gene, log2(synCounts), cellTypes, fun = "mean"), log2(synCounts)),
+    colour = "red", size = 0.3
+  ) +
+  facet_wrap(~cellTypes) +
+  scale_x_reordered() +
+  theme_few() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  labs(x = "Gene", y = "log2(cpm)")
+```
+
+```{r}
+n <- 10
+names <- paste(
+  apply(combos, 2, paste, collapse = "-"), 
+  rep(1:n, each = ncol(combos)), 
+  sep = "."
+)
+
+synth <- sng %>%
+  {map(1:n, function(x) makeSyntheticData(., classes, combos, adjustment, seed = x + 9789))} %>%
+  reduce(full_join, by = "gene") %>%
+  setNames(c("gene", names)) %>%
+  norm()
+
+genes <- sample(rownames(sng), 500, replace = FALSE)
+concatDat <- synth %>% 
+  filter(gene %in% genes) %>%
+  gather(typeRep, synCounts, -gene) %>%
+  separate(typeRep, c("cellTypes", "sample"), sep = "\\.") %>%
+  inner_join(., mul, by = c("gene", "cellTypes"))
+```
+
+Examine drop-out rate
+```{r}
+print("real: ")
+countsSorted2[, !s] %>%
+  norm() %>%
+  matrix_to_tibble("gene") %>%
+  select(filter(countsSortedMeta2, cellTypes %in% concatDat$cellTypes)$sample) %>%
+  as.matrix() %>%
+  apply(., 2, function(x) length(which(x == 1))) %>%
+  `/` (nrow(countsSorted2)) %>%
+  mean()
+
+print("synthetic: ")
+synth %>%
+  select(-gene) %>%
+  as.matrix() %>%
+  apply(., 2, function(x) length(which(x == 1))) %>%
+  `/` (nrow(countsSorted2)) %>%
+  mean()
+```
+
+```{r, fig.align="center", fig.width=8, fig.height=6}
+concatDat %>%
+  ggplot() +
+  geom_point(
+    data = . %>% select(gene, cellTypes, counts, sample.y) %>% distinct(),
+    aes(reorder_within(gene, counts, cellTypes, fun = "mean"), counts), size = 0.1
+  ) +
+  geom_line(
+    data = . %>% select(gene, cellTypes, synCounts, sample.x) %>% distinct(),
+    aes(reorder_within(gene, synCounts, cellTypes, fun = "mean"), synCounts, group = cellTypes, colour = sample.x)
+  ) +
+  facet_wrap(~cellTypes, scales = "free") +
+  theme_few() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  labs(x = "Gene", y = "cpm") +
+  guides(colour = FALSE)
+
+concatDat %>%
+  ggplot() +
+  geom_point(
+    data = . %>% select(gene, cellTypes, counts, sample.y) %>% distinct(),
+    aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1
+  ) +
+  geom_point(
+    data = . %>% select(gene, cellTypes, synCounts, sample.x) %>% distinct(),
+    aes(reorder_within(gene, log2(synCounts), cellTypes, fun = "mean"), log2(synCounts), colour = sample.x), 
+    size = 0.3
+  ) +
+  facet_wrap(~cellTypes, scales = "free") +
+  theme_few() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  labs(x = "Gene", y = "log2(cpm)") +
+  guides(colour = FALSE)
+
+genes <- sample(rownames(sng), 50, replace = FALSE)
+concatDat <- synth %>% 
+  filter(gene %in% genes) %>%
+  gather(typeRep, synCounts, -gene) %>%
+  separate(typeRep, c("cellTypes", "sample"), sep = "\\.") %>%
+  inner_join(., mul, by = c("gene", "cellTypes"))
+
+concatDat %>%
+  filter(cellTypes == "HCT116-HOS") %>%
+  ggplot() +
+  geom_violin(
+    data = . %>% select(gene, cellTypes, counts, sample.y) %>% distinct(),
+    aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1
+  ) +
+  geom_point(
+    data = . %>% select(gene, cellTypes, counts, sample.y) %>% distinct(),
+    aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1
+  ) +
+  geom_point(
+    data = . %>% select(gene, cellTypes, synCounts, sample.x) %>% distinct(),
+    aes(reorder_within(gene, log2(synCounts), cellTypes, fun = "mean"), log2(synCounts), colour = sample.x), 
+    size = 0.3
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, size = 3)) +
+  labs(x = "Gene", y = "log2(cpm)", caption = "HCT116-HOS") +
+  guides(colour = FALSE)
+
+concatDat %>%
+  filter(cellTypes == "A375-HCT116") %>%
+  ggplot() +
+  geom_violin(
+    data = . %>% select(gene, cellTypes, counts, sample.y) %>% distinct(),
+    aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1
+  ) +
+  geom_point(
+    data = . %>% select(gene, cellTypes, counts, sample.y) %>% distinct(),
+    aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1
+  ) +
+  geom_point(
+    data = . %>% select(gene, cellTypes, synCounts, sample.x) %>% distinct(),
+    aes(reorder_within(gene, log2(synCounts), cellTypes, fun = "mean"), log2(synCounts), colour = sample.x), 
+    size = 0.3
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, size = 3)) +
+  labs(x = "Gene", y = "log2(cpm)", caption = "A375-HCT116") +
+  guides(colour = FALSE)
+
+concatDat %>%
+  filter(cellTypes == "A375-HOS") %>%
+  ggplot() +
+  geom_violin(
+    data = . %>% select(gene, cellTypes, counts, sample.y) %>% distinct(),
+    aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1
+  ) +
+  geom_point(
+    data = . %>% select(gene, cellTypes, counts, sample.y) %>% distinct(),
+    aes(reorder_within(gene, log2(counts), cellTypes, fun = "mean"), log2(counts)), size = 0.1
+  ) +
+  geom_point(
+    data = . %>% select(gene, cellTypes, synCounts, sample.x) %>% distinct(),
+    aes(reorder_within(gene, log2(synCounts), cellTypes, fun = "mean"), log2(synCounts), colour = sample.x), 
+    size = 0.3
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, size = 3)) +
+  labs(x = "Gene", y = "log2(cpm)", caption = "A375-HOS") +
+  guides(colour = FALSE)
+```
+
+```{r, fig.align="center", fig.width=8, fig.height=6}
+#tsne
+set.seed(2343)
+countsSorted2[, colnames(countsSorted2) %in% filter(countsSortedMeta2, cellTypes %in% concatDat$cellTypes)$sample] %>%
+  norm() %>% 
+  matrix_to_tibble("gene") %>%
+  full_join(synth, by = "gene") %>%
+  as.data.frame() %>%
+  column_to_rownames("gene") %>%
+  as.matrix() %>%
+  `+` (1) %>%
+  log2(.) %>%
+  pearsonsCor(., select = nTopMax(., 2000)) %>%
+  Rtsne::Rtsne(., is_distance = TRUE, perplexity = 15) %>%
+  `[[` ('Y') %>% 
+  matrix_to_tibble() %>%
+  add_column(sample = c(colnames(synth[, -1]), colnames(countsSorted2)[colnames(countsSorted2) %in% filter(countsSortedMeta2, cellTypes %in% concatDat$cellTypes)$sample])) %>%
+  mutate(type = if_else(str_detect(sample, "^m"), "real", "synthetic")) %>%
+  ggplot() +
+  geom_point(aes(V1, V2, colour = type))
+```
+
+```{r, fig.align="center", fig.width=8, fig.height=6}
+adjustment <- rep(1, length(unique(classes)))
+names(adjustment) <- unique(classes)
+n <- 25
+names <- paste(
+  apply(combos, 2, paste, collapse = "-"), 
+  rep(1:n, each = ncol(combos)), 
+  sep = "."
+)
+
+synth <- sng %>%
+  {map(1:n, function(x) makeSyntheticData(., classes, combos, adjustment, seed = x + 9789))} %>%
+  reduce(full_join, by = "gene") %>%
+  setNames(c("gene", names)) %>%
+  norm() %>%
+  gather(cellTypes, synCounts, -gene) %>%
+  mutate(cellTypes = str_replace(cellTypes, "(.*)\\..*", "\\1")) %>%
+  group_by(gene, cellTypes) %>%
+  summarize(synCounts = mean(synCounts)) %>%
+  ungroup()
+
+adjustment[names(adjustment) == "HOS"] <- 0.75
+synth7 <- sng %>%
+  {map(1:n, function(x) makeSyntheticData(., classes, combos, adjustment, seed = x + 9789))} %>%
+  reduce(full_join, by = "gene") %>%
+  setNames(c("gene", names)) %>%
+  norm() %>%
+  gather(cellTypes, synth7, -gene) %>%
+  mutate(cellTypes = str_replace(cellTypes, "(.*)\\..*", "\\1")) %>%
+  group_by(gene, cellTypes) %>%
+  summarize(synth7 = mean(synth7)) %>%
+  ungroup()
+
+adjustment[names(adjustment) == "HOS"] <- 0.5
+synth5 <-sng %>%
+  {map(1:n, function(x) makeSyntheticData(., classes, combos, adjustment, seed = x + 9789))} %>%
+  reduce(full_join, by = "gene") %>%
+  setNames(c("gene", names)) %>%
+  norm() %>%
+  gather(cellTypes, synth5, -gene) %>%
+  mutate(cellTypes = str_replace(cellTypes, "(.*)\\..*", "\\1")) %>%
+  group_by(gene, cellTypes) %>%
+  summarize(synth5 = mean(synth5)) %>%
+  ungroup()
+
+adjustment[names(adjustment) == "HOS"] <- 0.25
+synth25 <- sng %>%
+  {map(1:n, function(x) makeSyntheticData(., classes, combos, adjustment, seed = x + 9789))} %>%
+  reduce(full_join, by = "gene") %>%
+  setNames(c("gene", names)) %>%
+  norm() %>%
+  gather(cellTypes, synth25, -gene) %>%
+  mutate(cellTypes = str_replace(cellTypes, "(.*)\\..*", "\\1")) %>%
+  group_by(gene, cellTypes) %>%
+  summarize(synth25 = mean(synth25)) %>%
+  ungroup()
+
+adjustment[names(adjustment) == "HOS"] <- 0.01
+synth01 <- sng %>%
+  {map(1:n, function(x) makeSyntheticData(., classes, combos, adjustment, seed = x + 9789))} %>%
+  reduce(full_join, by = "gene") %>%
+  setNames(c("gene", names)) %>%
+  norm() %>%
+  gather(cellTypes, synth01, -gene) %>%
+  mutate(cellTypes = str_replace(cellTypes, "(.*)\\..*", "\\1")) %>%
+  group_by(gene, cellTypes) %>%
+  summarize(synth01 = mean(synth01)) %>%
+  ungroup()
+
+genes <- sample(rownames(sng), 10000, replace = FALSE)
+
+synth %>%
+  filter(gene %in% genes) %>%
+  inner_join(synth7, by = c("gene", "cellTypes")) %>%
+  inner_join(synth5, by = c("gene", "cellTypes")) %>%
+  inner_join(synth25, by = c("gene", "cellTypes")) %>%
+  inner_join(synth01, by = c("gene", "cellTypes")) %>%
+  mutate(
+    synth7 = synCounts - synth7,
+    synth5 = synCounts - synth5,
+    synth25 = synCounts- synth25,
+    synth01 = synCounts - synth01,
+    synCounts = synCounts - synCounts
+  ) %>%
+  gather(type, diff, -gene, -cellTypes) %>%
+  mutate(type = case_when(
+    type == "synCounts" ~ "100%",
+    type == "synth7" ~ "75%",
+    type == "synth5" ~ "50%",
+    type == "synth25" ~ "25%",
+    type == "synth01" ~ "1%"
+  )) %>%
+  mutate(type = parse_factor(
+      type, 
+      levels = c("real", "100%", "75%", "50%", "25%", "1%")
+  )) %>%
+  ggplot() +
+  geom_boxplot(aes(cellTypes, diff, colour = type)) +
+  theme_few() +
+  labs(y = "CPM difference") +
+  guides(colour = guide_legend(title = "adjustment"))
+
+mul %>%
+  filter(cellTypes %in% synth$cellTypes & gene %in% genes) %>%
+  group_by(gene, cellTypes) %>%
+  summarize(counts = mean(counts)) %>%
+  ungroup() %>%
+  inner_join(synth, by = c("gene", "cellTypes")) %>%
+  inner_join(synth7, by = c("gene", "cellTypes")) %>%
+  inner_join(synth5, by = c("gene", "cellTypes")) %>%
+  inner_join(synth25, by = c("gene", "cellTypes")) %>%
+  inner_join(synth01, by = c("gene", "cellTypes")) %>%
+  gather(synType, synCounts, -gene, -cellTypes, -counts) %>%
+  mutate(synType = case_when(
+    synType == "counts" ~ "real",
+    synType == "synCounts" ~ "100%",
+    synType == "synth7" ~ "75%",
+    synType == "synth5" ~ "50%",
+    synType == "synth25" ~ "25%",
+    synType == "synth01" ~ "1%"
+  )) %>%
+  mutate(synType = parse_factor(
+      synType, 
+      levels = c("real", "100%", "75%", "50%", "25%", "1%")
+  )) %>%
+  ggplot() + 
+  geom_smooth(
+    data = concatDat, 
+    aes(log2(counts), log2(synCounts), colour = synType), 
+    method = 'gam', se = FALSE, size = 0.5
+  ) + 
+  facet_wrap(~cellTypes) +
+  theme_few() +
+  theme(legend.position = "top") +
+  labs(x = "Sorted multiplet log2(cpm)", y = "Synthetic multiplet log2(cpm)") +
+  guides(colour = guide_legend(
+    title = "HOS contribution to multiplet", title.position = "top", 
+    title.hjust = 0.5
+  ))
+```
+
+Try with mouse data
+```{r}
+s <- str_detect(colnames(countsMgfp), "^s")
+commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
+
+sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
+mul <- countsMgfp[commonGenes, !s]
+
+erccSng <- cbind(
+  countsMgfpERCC[, s], 
+  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
+)
+erccMul <- cbind(countsMgfpERCC[, !s])
+
+boolMulC <- colnames(mul) %in% filter(countsMgfpMeta, tissue == "colon")$sample
+boolSngC <- colnames(sng) %in% filter(countsMgfpMeta, tissue == "colon")$sample
+
+#setup spCounts
+cObjSngSi <- spCounts(sng[, !boolSngC], erccSng[, !boolSngC])
+cObjMulSi <- spCounts(mul[, !boolMulC], erccMul[, !boolMulC])
+
+#spUnsupervised
+uObjSi <- spUnsupervised(cObjSngSi, seed = 2334, max_iter = 1000, max = 1000)
+plotUnsupervisedClass(uObjSi, cObjSngSi)
+classes <- getData(uObjSi, "classification")
+
+#start with making Paneth Stem multiplets
+bool <- classes %in% c("P1", "R1")
+combos <- apply(combn(unique(classes[bool]), 2), 2, sort)
+adjustment <- rep(1, length(unique(classes[bool])))
+names(adjustment) <- unique(classes[bool])
+
+n <- 10
+names <- paste(
+  apply(combos, 2, paste, collapse = "-"), 
+  rep(1:n, each = ncol(combos)), 
+  sep = "."
+)
+synth <- getData(cObjSngSi, "counts")[, bool] %>%
+  {map(1:n, function(x) makeSyntheticData(., classes[bool], combos, adjustment, seed = x + 9789))} %>%
+  reduce(full_join, by = "gene") %>%
+  setNames(c("gene", names)) %>%
+  norm()
+
+#tsne
+set.seed(2343)
+tresults <- getData(cObjMulSi, "counts") %>%
+  norm() %>%
+  matrix_to_tibble("gene") %>%
+  full_join(synth, by = "gene") %>%
+  as.data.frame() %>%
+  column_to_rownames("gene") %>%
+  as.matrix() %>%
+  `+` (1) %>%
+  log2(.) %>%
+  pearsonsCor(., select = nTopMax(., 1000)) %>%
+  Rtsne::Rtsne(., is_distance = TRUE, max_iter = 3000) %>%
+  `[[` ('Y') %>% 
+  matrix_to_tibble() %>%
+  select(-rowname) %>%
+  add_column(sample = c(colnames(getData(cObjMulSi, "counts")), colnames(synth[, -1])))
+
+tresults %>%
+  mutate(type = if_else(str_detect(sample, "^m"), "real", "synthetic")) %>%
+  ggplot() +
+  geom_point(aes(V1, V2, colour = type))
+
+gene <- "Lgr5"
+getData(cObjMulSi, "counts.log")[gene, ] %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  setNames(c("sample", "gene")) %>%
+  as_tibble() %>%
+  full_join(tresults, by = "sample") %>%
+  ggplot() +
+  geom_point(aes(V1, V2, colour = gene)) +
+  viridis::scale_color_viridis() +
+  guides(colour = guide_colorbar(title = gene))
+
+gene <- "Lyz1"
+getData(cObjMulSi, "counts.log")[gene, ] %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  setNames(c("sample", "gene")) %>%
+  as_tibble() %>%
+  full_join(tresults, by = "sample") %>%
+  ggplot() +
+  geom_point(aes(V1, V2, colour = gene)) +
+  viridis::scale_color_viridis() +
+  guides(colour = guide_colorbar(title = gene))
+
+gene <- "Alpi"
+getData(cObjMulSi, "counts.log")[gene, ] %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  setNames(c("sample", "gene")) %>%
+  as_tibble() %>%
+  full_join(tresults, by = "sample") %>%
+  ggplot() +
+  geom_point(aes(V1, V2, colour = gene)) +
+  viridis::scale_color_viridis() +
+  guides(colour = guide_colorbar(title = gene))
+
+gene <- "Muc2"
+getData(cObjMulSi, "counts.log")[gene, ] %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  setNames(c("sample", "gene")) %>%
+  as_tibble() %>%
+  full_join(tresults, by = "sample") %>%
+  ggplot() +
+  geom_point(aes(V1, V2, colour = gene)) +
+  viridis::scale_color_viridis() +
+  guides(colour = guide_colorbar(title = gene))
+```
+
+

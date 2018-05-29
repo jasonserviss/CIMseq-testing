@@ -1,0 +1,254 @@
+---
+title: "Examining the accuracy of the fractions reported by spSwarm"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c(
+    "sp.scRNAseq",
+    "sp.scRNAseqData",
+    "sp.scRNAseqTesting",
+    "printr",
+    "ggthemes",
+    "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+```
+
+```{r, message = FALSE}
+#setup information
+#order everything by column
+multiplets <- c(
+  c(rep("A375-HCT116", 3), rep("HCT116-HOS", 2), rep("A375-HOS", 3)),
+  c(rep("A375-HCT116", 3), rep("HCT116-HOS", 2), rep("A375-HOS", 3)),
+  c(rep("A375-HCT116", 2), rep("HCT116-HOS", 3), rep("A375-HOS", 3)),
+  c(rep("A375-HCT116", 2), rep("HCT116-HOS", 3), rep("A375-HOS", 3)),
+  c(rep("A375-HCT116-HOS", 3), rep("HCT116-HCT116-HOS", 2), rep("A375-HOS-HOS", 3)),
+  c(rep("A375-HCT116-HOS", 3), rep("HCT116-HCT116-HOS", 2), rep("A375-HOS-HOS", 3)),
+  c(rep("A375-HCT116-HOS", 2), rep("HCT116-HCT116-HOS", 3), rep("A375-HOS-HOS", 3)),
+  c(rep("A375-HCT116-HOS", 2), rep("HCT116-HCT116-HOS", 3), rep("A375-HOS-HOS", 3)),
+  c(rep("A375-HOS-HOS-HOS", 3), rep("A375-A375-HCT116-HCT116", 2), rep("A375-A375-HCT116-HOS", 3)),
+  c(rep("A375-HOS-HOS-HOS", 3), rep("A375-A375-HCT116-HCT116", 2), rep("A375-A375-HCT116-HOS", 3)),
+  c(rep("A375-HOS-HOS-HOS", 2), rep("A375-A375-HCT116-HCT116", 3), rep("A375-A375-HCT116-HOS", 3)),
+  c(rep("A375-HOS-HOS-HOS", 2), rep("A375-A375-HCT116-HCT116", 3), rep("A375-A375-HCT116-HOS", 3))
+)
+
+cols <- c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
+rows <- LETTERS[1:8]
+names <- paste0("m.NJB00204.", rep(rows, 12), sort(rep(cols, 8)))
+
+#adds an ID indicating multiplets that should be exactly the same
+addID <- function(data) {
+  data %>%
+    mutate(id = case_when(
+    (row %in% c("A", "B") & column %in% c("01", "02", "03", "04")) | (row == "C" & column %in% c("01", "02")) ~ 1,
+    (row %in% c("D", "E") & column %in% c("01", "02", "03", "04")) | (row == "C" & column %in% c("03", "04")) ~ 2,
+    row %in% c("F", "G", "H") & column %in% c("01", "02", "03", "04") ~ 3,
+    (row %in% c("A", "B") & column %in% c("05", "06", "07", "08")) | (row == "C" & column %in% c("05", "06")) ~ 4,
+    (row %in% c("D", "E") & column %in% c("05", "06", "07", "08")) | (row == "C" & column %in% c("07", "08")) ~ 5,
+    row %in% c("F", "G", "H") & column %in% c("05", "06", "07", "08") ~ 6,
+    (row %in% c("A", "B") & column %in% c("09", "10", "11", "12")) | (row == "C" & column %in% c("09", "10")) ~ 7,
+    (row %in% c("D", "E") & column %in% c("09", "10", "11", "12")) | (row == "C" & column %in% c("11", "12")) ~ 8,
+    row %in% c("F", "G", "H") & column %in% c("09", "10", "11", "12") ~ 9
+  ))
+}
+
+#adds the row and column data
+addRowAndColumn <- function(data) {
+  data %>%
+    mutate(cellsInWell = case_when(
+      str_extract(multiplet, "..$") %in% c("01", "02", "03", "04") ~ 2L,
+      str_extract(multiplet, "..$") %in% c("05", "06", "07", "08") ~ 3L,
+      str_extract(multiplet, "..$") %in% c("09", "10", "11", "12") ~ 4L
+  ))
+}
+
+#Function to add the expected fractions. Fraction order is HOS, HCT116, A375
+addExpectedFrac <- function(id) {
+  case_when(
+    id == 1 ~ c(0, 0.5, 0.5),
+    id == 2 ~ c(0.5, 0.5, 0),
+    id == 3 ~ c(0.5, 0, 0.5),
+    id == 4 ~ c(1/3, 1/3, 1/3),
+    id == 5 ~ c(1/3, 2/3, 0),
+    id == 6 ~ c(2/3, 0, 1/3),
+    id == 7 ~ c(3/4, 0, 1/4),
+    id == 8 ~ c(0, 0.5, 0.5),
+    id == 9 ~ c(1/4, 1/4, 0.5)
+  )
+}
+
+#make plate data
+plateData <- tibble(
+  row = rep(rows, 12),
+  column = sort(rep(cols, 8)),
+  multipletName = names,
+  multipletComposition = multiplets
+) %>%
+  mutate(connections = str_split(multipletComposition, "-")) %>%
+  mutate(connections = {purrr::map(.$connections, ~combn(.x, 2))}) %>%
+  rename(multiplet = multipletName) %>%
+  addRowAndColumn(.) %>%
+  addID(.) %>%
+  mutate(expectedFrac = map(id, ~addExpectedFrac(.x)))
+
+#filter plateData to only include those multiplets that passed initial QC
+plateData <- plateData %>%
+  filter(multiplet %in% rownames(getData(sObjPermutations, "spSwarm")))
+
+
+known <- plateData %>%
+  rename(multipletName = multiplet) %>%
+  setupPlate(.)
+
+#check the results, i.e. if the multiplet was correctly deconvoluted
+res <- checkResults(sObjPermutations, known, 0) %>%
+  select(multiplet, ACC) %>% 
+  mutate(ACCbool = if_else(ACC == 1, TRUE, FALSE)) %>%
+  select(-ACC)
+
+#get permuted data
+permData <- tidyPermutationData(sObjPermutations, permutations) 
+```
+
+The general goal here was to evaluate the "correctness" of the fractions that
+are reported from the swarm deconvolution in comparison to different scenerios.
+The sorted multiplets data, with an expected outcome, were used for the 
+analysis.
+
+We start by looking at the correspondance between the expected and 
+observed fractions for each multiplet. For example, if we know that the 
+multiplet is a doublet with HCT116 and HOS, we expect the fractions to be 0.5, 
+0.5, 0, for HCT116, HOS, and A375, respectivley. Observed is, instead, the 
+fractions reported by the swarm deconvolution.
+
+```{r, fig.align='center', fig.height=8, fig.width=10, warning = FALSE}
+#get the spSwarm fractions
+dat <- sObjPermutations %>%
+  getData(., "spSwarm") %>%
+  rownames_to_column(var = "multiplet") %>%
+  as_tibble() %>%
+  #merge the plateData and move fractions into a list column
+  inner_join(plateData, by = "multiplet") %>%
+  full_join(res, by = "multiplet") %>%
+  mutate(observedFrac = pmap(list(HOS, HCT116, A375), function(x, y, z) {
+    c(x, y, z)
+  })) %>%
+  select(multiplet, multipletComposition, ACCbool, cellsInWell, expectedFrac, observedFrac) %>%
+  unnest() %>%
+  #calculate mean difference
+  mutate(difference = observedFrac - expectedFrac) %>%
+  arrange(cellsInWell, multipletComposition, difference) %>%
+  mutate(cellsInWell = parse_factor(cellsInWell, levels = sort(unique(cellsInWell)))) %>%
+  mutate(multiplet = parse_factor(multiplet, levels = unique(multiplet))) %>%
+  mutate(multipletComposition = parse_factor(multipletComposition, levels = unique(multipletComposition)))
+
+#plot
+dat %>%
+  ggplot() +
+  geom_hline(yintercept = 0, lty = 2, colour = "lightgrey") +
+  geom_hline(yintercept = .5, lty = 2, colour = "lightgrey") +
+  geom_hline(yintercept = -.5, lty = 2, colour = "lightgrey") +
+  geom_point(aes(
+    x = multiplet, 
+    y = difference, 
+    fill = cellsInWell,
+    colour = ACCbool
+  ), size = 3, alpha = 0.75, shape = 21, lwd = 10) +
+  facet_grid(. ~ multipletComposition, space = "free", scales = "free") +
+  scale_fill_ptol() +
+  scale_colour_manual(values = c("brown1", "black")) +
+  scale_y_continuous(breaks = c(-0.5, 0, 0.5)) +
+  theme_few() +
+  labs(
+    x = "Multiplet", 
+    y = "Difference (observed fraction - expected fraction)"
+  ) +
+  theme(
+    legend.position = "top", 
+    plot.caption = element_text(hjust = 0),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text.x = element_text(angle = 90)
+    ) +
+  guides(
+    colour = guide_legend(title = "Correctly deconvoluted"),
+    fill = guide_legend(title = "# of cells in well")
+  )
+```
+
+In the plot above we highlight multiplets which we know were deconvoluted 
+incorrectly (via the oultine colour) since we expect these to have a larger
+difference in fractions when compared to the expected fractions. 
+Correct/incorrect deconvolution is judged by acccuracy = 1, or not. The plot 
+confirms this in the majority of the cases. In A375-HOS-HOS multiplets we see
+several cases where this is not the case. In one of these cases the observed 
+fractions indicates that the majority of the multiplet is comprised of HOS. In 
+the other case HCT116 has a non-zero fraction although it is quite small 
+(0.00254).  
+
+We can also look at the differences between the observed fractions and the 
+fractions from permuted data.
+
+```{r, fig.align='center', fig.height=8, fig.width=10}
+permData %>%
+  #add plate data
+  full_join(select(plateData, multiplet, cellsInWell, multipletComposition), by = "multiplet") %>%
+  #add accuracy measurment per multiplet
+  full_join(res, by = "multiplet") %>%
+  #add the cost p-value
+  full_join(calculateCostP(permData), by = "multiplet") %>%
+  mutate(pBool = if_else(pValue < 0.05, TRUE, FALSE)) %>%
+  #expand the observed fractions to have the same dimensions as the permuted fractions
+  #makes the difference calculation easier
+  mutate(fracsExp = map(fracs, function(x) {
+    as_tibble(x[rep(seq_len(nrow(x)), 10000), ])
+  })) %>%
+  #calculate difference between observed and permuted fractions
+  mutate(differences = map2(fracsExp, permFracs, function(x, y) {
+    y - x
+  })) %>%
+  #reformat to prepare for plotting
+  select(multiplet, multipletComposition, ACCbool, cellsInWell, differences, pBool) %>%
+  unnest() %>%
+  gather(placeHolder, differences, -(multiplet:pBool)) %>%
+  select(-placeHolder) %>%
+  arrange(cellsInWell, multipletComposition, differences) %>%
+  mutate(cellsInWell = parse_factor(cellsInWell, levels = sort(unique(cellsInWell)))) %>%
+  mutate(multiplet = parse_factor(multiplet, levels = unique(multiplet))) %>%
+  mutate(multipletComposition = parse_factor(multipletComposition, levels = unique(multipletComposition))) %>%
+  #plot
+  ggplot() +
+  geom_hline(yintercept = 0, lty = 2, colour = "lightgrey") +
+  geom_violin(aes(x = multiplet, y = differences, fill = cellsInWell, colour = ACCbool)) +
+  facet_grid(. ~ multipletComposition, space = "free", scales = "free") +
+  theme_few() +
+  scale_fill_ptol() +
+  scale_colour_manual(values = c("brown1", "black")) +
+  scale_y_continuous(breaks = c(-1, 0, 1), labels = c("-1", "0", "1")) +
+  labs(x = "Multiplet", y = "Difference (permuted fractions - observed fractions)") +
+  guides(
+    fill = guide_legend(title = "# of cells in well"),
+    colour = guide_legend(title = "Correctly deconvoluted")
+  ) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.position = "top",
+    strip.text.x = element_text(angle = 90)
+  )
+```
+
+
+```{r}
+sessionInfo()
+```
+

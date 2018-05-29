@@ -24,3 +24,5 @@ Collate:
     'syntheticDataTest.R'
     'complexity171116.R'
     'permutationFunctions.R'
+    'testingNewConditions.R'
+    'syntheticMultipletsFromCounts.R'

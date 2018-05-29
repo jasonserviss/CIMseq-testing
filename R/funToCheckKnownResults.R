@@ -178,8 +178,8 @@ printResults <- function(
   full_join(data.detected, by = "multiplet") %>%
   full_join(data.expected, by = "multiplet") %>%
   rename(data.detected = connections.x, data.expected = connections.y) %>%
-  select(multiplet:cellsInWell, data.expected, data.detected, tp:ACC) %>%
-  arrange(multiplet)
+  select(costFunction:cellsInWell, data.expected, data.detected, tp:ACC) %>%
+  arrange(costFunction, multiplet)
   
   #add fractions
   if(addFractions) {
@@ -202,12 +202,10 @@ printResults <- function(
   names <- paste(colnames(fracs), collapse = ", ")
   formated <- paste("frac (", names, ")", sep = "")
   
-  getData(spSwarm, "spSwarm") %>%
+  fracs %>%
   round(digits = 2) %>%
-  as.data.frame() %>%
-  rownames_to_column() %>%
+  rownames_to_column("multiplet") %>%
   as_tibble() %>%
-  rename(multiplet = rowname) %>%
   full_join(expanded, by = "multiplet") %>%
   unite(fractions, 2:(ncol(fracs) + 1), sep = ", ") %>%
   setNames(c(colnames(.)[1], formated, colnames(.)[3:ncol(.)])) %>%
@@ -306,6 +304,9 @@ setupPlate <- function(
   
   #make spSwarm slot for spSwarm object
   spSwarm <- plateData %>%
+  filter(cellNumber == "Multiplet") %>%
+  mutate(connections = str_split(cellTypes, "-")) %>%
+  mutate(connections = {map(.$connections, combn, 2)}) %>%
   {map_dfr(.$connections, function(x) {
     cellTypes <- .getCellTypes(plateData)
     vec <- vector(mode = "numeric", length = length(cellTypes))
@@ -313,22 +314,22 @@ setupPlate <- function(
     vec[names(vec) %in% unique(as.character(x))] <- 1 / length(unique(as.character(x)))
     as.data.frame(t(as.data.frame(vec)))
   })} %>%
-  add_column(rowname = pull(plateData, multipletName)) %>%
+  add_column(rowname = filter(plateData, cellNumber == "Multiplet")$sample) %>%
   column_to_rownames()
   
   #create spSwarm object
   new("spSwarm",
-        spSwarm = spSwarm,
-        costs = vector(mode = "numeric"),
-        convergence = vector(mode = "character"),
-        stats = list(),
-        arguments = list()
+    spSwarm = spSwarm,
+    costs = vector(mode = "numeric"),
+    convergence = vector(mode = "character"),
+    stats = list(),
+    arguments = list()
   )
 }
 
 .getCellTypes <- function(plateData) {
   plateData %>%
-  pull(multipletComposition) %>%
+  pull(cellTypes) %>%
   str_split("-") %>%
   unlist() %>%
   unique() %>%
