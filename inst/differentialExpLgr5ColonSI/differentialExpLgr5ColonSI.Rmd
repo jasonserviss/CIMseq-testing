@@ -40,7 +40,7 @@ cObjSng <- spCounts(countsMgfp[, s & m], cbind(countsMgfpERCC[, s & m]))
 cObjMul <- spCounts(countsMgfp[, !s & m], cbind(countsMgfpERCC[, !s & m]))
 
 #spUnsupervised
-uObj <- spUnsupervised(cObjSng, max_iter = 7000, initial_dims = sum(s), max = 500, seed = 73223)
+uObj <- spUnsupervised(cObjSng, max_iter = 7000, initial_dims = sum(s), max = 250, perplexity = 7, seed = 73223)
 #save(uObj, file = "~/Github/sp.scRNAseqTesting/inst/testingPoissonAlgo/uObj.rda")
 #load("~/Github/sp.scRNAseqTesting/inst/testingPoissonAlgo/uObj.rda")
 ```
@@ -261,7 +261,7 @@ ungroup()
 
 ks.res2 <- KStest(counts[, match(top50$sample, colnames(counts))], top50$class, cores = 8)
 p.ks.res2 <- ks.res2 %>%
-filter(p.value < 0.05) %>%
+filter(p.value < 0.001) %>%
 separate(combination, c("Celltype1", "Celltype2"), sep = "-")
 ```
 
