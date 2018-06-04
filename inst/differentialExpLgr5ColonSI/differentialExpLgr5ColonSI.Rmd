@@ -20,7 +20,9 @@ rm(packages)
 ### Goal
 
 Identify DE genes between colon and SI stem cells via single cell RNA-seq data from mouse.
-DE genes should be reported with mean expression and
+This was perfored using 2 different strategies: a) pairwise comparison of all cell types
+as defined by unsupervised classification and b) comparison of the top 50 Lgr5+ colon vs
+small intestine cells from the stem cell population (as defined above).
 
 ### Run unsupervised classification
 
@@ -41,7 +43,7 @@ cObjMul <- spCounts(countsMgfp[, !s & m], cbind(countsMgfpERCC[, !s & m]))
 
 #spUnsupervised
 uObj <- spUnsupervised(cObjSng, max_iter = 7000, initial_dims = sum(s), max = 250, perplexity = 7, seed = 73223)
-#save(uObj, file = "~/Github/sp.scRNAseqTesting/inst/testingPoissonAlgo/uObj.rda")
+save(uObj, file = "uObj.rda")
 #load("~/Github/sp.scRNAseqTesting/inst/testingPoissonAlgo/uObj.rda")
 ```
 
@@ -73,22 +75,24 @@ guides(colour = guide_legend(title = "Tissue"))
 
 Rename the classes
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-renameClass <- tibble(
+classifications <- tibble(
   sample = rownames(getData(uObj, "tsne")),
   oldClass = getData(uObj, "classification")
 ) %>%
 mutate(newClass = case_when(
   oldClass == "C1" ~ "C.Stem",
-  oldClass == "G1" ~ "C.Colonocyte",
+  oldClass == "F1" ~ "C.Colonocyte",
   oldClass == "B1" ~ "C.Goblet",
-  oldClass == "H1" ~ "Blood.Tufft.Endocrine",
+  oldClass == "G1" ~ "Blood.Tufft.Endocrine",
   oldClass == "D1" ~ "SI.Stem",
-  oldClass %in% c("A1", "E1") ~ "SI.Enterocyte",
-  oldClass == "F1" ~ "SI.Goblet",
+  oldClass == "A1" ~ "SI.Enterocyte",
+  oldClass == "E1" ~ "SI.Goblet",
   TRUE ~ "error"
 ))
 
-classification(uObj) <- renameClass$newClass[match(rownames(getData(uObj, "tsne")), renameClass$sample)]
+#write_tsv(classifications, path = "~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/classes.txt")
+#classifications <- read_tsv("/home/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/classes.txt")
+classification(uObj) <- classifications$newClass[match(rownames(getData(uObj, "tsne")), classifications$sample)]
 groupMeans(uObj) <- averageGroupExpression(cObjSng, getData(uObj, "classification"), FALSE)
 tsneMeans(uObj) <- tsneGroupMeans(getData(uObj, "tsne"), getData(uObj, "classification"))
 plotUnsupervisedClass(uObj, cObjSng)
@@ -179,7 +183,7 @@ mutate(log2.fc = map2_dbl(id, gene, function(i, g) {
   )
 })) %>%
 arrange(desc(log2.fc), p.prod, desc(statSum), desc(meanCpm))
-
+save(p.ks.res, file = './differentialExpressionStrategy1.rda', compress = "bzip2")
 p.ks.res %>%
 filter(log2.fc > 1 | log2.fc < -1) %>%
 count(id)
@@ -203,26 +207,34 @@ dotplot <- function(data) {
     data = . %>%
       group_by(Classification, Gene) %>%
       summarize(do = paste0(round(length(which(expression == 0)) / n(), digits = 2) * 100, "%")),
-    aes(Classification, 0, label = do), size = 2
+    aes(Classification, 0.05, label = do), size = 2
   ) +
+  geom_point(
+    data = . %>%
+      group_by(Gene, Classification) %>%
+      summarize(median = median(expression)) %>%
+      filter(median != 0),
+    aes(Classification, median), shape = 95, size = 3
+  ) +
+  ylim(0, 1) +
   theme_few() +
-  scale_colour_ptol() +
-  scale_fill_ptol() +
   theme(axis.text.x = element_text(angle = 90), legend.position = "top") +
   facet_wrap(~Gene) +
   labs(
     x = "Tissue",
     y = "log2(expression)[0, 1]"
-  )
+  ) +
+  guides(fill = FALSE, colour = FALSE)
 }
 ```
+
 SI stem genes
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 #plot SI candidates
 p.ks.res %>%
 filter(id == "SI.Stem") %>%
 arrange(desc(log2.fc), p.prod, desc(statSum), desc(meanCpm)) %>%
-slice(1:5) %>%
+slice(1:30) %>%
 pull(gene) %>%
 plotUnsupervisedMarkers(uObj, cObjSng, .) %>%
 plotData() %>%
@@ -235,13 +247,25 @@ Colon stem genes
 p.ks.res %>%
 filter(id == "C.Stem") %>%
 arrange(desc(log2.fc), p.prod, desc(statSum), desc(meanCpm)) %>%
-slice(1:5) %>%
+slice(1:30) %>%
 pull(gene) %>%
 plotUnsupervisedMarkers(uObj, cObjSng, .) %>%
 plotData() %>%
 gather(gene, expression, -(Sample:Colour)) %>%
 dotplot()
 ```
+
+Results were saved to the file "differentialExpressionStrategy1" with the following columns:
+
+Id: the cell type that the corresponding gene has been found to be differentially expressed in.
+Gene: the name of the gene
+sigBool: a logical indicating if all pairwise tests were significant (alpha = 0.001)
+statSum: the sum of test statistics from the KS tests
+p.values: the individual p values from each pairwise test that was performed for the corresponding gene
+Statistics: the individual test statistics from each pairwise test that was performed for the corresponding gene
+p.prod: the product of the p.values from all pairwise tests
+meanCpm: the mean counts per million expression values for the gene in the cell type listed in the “id” column
+Log2.fc: the log 2 fold change comparing the cell type listed in the “id” column vs all other cell types as a group.
 
 ### Differential expression strategy 2
 
@@ -303,7 +327,7 @@ mutate(
 ) %>%
 mutate(log2.fc = log2(meanCpmCelltype1 / meanCpmCelltype2)) %>%
 arrange(desc(log2.fc), p.value)
-
+save(p.ks.res2, file = './differentialExpressionStrategy2.rda', compress = "bzip2")
 p.ks.res2 %>%
 filter(log2.fc > 1 | log2.fc < -1) %>%
 unite(combination, Celltype1, Celltype2) %>%
@@ -317,7 +341,7 @@ SI stem genes
 p.ks.res2 %>%
 filter(log2.fc < 1) %>%
 arrange(log2.fc, p.value) %>%
-slice(1:5) %>%
+slice(1:30) %>%
 pull(gene) %>%
 plotUnsupervisedMarkers(uObj, cObjSng, .) %>%
 plotData() %>%
@@ -330,13 +354,25 @@ Colon stem genes
 p.ks.res2 %>%
 filter(log2.fc > 1) %>%
 arrange(desc(log2.fc), p.value) %>%
-slice(1:5) %>%
+slice(1:30) %>%
 pull(gene) %>%
 plotUnsupervisedMarkers(uObj, cObjSng, .) %>%
 plotData() %>%
 gather(gene, expression, -(Sample:Colour)) %>%
 dotplot()
 ```
+
+Results	were saved to the file "differentialExpressionStrategy2" with the following columns:
+
+Cell type 1: 1st cell type in comparison
+Cell type 2: 2nd cell type in comparison
+Gene: the name of the gene
+Stat: the test statistic from the KS test that was performed for the corresponding gene
+p.value: the p values from the KS test that was performed for the corresponding gene
+meanCpmCellType1: mean counts per million for cell type 1
+meanCpmCellType2: mean counts per million for cell type	2
+Log2.fc: the log 2 fold change comparing the two cell types.
+
 
 ````{r}
 sessionInfo()
