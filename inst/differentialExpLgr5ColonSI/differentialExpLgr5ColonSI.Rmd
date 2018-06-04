@@ -42,9 +42,9 @@ cObjSng <- spCounts(countsMgfp[, s & m], cbind(countsMgfpERCC[, s & m]))
 cObjMul <- spCounts(countsMgfp[, !s & m], cbind(countsMgfpERCC[, !s & m]))
 
 #spUnsupervised
-uObj <- spUnsupervised(cObjSng, max_iter = 7000, initial_dims = sum(s), max = 250, perplexity = 7, seed = 73223)
-save(uObj, file = "uObj.rda")
-#load("~/Github/sp.scRNAseqTesting/inst/testingPoissonAlgo/uObj.rda")
+#uObj <- spUnsupervised(cObjSng, max_iter = 7000, initial_dims = sum(s), max = 250, perplexity = 7, seed = 73223)
+#save(uObj, file = "uObj.rda")
+load("~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/uObj.rda")
 ```
 
 Plot unsupervised classification results.
@@ -90,8 +90,6 @@ mutate(newClass = case_when(
   TRUE ~ "error"
 ))
 
-#write_tsv(classifications, path = "~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/classes.txt")
-#classifications <- read_tsv("/home/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/classes.txt")
 classification(uObj) <- classifications$newClass[match(rownames(getData(uObj, "tsne")), classifications$sample)]
 groupMeans(uObj) <- averageGroupExpression(cObjSng, getData(uObj, "classification"), FALSE)
 tsneMeans(uObj) <- tsneGroupMeans(getData(uObj, "tsne"), getData(uObj, "classification"))
@@ -129,15 +127,33 @@ labs(
 
 Pairwise KStest using all classes.
 
-```{r}
+```{r, eval = FALSE}
 ks.res <- KStest(getData(cObjSng, "counts.cpm"), getData(uObj, "classification"), cores = 8)
 p.ks.res <- processKStest(ks.res, getData(uObj, "classification"), 0.05) %>%
 filter(sigBool) %>%
 group_by(gene) %>%
 filter(n() == 1) %>%
 ungroup() %>%
-mutate(p.prod = map_dbl(p.values, prod))
+mutate(p.prod = map_dbl(p.values, prod)) %>%
+mutate(meanCpm = map2_dbl(id, gene, function(i, g) {
+  mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") == i])
+})) %>%
+mutate(log2.fc = map2_dbl(id, gene, function(i, g) {
+  log2(
+    mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") == i]) /
+    mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") != i])
+  )
+})) %>%
+arrange(desc(log2.fc), p.prod, desc(statSum), desc(meanCpm))
+
+save(p.ks.res, file = './differentialExpressionStrategy1.rda', compress = "bzip2")
+openxlsx::write.xlsx(p.ks.res, file = "./differentialExpressionStrategy1.xlsx")
 ```
+
+```{r, echo = FALSE}
+load('~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy1.rda')
+```
+
 
 Number of significant genes detected at alpha 0.05?
 
@@ -172,18 +188,6 @@ count(id)
 Number of significant genes detected at alpha 0.05 and fold change > 2?
 
 ```{r}
-p.ks.res <- p.ks.res %>%
-mutate(meanCpm = map2_dbl(id, gene, function(i, g) {
-  mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") == i])
-})) %>%
-mutate(log2.fc = map2_dbl(id, gene, function(i, g) {
-  log2(
-    mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") == i]) /
-    mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") != i])
-  )
-})) %>%
-arrange(desc(log2.fc), p.prod, desc(statSum), desc(meanCpm))
-save(p.ks.res, file = './differentialExpressionStrategy1.rda', compress = "bzip2")
 p.ks.res %>%
 filter(log2.fc > 1 | log2.fc < -1) %>%
 count(id)
@@ -197,7 +201,6 @@ dotplot <- function(data) {
   data %>%
   rename(Gene = gene) %>%
   ggplot() +
-  #geom_boxplot(aes(Classification, expression, colour = Gene, group = Classification), outlier.shape = NA) +
   geom_dotplot(
     data = . %>% filter(expression != 0),
     aes(Classification, expression, colour = Gene, fill = Gene, group = interaction(Classification, Gene)),
@@ -272,7 +275,7 @@ Log2.fc: the log 2 fold change comparing the cell type listed in the “id” co
 KStest using only the top 50 cells in each of the C.Stem and S.Stem classes with
 highest Lgr5 and comparing only these classes.
 
-```{r}
+```{r, eval = FALSE}
 idx <- which(getData(uObj, "classification") %in% c("C.Stem", "SI.Stem"))
 counts <- getData(cObjSng, "counts.cpm")[, idx]
 classes <- getData(uObj, "classification")[idx]
@@ -286,7 +289,24 @@ ungroup()
 ks.res2 <- KStest(counts[, match(top50$sample, colnames(counts))], top50$class, cores = 8)
 p.ks.res2 <- ks.res2 %>%
 filter(p.value < 0.001) %>%
-separate(combination, c("Celltype1", "Celltype2"), sep = "-")
+separate(combination, c("Celltype1", "Celltype2"), sep = "-")  %>%
+mutate(
+  meanCpmCelltype1 = map2_dbl(Celltype1, gene, function(i, g) {
+    mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") == i])
+  }),
+  meanCpmCelltype2 = map2_dbl(Celltype2, gene, function(i, g) {
+    mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") == i])
+  })
+) %>%
+mutate(log2.fc = log2(meanCpmCelltype1 / meanCpmCelltype2)) %>%
+arrange(desc(log2.fc), p.value)
+
+save(p.ks.res2, file = '~/Github/sp.scRNAseq/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy2.rda', compress = "bzip2")
+openxlsx::write.xlsx(p.ks.res2, file = "~/Github/sp.scRNAseq/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy2.xlsx")
+```
+
+```{r, echo = FALSE}
+load('~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy2.rda')
 ```
 
 Number of significant genes detected at alpha 0.05?
@@ -316,18 +336,6 @@ count(combination)
 Number of significant genes detected at alpha 0.05 and fold change > 2?
 
 ```{r}
-p.ks.res2 <- p.ks.res2 %>%
-mutate(
-  meanCpmCelltype1 = map2_dbl(Celltype1, gene, function(i, g) {
-    mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") == i])
-  }),
-  meanCpmCelltype2 = map2_dbl(Celltype2, gene, function(i, g) {
-    mean(getData(cObjSng, "counts.cpm")[g, getData(uObj, "classification") == i])
-  })
-) %>%
-mutate(log2.fc = log2(meanCpmCelltype1 / meanCpmCelltype2)) %>%
-arrange(desc(log2.fc), p.value)
-save(p.ks.res2, file = './differentialExpressionStrategy2.rda', compress = "bzip2")
 p.ks.res2 %>%
 filter(log2.fc > 1 | log2.fc < -1) %>%
 unite(combination, Celltype1, Celltype2) %>%
@@ -372,7 +380,6 @@ p.value: the p values from the KS test that was performed for the corresponding 
 meanCpmCellType1: mean counts per million for cell type 1
 meanCpmCellType2: mean counts per million for cell type	2
 Log2.fc: the log 2 fold change comparing the two cell types.
-
 
 ````{r}
 sessionInfo()
