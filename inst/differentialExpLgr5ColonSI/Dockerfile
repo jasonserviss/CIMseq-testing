@@ -31,5 +31,8 @@ RUN Rscript -e "source('/home/Github/sp.scRNAseqData/inst/rawData/processRaw.R')
 RUN Rscript -e "devtools::install('/home/Github/sp.scRNAseqData')"
 
 RUN git clone https://github.com/jasonserviss/seqTools.git /home/Github/seqTools
+RUN Rscript -e "devtools::install('/home/Github/seqTools')"
 
 WORKDIR /home/
+
+#sp.scRNAseq, sp.scRNAseqTesting, and seqTools need to be installed manually

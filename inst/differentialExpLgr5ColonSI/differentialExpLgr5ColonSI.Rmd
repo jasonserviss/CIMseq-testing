@@ -4,8 +4,8 @@ author: "Jason T. Serviss"
 date: "`r Sys.Date()`"
 output:
   html_document:
-  toc: yes
-  code_folding: hide
+    toc: yes
+    code_folding: hide
 editor_options:
   chunk_output_type: console
 ---
@@ -42,8 +42,6 @@ cObjSng <- spCounts(countsMgfp[, s & m], cbind(countsMgfpERCC[, s & m]))
 cObjMul <- spCounts(countsMgfp[, !s & m], cbind(countsMgfpERCC[, !s & m]))
 
 #spUnsupervised
-#uObj <- spUnsupervised(cObjSng, max_iter = 7000, initial_dims = sum(s), max = 250, perplexity = 7, seed = 73223)
-#save(uObj, file = "uObj.rda")
 load("~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/uObj.rda")
 ```
 
@@ -152,6 +150,7 @@ openxlsx::write.xlsx(p.ks.res, file = "./differentialExpressionStrategy1.xlsx")
 
 ```{r, echo = FALSE}
 load('~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy1.rda')
+load('~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy.ks.res1.rda')
 ```
 
 
@@ -307,6 +306,8 @@ openxlsx::write.xlsx(p.ks.res2, file = "~/Github/sp.scRNAseq/inst/differentialEx
 
 ```{r, echo = FALSE}
 load('~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy2.rda')
+load('~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy.ks.res2.rda')
+
 ```
 
 Number of significant genes detected at alpha 0.05?
