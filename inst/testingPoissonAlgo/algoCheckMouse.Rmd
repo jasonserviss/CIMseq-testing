@@ -43,7 +43,7 @@ boolSngC <- colnames(sng) %in% filter(countsMgfpMeta, tissue == "colon")$sample
 #setup spCounts
 cObjSng <- spCounts(sng, erccSng)
 cObjMul <- spCounts(mul, erccMul)
-cObjMulSmall <- spCounts(mul[, 1:8], erccMul[, 1:8])
+cObjMulSmall <- spCounts(mul[, 1:6], erccMul[, 1:6])
 ```
 
 spUnsupervised
@@ -62,7 +62,7 @@ spSwarm
 genes <- c("Lgr5", "Muc2", "Ptprc", "Chga", "Alpi", "Lyz1", "Dclk1", "Slc40a1")
 sObj <- spSwarm(
   cObjSng, cObjMulSmall, uObj, maxiter = 20, swarmsize = 500, 
-  nSyntheticMultiplets = 200, cores = 8, 
+  nSyntheticMultiplets = 200, cores = 6, 
   selectInd = which(rownames(getData(cObjSng, "counts")) %in% genes)
 )
 ```

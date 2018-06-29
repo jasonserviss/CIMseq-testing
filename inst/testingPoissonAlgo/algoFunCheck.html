@@ -11,7 +11,7 @@
 
 <meta name="author" content="Jason T. Serviss" />
 
-<meta name="date" content="2018-05-25" />
+<meta name="date" content="2018-06-07" />
 
 <title>Testing new swarm algo</title>
 
@@ -382,7 +382,7 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">Testing new swarm algo</h1>
 <h4 class="author"><em>Jason T. Serviss</em></h4>
-<h4 class="date"><em>2018-05-25</em></h4>
+<h4 class="date"><em>2018-06-07</em></h4>
 
 </div>
 
@@ -403,8 +403,12 @@ packages &lt;- c(
     &quot;ggthemes&quot;,
     &quot;tidyverse&quot;
 )
-purrr::walk(packages, library, character.only = TRUE)
-rm(packages)
+purrr::walk(packages, library, character.only = TRUE)</code></pre>
+<pre><code>## Warning: replacing previous import 'RcppArmadillo::fastLmPure' by
+## 'RcppEigen::fastLmPure' when loading 'sp.scRNAseq'</code></pre>
+<pre><code>## Warning: replacing previous import 'RcppArmadillo::fastLm' by
+## 'RcppEigen::fastLm' when loading 'sp.scRNAseq'</code></pre>
+<pre class="r"><code>rm(packages)
 
 ##DATA
 s &lt;- grepl(&quot;^s&quot;, colnames(countsSorted2))
@@ -435,8 +439,1590 @@ tm &lt;- getData(uObj, &quot;tsneMeans&quot;)
 tm$classification &lt;- pull(corresp, newClass)[match(tm$classification, pull(corresp, oldClass))]
 tsneMeans(uObj) &lt;- tm</code></pre>
 <pre class="r"><code>#TEST
-sObj &lt;- spSwarm(cObjSng, cObjMul, uObj, maxiter = 10, swarmsize = 150, nSyntheticMultiplets = 200, cores = 3)
-save(sObj, file = &quot;~/Desktop/newAlgo/newAlgoSpSwarm.rda&quot;)</code></pre>
+sObj &lt;- spSwarm(cObjSng, cObjMul, uObj, maxiter = 10, swarmsize = 150, nSyntheticMultiplets = 200, cores = 6)</code></pre>
+<pre><code>## [[1]]
+## [[1]]$par
+## [1] 0.9607999 0.0000000 1.0000000
+## 
+## [[1]]$value
+## [1] 7621.699
+## 
+## [[1]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[1]]$convergence
+## [1] 2
+## 
+## [[1]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[2]]
+## [[2]]$par
+## [1] 1.0000000 0.1262326 0.1792898
+## 
+## [[2]]$value
+## [1] 11099.67
+## 
+## [[2]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[2]]$convergence
+## [1] 2
+## 
+## [[2]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[3]]
+## [[3]]$par
+## [1] 1.0000000 0.3108458 0.0000000
+## 
+## [[3]]$value
+## [1] 7755.985
+## 
+## [[3]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[3]]$convergence
+## [1] 2
+## 
+## [[3]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[4]]
+## [[4]]$par
+## [1] 0.9776770 0.0000000 0.2680054
+## 
+## [[4]]$value
+## [1] 7088.109
+## 
+## [[4]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[4]]$convergence
+## [1] 2
+## 
+## [[4]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[5]]
+## [[5]]$par
+## [1] 0.0000000 0.7183707 0.9530887
+## 
+## [[5]]$value
+## [1] 11532.81
+## 
+## [[5]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[5]]$convergence
+## [1] 2
+## 
+## [[5]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[6]]
+## [[6]]$par
+## [1] 0.0000000 0.0000000 0.7387971
+## 
+## [[6]]$value
+## [1] 12088.97
+## 
+## [[6]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[6]]$convergence
+## [1] 2
+## 
+## [[6]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[7]]
+## [[7]]$par
+## [1] 0.90988483 0.06017825 0.00000000
+## 
+## [[7]]$value
+## [1] 8005.284
+## 
+## [[7]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[7]]$convergence
+## [1] 2
+## 
+## [[7]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[8]]
+## [[8]]$par
+## [1] 0 0 1
+## 
+## [[8]]$value
+## [1] 7281.083
+## 
+## [[8]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[8]]$convergence
+## [1] 2
+## 
+## [[8]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[9]]
+## [[9]]$par
+## [1] 1.0000000 0.0000000 0.8655038
+## 
+## [[9]]$value
+## [1] 7160.201
+## 
+## [[9]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[9]]$convergence
+## [1] 2
+## 
+## [[9]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[10]]
+## [[10]]$par
+## [1] 0.5474765 0.7707339 0.1654358
+## 
+## [[10]]$value
+## [1] 9495.689
+## 
+## [[10]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[10]]$convergence
+## [1] 2
+## 
+## [[10]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[11]]
+## [[11]]$par
+## [1] 0.98162955 0.02571185 0.48387164
+## 
+## [[11]]$value
+## [1] 6620.024
+## 
+## [[11]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[11]]$convergence
+## [1] 2
+## 
+## [[11]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[12]]
+## [[12]]$par
+## [1] 1.0000000 0.0000000 0.4261463
+## 
+## [[12]]$value
+## [1] 7543.231
+## 
+## [[12]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[12]]$convergence
+## [1] 2
+## 
+## [[12]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[13]]
+## [[13]]$par
+## [1] 0.81868976 0.07737393 0.33855488
+## 
+## [[13]]$value
+## [1] 6301.728
+## 
+## [[13]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[13]]$convergence
+## [1] 2
+## 
+## [[13]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[14]]
+## [[14]]$par
+## [1] 0.0000000 0.8350638 0.2222470
+## 
+## [[14]]$value
+## [1] 7820.465
+## 
+## [[14]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[14]]$convergence
+## [1] 2
+## 
+## [[14]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[15]]
+## [[15]]$par
+## [1] 0.3742160 0.0000000 0.3162205
+## 
+## [[15]]$value
+## [1] 7279.947
+## 
+## [[15]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[15]]$convergence
+## [1] 2
+## 
+## [[15]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[16]]
+## [[16]]$par
+## [1] 1.00000000 0.14893461 0.06701126
+## 
+## [[16]]$value
+## [1] 10082.44
+## 
+## [[16]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[16]]$convergence
+## [1] 2
+## 
+## [[16]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[17]]
+## [[17]]$par
+## [1] 0.00000000 0.99160932 0.08340969
+## 
+## [[17]]$value
+## [1] 7437.073
+## 
+## [[17]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[17]]$convergence
+## [1] 2
+## 
+## [[17]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[18]]
+## [[18]]$par
+## [1] 0.79263672 0.25898740 0.07340707
+## 
+## [[18]]$value
+## [1] 11918.06
+## 
+## [[18]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[18]]$convergence
+## [1] 2
+## 
+## [[18]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[19]]
+## [[19]]$par
+## [1] 0.7563886 0.4606364 0.0000000
+## 
+## [[19]]$value
+## [1] 10265.42
+## 
+## [[19]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[19]]$convergence
+## [1] 2
+## 
+## [[19]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[20]]
+## [[20]]$par
+## [1] 0.3566422 0.0000000 0.8176683
+## 
+## [[20]]$value
+## [1] 6937.68
+## 
+## [[20]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[20]]$convergence
+## [1] 2
+## 
+## [[20]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[21]]
+## [[21]]$par
+## [1] 0.3755622 0.0000000 0.3175739
+## 
+## [[21]]$value
+## [1] 7030.65
+## 
+## [[21]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[21]]$convergence
+## [1] 2
+## 
+## [[21]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[22]]
+## [[22]]$par
+## [1] 1.0000000 0.8234939 0.0000000
+## 
+## [[22]]$value
+## [1] 7210.254
+## 
+## [[22]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[22]]$convergence
+## [1] 2
+## 
+## [[22]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[23]]
+## [[23]]$par
+## [1] 0.0000000 0.7580123 1.0000000
+## 
+## [[23]]$value
+## [1] 9015.007
+## 
+## [[23]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[23]]$convergence
+## [1] 2
+## 
+## [[23]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[24]]
+## [[24]]$par
+## [1] 0.2291619 0.0000000 0.9962051
+## 
+## [[24]]$value
+## [1] 6862.171
+## 
+## [[24]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[24]]$convergence
+## [1] 2
+## 
+## [[24]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[25]]
+## [[25]]$par
+## [1] 0.8195355 0.0000000 0.7139102
+## 
+## [[25]]$value
+## [1] 6502.058
+## 
+## [[25]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[25]]$convergence
+## [1] 2
+## 
+## [[25]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[26]]
+## [[26]]$par
+## [1] 0.6253735 0.8629950 0.0000000
+## 
+## [[26]]$value
+## [1] 8057.647
+## 
+## [[26]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[26]]$convergence
+## [1] 2
+## 
+## [[26]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[27]]
+## [[27]]$par
+## [1] 8.310282e-05 8.260057e-01 8.116415e-01
+## 
+## [[27]]$value
+## [1] 8715.914
+## 
+## [[27]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[27]]$convergence
+## [1] 2
+## 
+## [[27]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[28]]
+## [[28]]$par
+## [1] 0.910226673 0.537677327 0.003937101
+## 
+## [[28]]$value
+## [1] 9602.349
+## 
+## [[28]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[28]]$convergence
+## [1] 2
+## 
+## [[28]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[29]]
+## [[29]]$par
+## [1] 0.0000000 0.8818057 0.4136918
+## 
+## [[29]]$value
+## [1] 8939.227
+## 
+## [[29]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[29]]$convergence
+## [1] 2
+## 
+## [[29]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[30]]
+## [[30]]$par
+## [1] 1.487358e-06 8.845280e-01 2.124735e-01
+## 
+## [[30]]$value
+## [1] 11440.42
+## 
+## [[30]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[30]]$convergence
+## [1] 2
+## 
+## [[30]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[31]]
+## [[31]]$par
+## [1] 0.0000000 0.8605550 0.5541793
+## 
+## [[31]]$value
+## [1] 6977.383
+## 
+## [[31]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[31]]$convergence
+## [1] 2
+## 
+## [[31]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[32]]
+## [[32]]$par
+## [1] 0.6903196 0.3290053 0.0000000
+## 
+## [[32]]$value
+## [1] 6862.151
+## 
+## [[32]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[32]]$convergence
+## [1] 2
+## 
+## [[32]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[33]]
+## [[33]]$par
+## [1] 0.0000000 1.0000000 0.1717225
+## 
+## [[33]]$value
+## [1] 12356.82
+## 
+## [[33]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[33]]$convergence
+## [1] 2
+## 
+## [[33]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[34]]
+## [[34]]$par
+## [1] 0.4327866 0.0000000 0.5236415
+## 
+## [[34]]$value
+## [1] 7767.668
+## 
+## [[34]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[34]]$convergence
+## [1] 2
+## 
+## [[34]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[35]]
+## [[35]]$par
+## [1] 0.8327823 0.0000000 0.3094156
+## 
+## [[35]]$value
+## [1] 8526.782
+## 
+## [[35]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[35]]$convergence
+## [1] 2
+## 
+## [[35]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[36]]
+## [[36]]$par
+## [1] 0.6186605 0.2260549 0.0000000
+## 
+## [[36]]$value
+## [1] 6454.152
+## 
+## [[36]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[36]]$convergence
+## [1] 2
+## 
+## [[36]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[37]]
+## [[37]]$par
+## [1] 0.1690392 0.0000000 0.5835605
+## 
+## [[37]]$value
+## [1] 8019.568
+## 
+## [[37]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[37]]$convergence
+## [1] 2
+## 
+## [[37]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[38]]
+## [[38]]$par
+## [1] 0.0000000 0.0000000 0.7895657
+## 
+## [[38]]$value
+## [1] 11531.13
+## 
+## [[38]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[38]]$convergence
+## [1] 2
+## 
+## [[38]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[39]]
+## [[39]]$par
+## [1] 0.6063338 0.0000000 0.3915605
+## 
+## [[39]]$value
+## [1] 8122.117
+## 
+## [[39]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[39]]$convergence
+## [1] 2
+## 
+## [[39]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[40]]
+## [[40]]$par
+## [1] 0.9766534 0.5021468 0.0000000
+## 
+## [[40]]$value
+## [1] 7511.305
+## 
+## [[40]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[40]]$convergence
+## [1] 2
+## 
+## [[40]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[41]]
+## [[41]]$par
+## [1] 0.3778881 0.0000000 0.8574305
+## 
+## [[41]]$value
+## [1] 6516.492
+## 
+## [[41]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[41]]$convergence
+## [1] 2
+## 
+## [[41]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[42]]
+## [[42]]$par
+## [1] 1.0000000 0.4797318 0.0000000
+## 
+## [[42]]$value
+## [1] 7691.683
+## 
+## [[42]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[42]]$convergence
+## [1] 2
+## 
+## [[42]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[43]]
+## [[43]]$par
+## [1] 0.98788377 0.18543886 0.09642938
+## 
+## [[43]]$value
+## [1] 9471.798
+## 
+## [[43]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[43]]$convergence
+## [1] 2
+## 
+## [[43]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[44]]
+## [[44]]$par
+## [1] 1.0000000 0.0000000 0.9152208
+## 
+## [[44]]$value
+## [1] 7464.89
+## 
+## [[44]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[44]]$convergence
+## [1] 2
+## 
+## [[44]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[45]]
+## [[45]]$par
+## [1] 0.8924807 0.2488769 0.4121894
+## 
+## [[45]]$value
+## [1] 7211.066
+## 
+## [[45]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[45]]$convergence
+## [1] 2
+## 
+## [[45]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[46]]
+## [[46]]$par
+## [1] 0.5662989 0.0000000 0.4431499
+## 
+## [[46]]$value
+## [1] 8458.058
+## 
+## [[46]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[46]]$convergence
+## [1] 2
+## 
+## [[46]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[47]]
+## [[47]]$par
+## [1] 0.9749819 0.0000000 0.3112748
+## 
+## [[47]]$value
+## [1] 8642.386
+## 
+## [[47]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[47]]$convergence
+## [1] 2
+## 
+## [[47]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[48]]
+## [[48]]$par
+## [1] 0.0000000 0.8805372 0.3269148
+## 
+## [[48]]$value
+## [1] 8717.813
+## 
+## [[48]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[48]]$convergence
+## [1] 2
+## 
+## [[48]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[49]]
+## [[49]]$par
+## [1] 0.9687730 0.1849306 0.3072483
+## 
+## [[49]]$value
+## [1] 8055.532
+## 
+## [[49]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[49]]$convergence
+## [1] 2
+## 
+## [[49]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[50]]
+## [[50]]$par
+## [1] 0.8849685 0.0000000 0.5660017
+## 
+## [[50]]$value
+## [1] 7797.524
+## 
+## [[50]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[50]]$convergence
+## [1] 2
+## 
+## [[50]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[51]]
+## [[51]]$par
+## [1] 0.9936255 0.4827084 0.0000000
+## 
+## [[51]]$value
+## [1] 6716.222
+## 
+## [[51]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[51]]$convergence
+## [1] 2
+## 
+## [[51]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[52]]
+## [[52]]$par
+## [1] 0.0000000 0.7016368 0.4964249
+## 
+## [[52]]$value
+## [1] 8928.245
+## 
+## [[52]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[52]]$convergence
+## [1] 2
+## 
+## [[52]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[53]]
+## [[53]]$par
+## [1] 0.5966591 0.0000000 0.2718102
+## 
+## [[53]]$value
+## [1] 6654.424
+## 
+## [[53]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[53]]$convergence
+## [1] 2
+## 
+## [[53]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[54]]
+## [[54]]$par
+## [1] 0.95775101 0.22020592 0.06418947
+## 
+## [[54]]$value
+## [1] 11109
+## 
+## [[54]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[54]]$convergence
+## [1] 2
+## 
+## [[54]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[55]]
+## [[55]]$par
+## [1] 0.0000000 1.0000000 0.1032383
+## 
+## [[55]]$value
+## [1] 8479.908
+## 
+## [[55]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[55]]$convergence
+## [1] 2
+## 
+## [[55]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[56]]
+## [[56]]$par
+## [1] 0.9949147 0.7005450 0.0000000
+## 
+## [[56]]$value
+## [1] 7241.032
+## 
+## [[56]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[56]]$convergence
+## [1] 2
+## 
+## [[56]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[57]]
+## [[57]]$par
+## [1] 0.0000000 0.1581086 0.9074570
+## 
+## [[57]]$value
+## [1] 10293.54
+## 
+## [[57]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[57]]$convergence
+## [1] 2
+## 
+## [[57]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[58]]
+## [[58]]$par
+## [1] 0.9645777 0.0000000 0.1539018
+## 
+## [[58]]$value
+## [1] 9560.933
+## 
+## [[58]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[58]]$convergence
+## [1] 2
+## 
+## [[58]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[59]]
+## [[59]]$par
+## [1] 0.60926786 0.00000000 0.09701899
+## 
+## [[59]]$value
+## [1] 13074.31
+## 
+## [[59]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[59]]$convergence
+## [1] 2
+## 
+## [[59]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[60]]
+## [[60]]$par
+## [1] 0.7816018 0.5268938 0.0000000
+## 
+## [[60]]$value
+## [1] 7451.407
+## 
+## [[60]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[60]]$convergence
+## [1] 2
+## 
+## [[60]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[61]]
+## [[61]]$par
+## [1] 0.5658022 0.0000000 1.0000000
+## 
+## [[61]]$value
+## [1] 6608.945
+## 
+## [[61]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[61]]$convergence
+## [1] 2
+## 
+## [[61]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[62]]
+## [[62]]$par
+## [1] 0.7352423741 0.0009826842 0.2724067945
+## 
+## [[62]]$value
+## [1] 7067.038
+## 
+## [[62]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[62]]$convergence
+## [1] 2
+## 
+## [[62]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[63]]
+## [[63]]$par
+## [1] 0.8405840 0.1087952 0.2525618
+## 
+## [[63]]$value
+## [1] 10021.39
+## 
+## [[63]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[63]]$convergence
+## [1] 2
+## 
+## [[63]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[64]]
+## [[64]]$par
+## [1] 0.4119642 0.0000000 0.9895039
+## 
+## [[64]]$value
+## [1] 8797.591
+## 
+## [[64]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[64]]$convergence
+## [1] 2
+## 
+## [[64]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[65]]
+## [[65]]$par
+## [1] 0.0000000 0.7902622 0.1721277
+## 
+## [[65]]$value
+## [1] 8218.887
+## 
+## [[65]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[65]]$convergence
+## [1] 2
+## 
+## [[65]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[66]]
+## [[66]]$par
+## [1] 0.5758231 0.4659276 0.0000000
+## 
+## [[66]]$value
+## [1] 6652.011
+## 
+## [[66]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[66]]$convergence
+## [1] 2
+## 
+## [[66]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[67]]
+## [[67]]$par
+## [1] 0.98214357 0.01946595 0.48060299
+## 
+## [[67]]$value
+## [1] 9746.011
+## 
+## [[67]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[67]]$convergence
+## [1] 2
+## 
+## [[67]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[68]]
+## [[68]]$par
+## [1] 1.0000000 0.4770626 0.0000000
+## 
+## [[68]]$value
+## [1] 7145.545
+## 
+## [[68]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[68]]$convergence
+## [1] 2
+## 
+## [[68]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[69]]
+## [[69]]$par
+## [1] 0.82162522 0.30099736 0.06678458
+## 
+## [[69]]$value
+## [1] 8955.304
+## 
+## [[69]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[69]]$convergence
+## [1] 2
+## 
+## [[69]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[70]]
+## [[70]]$par
+## [1] 0.6574631 0.0000000 0.8223836
+## 
+## [[70]]$value
+## [1] 6848.336
+## 
+## [[70]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[70]]$convergence
+## [1] 2
+## 
+## [[70]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[71]]
+## [[71]]$par
+## [1] 0.86464469 0.06144642 0.55234983
+## 
+## [[71]]$value
+## [1] 7679.129
+## 
+## [[71]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[71]]$convergence
+## [1] 2
+## 
+## [[71]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[72]]
+## [[72]]$par
+## [1] 0.9848396 0.0000000 0.4352744
+## 
+## [[72]]$value
+## [1] 9812.023
+## 
+## [[72]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[72]]$convergence
+## [1] 2
+## 
+## [[72]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[73]]
+## [[73]]$par
+## [1] 0.6981638 0.4340985 0.0000000
+## 
+## [[73]]$value
+## [1] 8099.358
+## 
+## [[73]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[73]]$convergence
+## [1] 2
+## 
+## [[73]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[74]]
+## [[74]]$par
+## [1] 0.8591537 0.2499430 0.0000000
+## 
+## [[74]]$value
+## [1] 9158.362
+## 
+## [[74]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[74]]$convergence
+## [1] 2
+## 
+## [[74]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[75]]
+## [[75]]$par
+## [1] 0.9168851 0.0000000 0.5935456
+## 
+## [[75]]$value
+## [1] 8445.785
+## 
+## [[75]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[75]]$convergence
+## [1] 2
+## 
+## [[75]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[76]]
+## [[76]]$par
+## [1] 1.0000000 0.1674447 0.1041946
+## 
+## [[76]]$value
+## [1] 10952.38
+## 
+## [[76]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[76]]$convergence
+## [1] 2
+## 
+## [[76]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[77]]
+## [[77]]$par
+## [1] 0.0000000 0.4614003 1.0000000
+## 
+## [[77]]$value
+## [1] 7016.899
+## 
+## [[77]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[77]]$convergence
+## [1] 2
+## 
+## [[77]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[78]]
+## [[78]]$par
+## [1] 0.1904616 0.0000000 0.2087598
+## 
+## [[78]]$value
+## [1] 7295.305
+## 
+## [[78]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[78]]$convergence
+## [1] 2
+## 
+## [[78]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[79]]
+## [[79]]$par
+## [1] 0.0000000 1.0000000 0.1436125
+## 
+## [[79]]$value
+## [1] 8642.966
+## 
+## [[79]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[79]]$convergence
+## [1] 2
+## 
+## [[79]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[80]]
+## [[80]]$par
+## [1] 0.91053395 0.08244084 0.47500981
+## 
+## [[80]]$value
+## [1] 6731.694
+## 
+## [[80]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[80]]$convergence
+## [1] 2
+## 
+## [[80]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[81]]
+## [[81]]$par
+## [1] 1.0000000 0.3032656 0.0000000
+## 
+## [[81]]$value
+## [1] 11617.72
+## 
+## [[81]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[81]]$convergence
+## [1] 2
+## 
+## [[81]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[82]]
+## [[82]]$par
+## [1] 0.7606154 0.3726787 0.0000000
+## 
+## [[82]]$value
+## [1] 6977.401
+## 
+## [[82]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[82]]$convergence
+## [1] 2
+## 
+## [[82]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[83]]
+## [[83]]$par
+## [1] 0.2288690 0.0000000 0.9658543
+## 
+## [[83]]$value
+## [1] 6524.683
+## 
+## [[83]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[83]]$convergence
+## [1] 2
+## 
+## [[83]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[84]]
+## [[84]]$par
+## [1] 0.95820012 0.31391920 0.06468574
+## 
+## [[84]]$value
+## [1] 9283.145
+## 
+## [[84]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[84]]$convergence
+## [1] 2
+## 
+## [[84]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[85]]
+## [[85]]$par
+## [1] 0.6207731 0.0000000 0.4102738
+## 
+## [[85]]$value
+## [1] 7297.271
+## 
+## [[85]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[85]]$convergence
+## [1] 2
+## 
+## [[85]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[86]]
+## [[86]]$par
+## [1] 0.7930579 0.1439048 0.0000000
+## 
+## [[86]]$value
+## [1] 7953.398
+## 
+## [[86]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[86]]$convergence
+## [1] 2
+## 
+## [[86]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[87]]
+## [[87]]$par
+## [1] 0.6146934 0.0000000 0.5516190
+## 
+## [[87]]$value
+## [1] 7041.117
+## 
+## [[87]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[87]]$convergence
+## [1] 2
+## 
+## [[87]]$message
+## [1] &quot;Maximal number of iterations reached&quot;
+## 
+## 
+## [[88]]
+## [[88]]$par
+## [1] 0.0000000 0.8291432 0.1003992
+## 
+## [[88]]$value
+## [1] 7280.281
+## 
+## [[88]]$counts
+##  function iteration  restarts 
+##      1500        10         0 
+## 
+## [[88]]$convergence
+## [1] 2
+## 
+## [[88]]$message
+## [1] &quot;Maximal number of iterations reached&quot;</code></pre>
+<pre class="r"><code>save(sObj, file = &quot;~/Github/sp.scRNAseqTesting/inst/testingPoissonAlgo/newAlgoSpSwarm.rda&quot;)</code></pre>
 <div id="show-average-stats-for-multiplets-dependant-on-the-number-of-cell-in-the-multiplet." class="section level3">
 <h3>Show average stats for multiplets dependant on the number of cell in the multiplet.</h3>
 <pre class="r"><code>known &lt;- setupPlate(countsSortedMeta2)
@@ -463,21 +2049,21 @@ res %&gt;%
 <tbody>
 <tr class="odd">
 <td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">0.9062500</td>
-<td align="right">0.9375000</td>
+<td align="right">0.4375000</td>
+<td align="right">0.5989583</td>
+<td align="right">0.5468750</td>
 </tr>
 <tr class="even">
 <td align="right">3</td>
-<td align="right">0.9310345</td>
-<td align="right">0.8947368</td>
-<td align="right">0.9310345</td>
+<td align="right">0.6896552</td>
+<td align="right">0.7807018</td>
+<td align="right">0.8045977</td>
 </tr>
 <tr class="odd">
 <td align="right">4</td>
-<td align="right">0.9753086</td>
-<td align="right">0.8947368</td>
-<td align="right">0.9259259</td>
+<td align="right">0.6419753</td>
+<td align="right">0.7631579</td>
+<td align="right">0.7530864</td>
 </tr>
 </tbody>
 </table>
@@ -505,9 +2091,9 @@ res %&gt;%
 <tbody>
 <tr class="odd">
 <td align="left">A375-A375-HCT116-HCT116</td>
-<td align="right">1.0000000</td>
-<td align="right">0.8888889</td>
-<td align="right">0.9259259</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">A375-A375-HCT116-HOS</td>
@@ -517,9 +2103,9 @@ res %&gt;%
 </tr>
 <tr class="odd">
 <td align="left">A375-HCT116</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0000000</td>
+<td align="right">0.1000000</td>
+<td align="right">0.4500000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">A375-HCT116-HOS</td>
@@ -529,9 +2115,9 @@ res %&gt;%
 </tr>
 <tr class="odd">
 <td align="left">A375-HOS</td>
-<td align="right">1.0000000</td>
-<td align="right">0.8333333</td>
+<td align="right">0.9166667</td>
 <td align="right">0.8888889</td>
+<td align="right">0.9027778</td>
 </tr>
 <tr class="even">
 <td align="left">A375-HOS-HOS</td>
@@ -542,20 +2128,20 @@ res %&gt;%
 <tr class="odd">
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="right">1.0000000</td>
-<td align="right">0.9000000</td>
-<td align="right">0.9333333</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">HCT116-HCT116-HOS</td>
-<td align="right">0.7777778</td>
-<td align="right">0.7777778</td>
-<td align="right">0.7777778</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5370370</td>
+<td align="right">0.3703704</td>
 </tr>
 <tr class="odd">
 <td align="left">HCT116-HOS</td>
-<td align="right">1.0000000</td>
-<td align="right">0.9000000</td>
-<td align="right">0.9333333</td>
+<td align="right">0.2000000</td>
+<td align="right">0.4000000</td>
+<td align="right">0.3333333</td>
 </tr>
 </tbody>
 </table>
@@ -599,13 +2185,13 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.51, 0, 0.49</td>
+<td align="left">0.49, 0, 0.51</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
@@ -613,7 +2199,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.18, 0.07, 0.75</td>
+<td align="left">0.77, 0.1, 0.14</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -626,98 +2212,98 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.A02</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.11, 0.89</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.76, 0.24, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.G04</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.15, 0, 0.85</td>
+<td align="left">0.78, 0, 0.22</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.D07</td>
 <td align="left">HCT116-HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.75, 0.25, 0</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
-</tr>
-<tr class="even">
-<td align="left">m.NJB00204.E06</td>
-<td align="left">HCT116-HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">A375-HOS</td>
-<td align="left">0.7, 0, 0.3</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.43, 0.57</td>
 <td align="right">0</td>
 <td align="right">1</td>
 <td align="right">1</td>
 <td align="right">1</td>
 <td align="right">0.0000000</td>
-<td align="right">0.5</td>
+<td align="right">0.5000000</td>
 <td align="right">0.3333333</td>
+</tr>
+<tr class="even">
+<td align="left">m.NJB00204.E06</td>
+<td align="left">HCT116-HCT116-HOS</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">A375-A375</td>
+<td align="left">0, 0, 1</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">0.0000000</td>
+<td align="right">0.6666667</td>
+<td align="right">0.5000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.B01</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.08, 0.92</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.94, 0.06, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.G01</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">A375-HOS</td>
-<td align="left">1, 0, 0</td>
+<td align="left">A375-A375</td>
+<td align="left">0, 0, 1</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
+<td align="right">1</td>
 <td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">0.0000000</td>
+<td align="right">0.6666667</td>
+<td align="right">0.5000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.G03</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.42, 0, 0.58</td>
+<td align="left">0.54, 0, 0.46</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
@@ -725,7 +2311,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.11, 0.33, 0.56</td>
+<td align="left">0.37, 0.52, 0.11</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -739,7 +2325,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.33, 0.01, 0.66</td>
+<td align="left">0.66, 0.02, 0.32</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -753,13 +2339,13 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.28, 0, 0.72</td>
+<td align="left">0.7, 0, 0.3</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -767,7 +2353,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.26, 0.06, 0.68</td>
+<td align="left">0.66, 0.06, 0.27</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -780,28 +2366,28 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.D05</td>
 <td align="left">HCT116-HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.17, 0.83, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.79, 0.21</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.B11</td>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.47, 0, 0.53</td>
+<td align="left">0.54, 0, 0.46</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
@@ -809,7 +2395,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.05, 0.21, 0.74</td>
+<td align="left">0.82, 0.12, 0.06</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -822,14 +2408,14 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.D08</td>
 <td align="left">HCT116-HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.07, 0.93, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.92, 0.08</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">2</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1.0000000</td>
-<td align="right">0.0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
 <td align="right">0.3333333</td>
 </tr>
 <tr class="even">
@@ -837,7 +2423,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.07, 0.11, 0.82</td>
+<td align="left">0.7, 0.23, 0.07</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -850,28 +2436,28 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.C01</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.25, 0.75</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.62, 0.38, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.F05</td>
 <td align="left">A375-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.74, 0, 0.26</td>
+<td align="left">0.3, 0, 0.7</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -879,55 +2465,55 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.55, 0, 0.45</td>
+<td align="left">0.54, 0, 0.46</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.C11</td>
 <td align="left">A375-A375-HCT116-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.32, 0.68</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.55, 0.45, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.C04</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.84, 0.16, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.43, 0.57</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.B12</td>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.89, 0, 0.11</td>
+<td align="left">0.19, 0, 0.81</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -935,125 +2521,125 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.42, 0, 0.58</td>
+<td align="left">0.53, 0, 0.47</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.E10</td>
 <td align="left">A375-A375-HCT116-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.5, 0.5</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.42, 0.58, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.E04</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.37, 0.63, 0</td>
+<td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
+<td align="left">0, 0.5, 0.5</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
 <td align="right">2</td>
+<td align="right">0</td>
+<td align="right">0</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">0.0000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.B03</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.24, 0.76</td>
+<td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
+<td align="left">0.63, 0.37, 0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
 <td align="right">2</td>
+<td align="right">0</td>
+<td align="right">0</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">0.0000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.D02</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.31, 0.69, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.68, 0.32</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.D01</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.18, 0.82, 0</td>
+<td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
+<td align="left">0, 0.81, 0.19</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
 <td align="right">2</td>
+<td align="right">0</td>
+<td align="right">0</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">0.0000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.E03</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.37, 0.63, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.61, 0.39</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.C12</td>
 <td align="left">A375-A375-HCT116-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0, 0.29, 0.71</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.68, 0.32, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">2</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1.0000000</td>
-<td align="right">0.0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
 <td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.E01</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.04, 0.48, 0.48</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.85, 0.15</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">2</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1.0000000</td>
-<td align="right">0.0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
 <td align="right">0.3333333</td>
 </tr>
 <tr class="even">
@@ -1061,102 +2647,18 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.6, 0, 0.4</td>
+<td align="left">0.45, 0, 0.55</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.F04</td>
 <td align="left">A375-HOS</td>
-<td align="left">A375-HOS</td>
-<td align="left">A375-HOS</td>
-<td align="left">0.28, 0, 0.72</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
-</tr>
-<tr class="even">
-<td align="left">m.NJB00204.E12</td>
-<td align="left">A375-A375-HCT116-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.26, 0.74</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
-</tr>
-<tr class="odd">
-<td align="left">m.NJB00204.F06</td>
-<td align="left">A375-HOS-HOS</td>
-<td align="left">A375-HOS</td>
-<td align="left">A375-HOS</td>
-<td align="left">0.87, 0, 0.13</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
-</tr>
-<tr class="even">
-<td align="left">m.NJB00204.E05</td>
-<td align="left">HCT116-HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">A375-HOS</td>
-<td align="left">0.77, 0, 0.23</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">1</td>
-<td align="right">1</td>
-<td align="right">0.0000000</td>
-<td align="right">0.5</td>
-<td align="right">0.3333333</td>
-</tr>
-<tr class="odd">
-<td align="left">m.NJB00204.F07</td>
-<td align="left">A375-HOS-HOS</td>
-<td align="left">A375-HOS</td>
-<td align="left">A375-HOS</td>
-<td align="left">0.42, 0, 0.58</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
-</tr>
-<tr class="even">
-<td align="left">m.NJB00204.D09</td>
-<td align="left">A375-A375-HCT116-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.4, 0.6</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
-</tr>
-<tr class="odd">
-<td align="left">m.NJB00204.G07</td>
-<td align="left">A375-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">0.73, 0, 0.27</td>
@@ -1165,29 +2667,113 @@ as.data.frame(print)</code></pre>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">m.NJB00204.E12</td>
+<td align="left">A375-A375-HCT116-HCT116</td>
+<td align="left">A375-HCT116</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.73, 0.27, 0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
+</tr>
+<tr class="odd">
+<td align="left">m.NJB00204.F06</td>
+<td align="left">A375-HOS-HOS</td>
+<td align="left">A375-HOS</td>
+<td align="left">A375-HOS</td>
+<td align="left">0.22, 0, 0.78</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">m.NJB00204.E05</td>
+<td align="left">HCT116-HCT116-HOS</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">A375-A375</td>
+<td align="left">0, 0, 1</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">0.0000000</td>
+<td align="right">0.6666667</td>
+<td align="right">0.5000000</td>
+</tr>
+<tr class="odd">
+<td align="left">m.NJB00204.F07</td>
+<td align="left">A375-HOS-HOS</td>
+<td align="left">A375-HOS</td>
+<td align="left">A375-HOS</td>
+<td align="left">0.61, 0, 0.39</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">m.NJB00204.D09</td>
+<td align="left">A375-A375-HCT116-HCT116</td>
+<td align="left">A375-HCT116</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.66, 0.34, 0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
+</tr>
+<tr class="odd">
+<td align="left">m.NJB00204.G07</td>
+<td align="left">A375-HOS-HOS</td>
+<td align="left">A375-HOS</td>
+<td align="left">A375-HOS</td>
+<td align="left">0.31, 0, 0.69</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.A04</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.29, 0.71</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.68, 0.32, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.A07</td>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.07, 0.08, 0.85</td>
+<td align="left">0.78, 0.15, 0.08</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1201,13 +2787,13 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.51, 0, 0.49</td>
+<td align="left">0.52, 0, 0.48</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -1215,7 +2801,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.29, 0.08, 0.63</td>
+<td align="left">0.57, 0.16, 0.27</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1229,13 +2815,13 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.37, 0, 0.63</td>
+<td align="left">0.56, 0, 0.44</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -1243,35 +2829,35 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.3, 0, 0.7</td>
+<td align="left">0.76, 0, 0.24</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.D03</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.28, 0.72, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.73, 0.27</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.F10</td>
 <td align="left">A375-A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.1, 0.16, 0.74</td>
+<td align="left">0.66, 0.13, 0.21</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1285,55 +2871,55 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.42, 0, 0.58</td>
+<td align="left">0.61, 0, 0.39</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.D12</td>
 <td align="left">A375-A375-HCT116-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.21, 0.79</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.67, 0.33, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.E02</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.31, 0.69, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.59, 0.41</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.G05</td>
 <td align="left">A375-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.18, 0, 0.82</td>
+<td align="left">0.69, 0, 0.31</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
@@ -1341,7 +2927,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.07, 0.05, 0.88</td>
+<td align="left">0.77, 0.18, 0.05</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1354,98 +2940,98 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.E07</td>
 <td align="left">HCT116-HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.1, 0.9, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.91, 0.09</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.E11</td>
 <td align="left">A375-A375-HCT116-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.32, 0.68</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.59, 0.41, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.D04</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.92, 0.08, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.15, 0.85</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.F03</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.13, 0.01, 0.86</td>
+<td align="left">A375-HOS</td>
+<td align="left">0.86, 0, 0.14</td>
 <td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
 <td align="right">2</td>
-<td align="right">0</td>
-<td align="right">0</td>
 <td align="right">1.0000000</td>
-<td align="right">0.0</td>
-<td align="right">0.3333333</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.H04</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.08, 0, 0.92</td>
+<td align="left">0.86, 0, 0.14</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.C02</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.29, 0.71</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.6, 0.4, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.B10</td>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.73, 0, 0.27</td>
+<td align="left">0.36, 0, 0.64</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
@@ -1453,13 +3039,13 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.29, 0, 0.71</td>
+<td align="left">0.73, 0, 0.27</td>
 <td align="right">1</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">1.0000000</td>
-<td align="right">0.0</td>
+<td align="right">0.0000000</td>
 <td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
@@ -1467,7 +3053,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.14, 0.12, 0.74</td>
+<td align="left">0.7, 0.09, 0.21</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1481,35 +3067,35 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.81, 0, 0.19</td>
+<td align="left">0.29, 0, 0.71</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.C08</td>
 <td align="left">HCT116-HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.18, 0.82, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.82, 0.18</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.H09</td>
 <td align="left">A375-A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.4, 0.6</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.55, 0.45, 0</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">2</td>
@@ -1523,7 +3109,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.31, 0.02, 0.66</td>
+<td align="left">0.66, 0.01, 0.32</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1536,22 +3122,22 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.B02</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.19, 0.81</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.68, 0.32, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.F09</td>
 <td align="left">A375-A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.04, 0.26, 0.7</td>
+<td align="left">0.69, 0.25, 0.06</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1565,13 +3151,13 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.74, 0, 0.26</td>
+<td align="left">0.44, 0, 0.56</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -1579,7 +3165,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.35, 0.06, 0.59</td>
+<td align="left">0.58, 0.04, 0.37</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1593,55 +3179,55 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.32, 0, 0.68</td>
+<td align="left">0.69, 0, 0.31</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.E09</td>
 <td align="left">A375-A375-HCT116-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.32, 0.68</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.62, 0.38, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.A03</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.15, 0.85</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.77, 0.23, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.H06</td>
 <td align="left">A375-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.34, 0, 0.66</td>
+<td align="left">0.61, 0, 0.39</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
@@ -1649,7 +3235,7 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.08, 0.09, 0.83</td>
+<td align="left">0.79, 0.13, 0.08</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1662,50 +3248,50 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.C03</td>
 <td align="left">HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.65, 0.35, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.32, 0.68</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.A11</td>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.53, 0, 0.47</td>
+<td align="left">0.48, 0, 0.52</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.C07</td>
 <td align="left">HCT116-HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.1, 0.9, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.87, 0.13</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.H11</td>
 <td align="left">A375-A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.31, 0.06, 0.63</td>
+<td align="left">0.62, 0.06, 0.32</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1718,50 +3304,50 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.A01</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.18, 0.82</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.77, 0.23, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.D11</td>
 <td align="left">A375-A375-HCT116-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.23, 0.77</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.67, 0.33, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.A12</td>
 <td align="left">A375-HOS-HOS-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.8, 0, 0.19</td>
+<td align="left">A375-HOS</td>
+<td align="left">0.19, 0, 0.81</td>
 <td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
 <td align="right">2</td>
-<td align="right">0</td>
-<td align="right">0</td>
 <td align="right">1.0000000</td>
-<td align="right">0.0</td>
-<td align="right">0.3333333</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.B07</td>
 <td align="left">A375-HCT116-HOS</td>
 <td align="left">A375-HCT116, A375-HOS, HCT116-HOS</td>
 <td align="left">HCT116-HOS, A375-HOS, A375-HCT116</td>
-<td align="left">0.08, 0.21, 0.71</td>
+<td align="left">0.72, 0.23, 0.05</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
@@ -1775,56 +3361,56 @@ as.data.frame(print)</code></pre>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.29, 0, 0.71</td>
+<td align="left">0.6, 0, 0.4</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.B04</td>
 <td align="left">A375-HCT116</td>
 <td align="left">A375-HCT116</td>
-<td align="left">A375-HCT116</td>
-<td align="left">0, 0.21, 0.79</td>
+<td align="left">HCT116-HOS</td>
+<td align="left">0.85, 0.15, 0</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.H05</td>
 <td align="left">A375-HOS-HOS</td>
 <td align="left">A375-HOS</td>
 <td align="left">A375-HOS</td>
-<td align="left">0.49, 0, 0.51</td>
+<td align="left">0.53, 0, 0.47</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
 <td align="right">1.0000000</td>
-<td align="right">1.0</td>
+<td align="right">1.0000000</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.D06</td>
 <td align="left">HCT116-HCT116-HOS</td>
 <td align="left">HCT116-HOS</td>
-<td align="left">HCT116-HOS</td>
-<td align="left">0.1, 0.9, 0</td>
+<td align="left">A375-HCT116</td>
+<td align="left">0, 0.89, 0.11</td>
+<td align="right">0</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">1.0000000</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0.0000000</td>
+<td align="right">0.5000000</td>
+<td align="right">0.3333333</td>
 </tr>
 </tbody>
 </table>

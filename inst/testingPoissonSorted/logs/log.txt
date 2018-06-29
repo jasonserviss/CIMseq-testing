@@ -1,0 +1,22 @@
+During startup - Warning message:
+Setting LC_CTYPE failed, using "C" 
+-- Attaching packages --------------------------------------- tidyverse 1.2.1 --
+<U+221A> ggplot2 2.2.1     <U+221A> purrr   0.2.5
+<U+221A> tibble  1.4.2     <U+221A> dplyr   0.7.5
+<U+221A> tidyr   0.8.1     <U+221A> stringr 1.3.1
+<U+221A> readr   1.1.1     <U+221A> forcats 0.2.0
+-- Conflicts ------------------------------------------ tidyverse_conflicts() --
+x dplyr::filter() masks stats::filter()
+x dplyr::lag()    masks stats::lag()
+
+Attaching package: 'future.apply'
+
+The following object is masked from 'package:future':
+
+    future_lapply
+
+[1] "spCounts done"
+[1] "spUnsupervised done"
+[1] "Starting deconvolution at 2018-06-28 19:08:47"
+[1] "Finished deconvolution at 2018-06-28 19:30:09"
+[1] "finished"

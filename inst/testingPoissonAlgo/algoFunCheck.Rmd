@@ -13,12 +13,8 @@ editor_options:
 ```{r, message = FALSE}
 #PACKAGES
 packages <- c(
-    "sp.scRNAseq",
-    "sp.scRNAseqData",
-    "sp.scRNAseqTesting",
-    "printr",
-    "ggthemes",
-    "tidyverse"
+  "sp.scRNAseq", "sp.scRNAseqData", "sp.scRNAseqTesting",
+  "printr", "ggthemes", "tidyverse", "future"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
@@ -53,9 +49,10 @@ tm$classification <- pull(corresp, newClass)[match(tm$classification, pull(corre
 tsneMeans(uObj) <- tm
 ```
 
-```{r, eval = FALSE}
+```{r, eval = TRUE}
 #TEST
-sObj <- spSwarm(cObjSng, cObjMul, uObj, maxiter = 10, swarmsize = 150, nSyntheticMultiplets = 200, cores = 3)
+plan(multiprocess)
+sObj <- spSwarm(cObjSng, cObjMul, uObj, maxiter = 10, swarmsize = 150, nSyntheticMultiplets = 200)
 save(sObj, file = "~/Github/sp.scRNAseqTesting/inst/testingPoissonAlgo/newAlgoSpSwarm.rda")
 ```
 

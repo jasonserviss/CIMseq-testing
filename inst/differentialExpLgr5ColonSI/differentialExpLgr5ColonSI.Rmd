@@ -307,7 +307,6 @@ openxlsx::write.xlsx(p.ks.res2, file = "~/Github/sp.scRNAseq/inst/differentialEx
 ```{r, echo = FALSE}
 load('~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy2.rda')
 load('~/Github/sp.scRNAseqTesting/inst/differentialExpLgr5ColonSI/differentialExpressionStrategy.ks.res2.rda')
-
 ```
 
 Number of significant genes detected at alpha 0.05?

@@ -1,0 +1,49 @@
+---
+title: "Cost stability"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE, warning = FALSE}
+#PACKAGES
+packages <- c(
+    "sp.scRNAseq", "sp.scRNAseqData", "sp.scRNAseqTesting",
+    "generateSyntheticMultiplets", "printr", "ggthemes",
+    "tidyverse", "future"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load("../data/sObj.rda")
+load("../data/costs.rda")
+```
+
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tests <- seq(50, 1000, 50)
+data %>%
+  setNames(tests) %>%
+  add_column(rep = 1:nrow(.), .before = 1) %>%
+  gather(nrOfMultiplets, Cost, -rep) %>%
+  mutate(nrOfMultiplets = as.numeric(nrOfMultiplets)) %>%
+  ggplot() +
+  geom_boxplot(aes(nrOfMultiplets, Cost, group = nrOfMultiplets)) +
+  theme_bw() +
+  labs(
+    x = "Number of synthetic multiplets",
+    caption = "50 replicates per number of synthetic multiplets"
+  ) + 
+  theme(plot.caption = element_text(hjust = 0)) +
+  scale_x_continuous(breaks = tests, minor_breaks = tests)
+
+save(data, file = "~/Github/sp.scRNAseqTesting/inst/testingPoissonAlgo/cost.rda")
+```
+
+
