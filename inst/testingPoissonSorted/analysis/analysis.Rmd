@@ -106,4 +106,7 @@ print <- res %>%
 as.data.frame(print)
 ```
 
+```{r}
+sessionInfo()
+```
 

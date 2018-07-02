@@ -13,15 +13,13 @@ editor_options:
 ```{r, message = FALSE, warning = FALSE}
 #PACKAGES
 packages <- c(
-    "sp.scRNAseq", "sp.scRNAseqData", "sp.scRNAseqTesting",
-    "generateSyntheticMultiplets", "printr", "ggthemes",
+    "sp.scRNAseq", "sp.scRNAseqData", "printr", "ggthemes",
     "tidyverse", "future"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-load("../data/sObj.rda")
 load("../data/costs.rda")
 ```
 
@@ -42,8 +40,9 @@ data %>%
   ) + 
   theme(plot.caption = element_text(hjust = 0)) +
   scale_x_continuous(breaks = tests, minor_breaks = tests)
-
-save(data, file = "~/Github/sp.scRNAseqTesting/inst/testingPoissonAlgo/cost.rda")
 ```
 
+```{r}
+sessionInfo()
+```
 

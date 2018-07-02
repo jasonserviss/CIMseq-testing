@@ -1,0 +1,219 @@
+---
+title: "Testing new swarm algo"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c(
+  "sp.scRNAseq","sp.scRNAseqData", "sp.scRNAseqTesting", "printr",
+  "ggthemes", "tidyverse", "future"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+```
+
+```{r, warning=FALSE}
+#FUNCTIONS
+syntheticMultipletsFromCounts <- function(
+  singlets, classes, fractions,
+  seed, idx, ...
+){
+  set.seed(seed)
+  exCounts <- singlets[, idx]
+  
+  #adjust the counts by multiplying with the corresponding values adjustment
+  adjusted <- round(t(t(exCounts) * fractions))
+  
+  #calculate the sum of counts for each gene
+  rs <- matrixStats::rowSums2(adjusted)
+  
+  #Sample from the poisson distribution for each gene with lambda = rs
+  #matrix(
+  #  rpois(n = length(rs), lambda = rs),
+  #  dimnames = list(rownames(exCounts), "multiplet")
+  #)
+  matrix(rs)
+}
+
+generateSyntheticMultiplets <- function(
+  singlets, classes, fractions,
+  seed, n, idx = NULL, ...
+){
+  mat <- purrr::map(1:n, function(y) {
+    syntheticMultipletsFromCounts(
+      singlets = singlets, classes = classes,
+      fractions = fractions, seed = seed + y, idx = idx[[y]]
+    )
+  }) %>%
+  do.call(cbind, .)
+  
+  colnames(mat) <- paste0("multiplet.", 1:n)
+  rownames(mat) <- rownames(singlets)
+  mat
+}
+
+##DATA
+load('../data/algoOut.rda')
+load('../data/syntheticMultiplets.rda')
+```
+
+Show marker gene expression
+
+```{r, fig.align="center", fig.height=8, fig.width=10}
+#ANXA3 = HCT116 marker
+#CD74 = A375 marker
+#ACTG2 = HOS marker
+g <- c("ANXA3", "CD74", "ACTG2")
+
+#plot genes in singlets
+p <- getData(cObjSng, "counts.cpm")[g, ] %>% 
+  matrix_to_tibble("gene") %>%
+  gather(sample, value, -gene) %>%
+  inner_join(countsSortedMeta2, by = "sample") %>%
+  mutate(gene = case_when(
+    gene == "ANXA3" ~ "HCT116: ANXA3",
+    gene == "CD74" ~ "A375: CD74",
+    gene == "ACTG2" ~ "HOS: ACTG2",
+    TRUE ~ "error"
+  )) %>%
+  ggplot() +
+  geom_boxplot(
+    aes(cellTypes, value, colour = gene),
+    notch = TRUE, lwd = 0.25, outlier.size = 0.2
+  ) +
+  coord_flip() +
+  scale_colour_ptol() +
+  theme_few() +
+  labs(y = "CPM") +
+  guides(colour = guide_legend(title = "Gene"))
+
+p + theme(axis.title.y = element_blank())
+
+p <- p + theme(
+    plot.title = element_blank(),
+    plot.margin = unit(rep(0.1, 4), "lines"),
+    legend.position = "top",
+    legend.background = element_blank(),
+    legend.box.spacing = unit(5, "pt"), #this controls the spacing between strip.text.x and the legend
+    legend.margin = margin(rep(0, 4), unit = "pt"),
+    legend.key.size = unit(1/5, "cm"),
+    legend.title = element_text(size = 5),
+    legend.text = element_text(size = 4),
+    axis.title.y = element_blank(),
+    axis.title = element_text(size = 5),
+    axis.title.x = element_text(margin = margin(t = 5)),
+    axis.text.y = element_text(size = 4),
+    axis.text.x = element_text(size = 4),
+    axis.ticks = element_line(size = 0.25),
+    axis.ticks.length = unit(1/15, "cm"),
+    strip.text.x = element_text(
+      margin = margin(1, 0, 1, 0, "pt")
+    ),
+    strip.text = element_text(size = 3.25),
+    panel.border = element_rect(fill = NA, size = 0.15)
+  )
+
+ggsave(
+  plot = p,
+  filename = '../figures/figure1.pdf',
+  device = cairo_pdf,
+  height = 60,
+  width = 83,
+  units = "mm"
+)
+```
+
+```{r, fig.align="center", fig.height=8, fig.width=10, warning=FALSE}
+#this gives warnings because type: wrong, gene: ANXA3 is only one value (0). These
+#can be ignored
+p <- synthetic.mul %>%
+  mutate(dpois = map2_dbl(real.multiplet, value, ~dpois(.x, .y, TRUE))) %>%
+  mutate(cost = if_else(is.infinite(dpois), -323.0052, dpois)) %>%
+  mutate(cost = cost * -1) %>%
+  ggplot() + 
+  geom_histogram(aes(value, ..ndensity..), binwidth = 10) + 
+  facet_grid(gene ~ type, scales = "free_y") +
+  geom_smooth(
+     data = . %>% 
+      select(value, gene, cost, type) %>% 
+      distinct() %>% 
+      group_by(gene, type) %>% 
+      mutate(cost.norm = cost / sum(cost)),
+    aes(value, cost.norm, group = interaction(gene, type)), 
+    se = FALSE, size = 0.1, span = 0.99, n = 100, method = "loess", 
+    formula = y ~ x
+  ) +
+  geom_segment(
+    data = . %>% select(gene, real.multiplet) %>% distinct(),
+    aes(x = real.multiplet, xend = real.multiplet, y = 0, yend = 1.05), 
+    lty = 3, colour = "red", size = 0.3
+  ) +
+  geom_text(
+    data = . %>%
+      select(value, gene, cost, type) %>% 
+      distinct() %>% 
+      group_by(gene, type) %>% 
+      summarize(mean = mean(cost)),
+    aes(
+      x = 0, y = 1.1, label = paste0("Mean cost: ", round(mean))
+    ), colour = "gray13", hjust = 0, size = 1
+  ) +
+  theme_few() +
+  labs(y = "Density", x = "CPM")
+
+    #geom_point(
+  #  data = . %>%
+  #   select(value, gene, dpois, type) %>%
+  #   distinct() %>%
+  #   group_by(gene, type) %>%
+  #   mutate(d.norm = dpois / sum(dpois)),
+  # aes(value, d.norm), colour = "blue"
+  #) 
+
+p
+
+p <- p + theme(
+    plot.title = element_blank(),
+    plot.margin = unit(rep(0.1, 4), "lines"),
+    legend.position = "top",
+    legend.background = element_blank(),
+    legend.box.spacing = unit(5, "pt"), #this controls the spacing between strip.text.x and the legend
+    legend.margin = margin(rep(0, 4), unit = "pt"),
+    legend.key.size = unit(1/5, "cm"),
+    legend.title = element_text(size = 9),
+    legend.text = element_text(size = 7),
+    axis.title = element_text(size = 5),
+    axis.title.x = element_text(margin = margin(t = 5)),
+    axis.text.y = element_text(size = 4),
+    axis.text.x = element_text(size = 4),
+    axis.ticks = element_line(size = 0.25),
+    axis.ticks.length = unit(1/15, "cm"),
+    strip.text.x = element_text(
+      margin = margin(1, 0, 1, 0, "pt")
+    ),
+    strip.text = element_text(size = 3.25),
+    panel.border = element_rect(fill = NA, size = 0.15)
+  )
+
+ggsave(
+  plot = p,
+  filename = '../figures/figure2.pdf',
+  device = cairo_pdf,
+  height = 60,
+  width = 83,
+  units = "mm"
+)
+```
+
+```{r}
+sessionInfo()
+```
+
+

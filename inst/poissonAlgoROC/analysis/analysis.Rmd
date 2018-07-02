@@ -1,0 +1,57 @@
+---
+title: "Varying amounts of synthetic multiplets"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c(
+  "sp.scRNAseq","sp.scRNAseqData", "sp.scRNAseqTesting", "printr",
+  "ggthemes", "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+load('../data/results.rda')
+tests <- seq(50, 1000, 100)
+names(results) <- tests
+
+#Process data
+known <- setupPlate(countsSortedMeta2)
+processed.res <- map_dfr(results, function(s) {
+  checkResults(s, known, 0)
+}, .id = "nSyntheticMultiplets")
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, warning=FALSE}
+processed.res %>% 
+  inner_join(countsSortedMeta2, by = c("multiplet" = "sample")) %>%
+  mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
+  gather(metric, value, -(nSyntheticMultiplets:tn), -(plate:cellsInMultiplet)) %>%
+  mutate(nSyntheticMultiplets = parse_factor(
+    nSyntheticMultiplets,
+    levels = unique(sort(as.numeric(nSyntheticMultiplets)))
+  )) %>%
+  mutate(cellsInMultiplet = paste0("# of cells in multiplet: ", cellsInMultiplet)) %>%
+  ggplot() +
+  geom_violin(aes(nSyntheticMultiplets, value, fill = metric)) +
+  geom_point(
+    data = . %>% 
+      group_by(nSyntheticMultiplets, cellsInMultiplet, metric) %>%
+      summarize(meanMetric = mean(value, na.rm = TRUE)),
+    aes(nSyntheticMultiplets, meanMetric), shape = 95, size = 5
+  ) +
+  facet_grid(metric~cellsInMultiplet) +
+  theme_bw() +
+  scale_fill_ptol() +
+  labs(x = "# of synthetic multiplets", y = "Value") +
+  guides(fill = guide_legend(title = "Metric"))
+```
+
+

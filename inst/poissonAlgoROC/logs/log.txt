@@ -1,0 +1,38 @@
+── Attaching packages ─────────────────────────────────────── tidyverse 1.2.1 ──
+✔ ggplot2 2.2.1.9000     ✔ purrr   0.2.5     
+✔ tibble  1.4.2          ✔ dplyr   0.7.5     
+✔ tidyr   0.8.1          ✔ stringr 1.3.1     
+✔ readr   1.1.1          ✔ forcats 0.3.0     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+
+Attaching package: ‘future.apply’
+
+The following object is masked from ‘package:future’:
+
+    future_lapply
+
+[1] "spCounts done"
+[1] "spUnsupervised done"
+[1] "Starting deconvolution at 2018-06-29 10:52:02"
+[1] "Finished deconvolution at 2018-06-29 10:55:09"
+[1] "Starting deconvolution at 2018-06-29 10:55:09"
+[1] "Finished deconvolution at 2018-06-29 11:04:27"
+[1] "Starting deconvolution at 2018-06-29 11:04:27"
+[1] "Finished deconvolution at 2018-06-29 11:20:10"
+[1] "Starting deconvolution at 2018-06-29 11:20:10"
+[1] "Finished deconvolution at 2018-06-29 11:42:18"
+[1] "Starting deconvolution at 2018-06-29 11:42:18"
+[1] "Finished deconvolution at 2018-06-29 12:11:18"
+[1] "Starting deconvolution at 2018-06-29 12:11:18"
+[1] "Finished deconvolution at 2018-06-29 13:17:55"
+[1] "Starting deconvolution at 2018-06-29 13:17:55"
+[1] "Finished deconvolution at 2018-06-29 14:00:14"
+[1] "Starting deconvolution at 2018-06-29 14:00:14"
+[1] "Finished deconvolution at 2018-06-29 14:48:16"
+[1] "Starting deconvolution at 2018-06-29 14:48:16"
+[1] "Finished deconvolution at 2018-06-29 15:43:10"
+[1] "Starting deconvolution at 2018-06-29 15:43:10"
+[1] "Finished deconvolution at 2018-06-29 16:45:10"
+[1] "finished"
