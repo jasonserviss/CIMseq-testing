@@ -21,12 +21,6 @@ syntheticMultipletsFromCounts <- function(
   
   #calculate the sum of counts for each gene
   rs <- matrixStats::rowSums2(adjusted)
-  
-  #Sample from the poisson distribution for each gene with lambda = rs
-  #matrix(
-  #  rpois(n = length(rs), lambda = rs),
-  #  dimnames = list(rownames(exCounts), "multiplet")
-  #)
   matrix(rs)
 }
 
