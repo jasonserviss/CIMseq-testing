@@ -1,0 +1,140 @@
+---
+title: "Solution space"
+output:
+  html_document:
+    toc: no
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+packages <- c(
+  "sp.scRNAseqData", "sp.scRNAseq", "seqTools",
+  "printr", "ggthemes", "tidyverse", "broom"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+load('../data/algoOutput.rda')
+load('../data/report.rda')
+```
+
+
+```{r, fig.align="center", fig.height=8, fig.width=10}
+#A375-HOS: m.NJB00204.G04
+#A375-A375-HCT116-HOS: m.NJB00204.F12
+#HCT116-HCT116-HOS: m.NJB00204.D07
+
+#https://stackoverflow.com/questions/43567212/r-ggplot2-geom-smooth-with-gradient-color-from-a-third-continuous-variable
+
+short.report <- report %>% 
+  select(-fitness) %>% 
+  unnest() %>% 
+  gather(cellLine, position, -(sample:swarmMemberID)) %>% 
+  mutate(cells = case_when(
+    sample == "m.NJB00204.G04" ~ "A375-HOS",
+    sample == "m.NJB00204.D07" ~ "HCT116-HCT116-HOS",
+    sample == "m.NJB00204.F12" ~ "A375-A375-HCT116-HOS",
+    TRUE ~ "error"
+  ))
+
+pred.position <- short.report %>%
+  group_by(swarmMemberID, sample, cellLine, cells) %>% 
+  do(augment(loess(position ~ iteration, data = .))) %>%
+  ungroup() %>%
+  rename(pred.position = .fitted) %>%
+  select(-.se.fit, -.resid, -.rownames)
+
+splitVec <- function(vec, df = 5, n = 1000) {
+  sv <- smooth.spline(vec, df = df)$y
+  c <- viridis::viridis(n)
+  diffs <- c(diff(matrix(c(sv, c(sv[-1], NA)), nrow = 2, byrow = TRUE)))
+  diffs[length(diffs)] <- diffs[length(diffs) - 1]
+  rescale <- ((n - 1) * (diffs - min(diffs))) / (max(diffs) - min(diffs)) + 1
+  rescale[which(rescale == max(rescale)):length(rescale)] <- max(rescale) #kill tail
+  c[rescale]
+}
+
+p <- short.report %>% 
+  full_join(
+    pred.position, 
+    by = c(
+      "sample", "iteration", "swarmMemberID", "cellLine", "position", "cells"
+    )
+  ) %>%
+  group_by(cells, swarmMemberID, cellLine) %>%
+  mutate(c = splitVec(error, 5, 50)) %>%
+  ungroup() %>%
+  ggplot(., aes(iteration, pred.position)) +
+  geom_line(aes(colour = c, group = swarmMemberID), size = 0.1) +
+  facet_grid(cellLine ~ cells) +
+  scale_colour_identity() +
+  scale_y_continuous(breaks = seq(0, 1, 0.2)) +
+  theme_bw() +
+  labs(y = "Position", x = "Iteration")
+
+p
+
+ggsave(
+  plot = p,
+  filename = '../figures/figure1.pdf',
+  device = cairo_pdf,
+  height = 120,
+  width = 166,
+  units = "mm"
+)
+```
+
+
+```{r, eval = FALSE}
+report %>%
+  unnest() %>% 
+  gather(cellLine, position, -(sample:swarmMemberID)) %>% 
+  mutate(cells = case_when(
+    sample == "m.NJB00204.G04" ~ "A375-HOS",
+    sample == "m.NJB00204.D07" ~ "HCT116-HCT116-HOS",
+    sample == "m.NJB00204.F12" ~ "A375-A375-HCT116-HOS",
+    TRUE ~ "error"
+  )) %>%
+  group_by(cells, cellLine, iteration) %>%
+  mutate(
+    max = if_else(fitness == max(fitness), TRUE, FALSE),
+    min = if_else(fitness == min(fitness), TRUE, FALSE)
+  ) %>%
+  gather(Fitness, bool, -(sample:cells)) %>%
+  ggplot() +
+  geom_point(
+    data = . %>% filter(bool), 
+    aes(iteration, position, colour = Fitness)
+  ) +
+  geom_smooth(aes(iteration, position), span = 200) +
+  facet_grid(cellLine~cells) +
+  theme_bw() +
+  labs(y = "Position", x = "Iteration") +
+  scale_y_continuous(breaks = seq(0, 1, 0.1))
+```
+
+```{r, eval = FALSE}
+mat <- report %>%
+  unnest() %>%
+  group_by(sample, iteration) %>%
+  nest() %>%
+  mutate(pca = map(data, function(x) {
+    mat <- x %>% 
+      select(HOS, HCT116, A375) %>%
+      as.matrix()
+    
+    mat[is.na(mat)] <- 0
+    p <- prcomp(mat)
+    #as_tibble(as.data.frame(p$x))
+    t <- Rtsne::Rtsne(mat, check_duplicates = FALSE)
+    as_tibble(t$y)
+  }))
+
+```
+
+```{r}
+#calcluate and show total solution space
+```
+

@@ -17,21 +17,15 @@ erccSng <- cbind(
 )
 erccMul <- cbind(countsMgfpERCC[, !s])
 
-boolMulC <- colnames(mul) %in% filter(countsMgfpMeta, tissue == "colon")$sample
-boolSngC <- colnames(sng) %in% filter(countsMgfpMeta, tissue == "colon")$sample
-
 #setup spCounts
 cObjSng <- spCounts(sng, erccSng)
-cObjMul <- spCounts(mul[, 1:2], erccMul[, 1:2])
+cObjMul <- spCounts(mul, erccMul)
 
 print("spCounts done")
 
 #spUnsupervised
 if(file.exists(file.path(currPath, 'data/uObj.rda'))) {
   load(file.path(currPath, "data/uObj.rda"))
-} else {
-  uObj <- spUnsupervised(cObjSng, max_iter = 7000, initial_dims = ncol(sng), seed = 87689)
-  save(uObj, file = file.path(currPath, "data/uObj.rda"))
 }
 
 print("spUnsupervised done")

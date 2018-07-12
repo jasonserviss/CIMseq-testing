@@ -1,0 +1,57 @@
+---
+title: "Testing Feature Selection Methods with Sorted Multiplets Dataset"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+#PACKAGES
+packages <- c(
+  "sp.scRNAseq", "sp.scRNAseqData", "sp.scRNAseqTesting",
+  "printr", "ggthemes", "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load("../data/sObjs.rda")
+```
+
+```{r}
+res <- map_dfr(sObjs, function(x) {
+  known <- setupPlate(countsSortedMeta2)
+  checkResults(x, known, 0)
+}, .id = "type")
+
+
+d <- res %>%
+  inner_join(countsSortedMeta2, by = c("multiplet" = "sample")) %>%
+  mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
+  group_by(cellsInMultiplet, type) %>%
+  summarize(
+    meanTPR = mean(TPR, na.rm = TRUE),
+    meanTNR = mean(TNR, na.rm = TRUE),
+    meanACC = mean(ACC, na.rm = TRUE)
+  )
+
+as.data.frame(d)
+
+d <- res %>%
+  inner_join(countsSortedMeta2, by = c("multiplet" = "sample")) %>%
+  mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
+  group_by(cellTypes, type) %>%
+  summarize(
+    meanTPR = mean(TPR, na.rm = TRUE),
+    meanTNR = mean(TNR, na.rm = TRUE),
+    meanACC = mean(ACC, na.rm = TRUE)
+  )
+
+as.data.frame(d)
+```
+

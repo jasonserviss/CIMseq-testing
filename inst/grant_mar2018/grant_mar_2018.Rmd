@@ -1,0 +1,635 @@
+---
+title: "CIM-seq grant application"
+subtitle: "March 2018"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c(
+    "sp.scRNAseq",
+    "sp.scRNAseqData",
+    "sp.scRNAseqTesting",
+    "sp.scRNAseqAnalysis",
+    "seqTools",
+    "printr",
+    "ggthemes",
+    "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+```
+
+```{r}
+#setup known multiplet compositions
+known <- setupPlate(countsSortedMeta2)
+```
+
+Run CIM-seq with sorted multiplets.
+```{r}
+#run method with sorted multiplets
+sng <- str_detect(colnames(countsSorted2), "^s")
+cObjSng <- spCounts(countsSorted2[, sng], countsSortedERCC2[, sng])
+cObjMul <- spCounts(countsSorted2[, !sng], countsSortedERCC2[, !sng])
+uObj <- spUnsupervised(cObjSng)
+
+#rename classes
+positions <- str_extract(colnames(getData(cObjSng, "counts")), "...$")
+newClass <- case_when(
+  positions == "E03" ~ "A375", #what is this? sorting issue?
+  positions %in% paste0(sort(rep(LETTERS[1:8], 4)), c("01", "02", "03", "04")) ~ "HOS",
+  positions %in% paste0(sort(rep(LETTERS[1:8], 4)), c("05", "06", "07", "08")) ~ "HCT116",
+  positions %in% paste0(sort(rep(LETTERS[1:8], 4)), c("09", "10", "11", "12")) ~ "A375",
+  TRUE ~ "error"
+)
+corresp <- getData(uObj, "classification") %>%
+  tibble(oldClass = ., newClass = newClass) %>%
+  distinct()
+
+classification(uObj) <- newClass
+
+gm <- getData(uObj, "groupMeans")
+colnames(gm) <- pull(corresp, newClass)[match(colnames(gm), pull(corresp, oldClass))]
+groupMeans(uObj) <- gm
+
+tm <- getData(uObj, "tsneMeans")
+tm$classification <- pull(corresp, newClass)[match(tm$classification, pull(corresp, oldClass))]
+tsneMeans(uObj) <- tm
+
+#spSwarm
+cellNr <- estimateCells(cObjSng, cObjMul)
+sObj <- spSwarm(cObjMul, uObj, distFun = "dtsnCellNum", cellNumber = cellNr, e = 0.0025, swarmsize = 50, maxiter = 10)
+```
+
+Accuracy for 88 sorted multiplets.
+```{r, fig.align="center", fig.width=10, fig.height=8}
+#plot
+sObj %>%
+  #check the results, adds TPR, TNR, and ACC metrics
+  checkResults(., known, edge.cutoff = 0) %>%
+  #Add number of cells per multiplet
+  mutate(cellsInWell = case_when(
+    str_extract(multiplet, "..$") %in% c("01", "02", "03", "04") ~ 2L,
+    str_extract(multiplet, "..$") %in% c("05", "06", "07", "08") ~ 3L,
+    str_extract(multiplet, "..$") %in% c("09", "10", "11", "12") ~ 4L
+  )) %>%
+  #setup for plotting
+  select(multiplet, cellsInWell, data.detected:ACC) %>%
+  mutate(cellsInWell = parse_factor(cellsInWell, levels = sort(unique(cellsInWell)))) %>%
+  #plot
+  ggplot() +
+  geom_violin(aes(cellsInWell, ACC, fill = cellsInWell)) +
+  geom_dotplot(aes(cellsInWell, ACC), alpha = 0.6, binwidth = 0.01, binaxis = "y", stackdir = "center") +
+  ggthemes::theme_few() +
+  ggthemes::scale_fill_ptol() +
+  labs(x = "# of cells in multiplet", y = "Accuracy") +
+  ylim(0, 1) +
+  guides(fill = FALSE)
+```
+
+### LGR5-GFP mouse
+
+Perform seperate analysis for small intestine and colon. 
+
+```{r}
+#calculates the pairwise log2 fold change in genes across cell types. If idx is 
+#NULL the selectInd slot in the spUnsupervised object is used for gene selection.
+pairwiseFold <- function(spUnsupervised, idx = NULL) {
+  if(is.null(idx)) {
+    idx <- getData(spUnsupervised, "selectInd")
+  }
+  
+  groupMeans <- getData(spUnsupervised, "groupMeans")
+  celltypes <- unique(colnames(getData(spUnsupervised, "groupMeans")))
+  
+  combos <- expand.grid(celltypes, celltypes) %>%
+    filter(Var1 != Var2) %>%
+    t()
+  
+  combos %>%
+    data.frame(stringsAsFactors = FALSE) %>%
+    as.list() %>%
+    map_dfc(function(x) {
+      log2(groupMeans[idx, x[1]] / groupMeans[idx, x[2]])
+    }) %>%
+    setNames(paste(combos[1, ], combos[2, ], sep = "-")) %>%
+    add_column(gene = rownames(groupMeans[idx, ]), .before = 1) %>%
+    gather(comparison, log2FC, -gene) %>%
+    arrange(desc(log2FC)) %>%
+    separate(comparison, c("cellType1", "cellType2"), sep = "-") %>%
+    arrange(gene, cellType1, desc(log2FC))
+}
+
+#selects nPerComp genes per cell type combination that defines the cell type
+#based on the log2 fold change
+pairwiseSelect <- function(spUnsupervised, nPerComp) {
+  celltypes <- unique(colnames(getData(spUnsupervised, "groupMeans")))
+  combos <- combn(celltypes, 2) %>%
+    t() %>% 
+    as.data.frame(stringsAsFactors = FALSE) %>%
+    unite(combos, V1, V2)
+  
+  pairwiseFold(spUnsupervised) %>%
+    #remove duplicates
+    unite(comparison, cellType1, cellType2) %>%
+    filter(comparison %in% combos$combos) %>%
+    separate(comparison, c("cellType1", "cellType2"), sep = "_") %>%
+    #select
+    mutate(abs.log2FC = abs(log2FC)) %>%
+    arrange(desc(abs.log2FC)) %>%
+    group_by(cellType1, cellType2) %>%
+    top_n(n = nPerComp, wt = abs.log2FC) %>%
+    ungroup() %>%
+    select(-log2FC) %>%
+    arrange(cellType1, desc(abs.log2FC))
+}
+
+#summarizes features for classes based on the ks test and log2 fold change using
+#pairwise comparison of the classes
+verboseDefine <- function(spUnsupervised, spCounts, nSeed = 100, nFinal = 10) {
+  counts <- getData(spCounts, "counts")
+  classes <- getData(spUnsupervised, "classification")
+  
+  #make first selection of genes
+  markers <- pairwiseSelect(spUnsupervised, nSeed)
+  
+  #calculate KS test
+  ksRes <- seqTools::KStest(
+      counts[rownames(counts) %in% markers$gene, ], 
+      classes, cores = 2
+  ) %>%
+    separate(combination, c("cellType1", "cellType2"), sep = "-", remove = FALSE)
+  
+  #add log2FC
+  celltypes <- unique(colnames(getData(spUnsupervised, "groupMeans")))
+  combos <- combn(celltypes, 2) %>%
+    apply(., 2, sort) %>%
+    t() %>%
+    as.data.frame(stringsAsFactors = FALSE) %>%
+    unite(combos, V1, V2, sep = "-")
+  
+  pairwiseFold(
+    spUnsupervised,
+    match(unique(ksRes$gene), rownames(getData(spUnsupervised, "groupMeans")))
+  ) %>%
+    #remove duplicates
+    unite(combination, cellType1, cellType2, sep = "-") %>%
+    filter(combination %in% combos$combos) %>%
+    full_join(ksRes, by = c("combination", "gene")) %>%
+    select(gene, cellType1, cellType2, stat, p.value, log2FC)
+}
+
+#selects features for each class based on ks test results and fold change
+defineClasses <- function(spUnsupervised, spCounts, nSeed = 100, nFinal = 10, logfcCut = 1, even = TRUE) {
+  classes <- getData(spUnsupervised, "classification")
+  
+  fc <- verboseDefine(spUnsupervised, spCounts, nSeed, nFinal) %>%
+    mutate(tmp1 = paste(gene, cellType1, sep = "_"), tmp2 = paste(gene, cellType2, sep = "_")) %>%
+    mutate(combination = paste(cellType1, cellType2, sep = "-"))
+  
+  #filter KS results
+  pRes <- processKStest(fc, classes, 0.05) %>%
+    filter(sigBool) %>% 
+    group_by(gene) %>%
+    mutate(n = n()) %>%
+    filter(n == 1) %>%
+    select(-n, -sigBool) %>%
+    ungroup() %>% 
+    group_by(id) %>%
+    top_n(n = nFinal, wt = statSum) %>%
+    ungroup() %>%
+    arrange(id, desc(statSum)) %>%
+    mutate(tmp = paste(gene, id, sep = "_"))
+  
+  #filter on log2FC
+  filtered <- filter(fc, tmp1 %in% pRes$tmp | tmp2 %in% pRes$tmp) %>%
+    group_by(gene) %>% 
+    filter(all(log2FC < -logfcCut | log2FC > logfcCut)) %>%
+    ungroup() %>%
+    select(gene, cellType1, cellType2, stat, p.value, log2FC) %>%
+    arrange(gene, cellType1)
+  
+  classDef <- pRes %>%
+    filter(gene %in% filtered$gene) %>%
+    select(-tmp, -statSum) %>%
+    rename(class = id) 
+  
+  #make even # per class
+  if(even) {
+    set.seed(98230)
+    minN <- min(count(classDef, class)$n)
+    classDef <- classDef %>%
+      group_by(class) %>% 
+      sample_n(minN, replace = FALSE) %>%
+      ungroup()
+  }
+  
+  if(nrow(count(classDef, class)) != length(unique(classes))) {
+    warning("all classes not detected")
+  }
+  return(classDef)
+}
+
+#reasigns classification in the spUnsupervised object based on a class definition
+#with a fraction output for each possible reassignment
+classifyByMarkerFraction <- function(
+  spCounts,
+  spUnsupervised,
+  classDefinition
+){
+  counts <- getData(spCounts, "counts")
+  sampleClasses <- getData(spUnsupervised, "classification")
+  markers <- classDefinition$gene
+  markerClasses <- classDefinition$class
+  
+  #select marker genes from counts
+  counts[match(markers, rownames(counts)), ] %>%
+  #coerce to tidy tibble
+  as.data.frame() %>%
+  rownames_to_column(var = "gene") %>%
+  as_tibble() %>%
+  add_column(markerClass = markerClasses) %>%
+  gather(sampleName, count, -gene, -markerClass) %>%
+  add_column(sampleClass = rep(sampleClasses, each = length(markers))) %>%
+  #normalize gene expression
+  group_by(gene) %>%
+  mutate(normalized = (count - min(count)) / (max(count) - min(count))) %>%
+  ungroup() %>%
+  #calculate fraction of marker per class
+  group_by(sampleClass) %>%
+  mutate(fraction = normalized / sum(normalized)) %>%
+  mutate(fraction = if_else(is.nan(fraction), 1 / n(), fraction)) %>%
+  #show evidence for sampleClass using the fraction of marker expression
+  ungroup() %>% 
+  group_by(sampleClass, markerClass) %>% 
+  summarize(s = sum(fraction)) %>% 
+  ungroup()
+}
+
+plotClassDefinition <- function(classDef) {
+  classDef %>%
+    ggplot() +
+    geom_violin(aes(id, statSum)) +
+    geom_jitter(aes(id, statSum), alpha = 1/10, width = 0.3, height = 0) +
+    scale_y_continuous(
+      breaks = seq(0, ceiling(max(classDef$statSum)), 1), 
+      limits = c(0, ceiling(max(classDef$statSum)))
+    ) +
+    ggthemes::theme_few() +
+    theme(axis.text.x = element_text(angle = 90)) +
+    labs(x = "Cell type", y = "Sum of KS test statistics")
+}
+
+#plots the pairwise log2 fold changes between cell types. If idx is NULL the 
+#selectInd slot of the spUnsupervised object is used to select genes.
+plotPairwise <- function(spUnsupervised, idx = NULL) {
+   pairwiseFold(spUnsupervised, idx)%>%
+    ggplot() +
+    geom_histogram(aes(log2FC), binwidth = 1) +
+    facet_grid(cellType1 ~ cellType2) +
+    labs(
+      caption = "Every bin represents a fold change of 2.",
+      x = "log2(Fold change)"
+    ) +
+    theme(
+      plot.caption = element_text(hjust = 0),
+      strip.text.y = element_text(angle = 0)
+    )
+}
+
+plotFracHist <- function(spSwarm, cut = 0, bin = 0.15) {
+  getData(spSwarm, "spSwarm") %>%
+    matrix_to_tibble("sampleName") %>%
+    gather(cellType, frac, -sampleName) %>%
+    filter(frac > cut) %>%
+    ggplot() +
+    geom_histogram(aes(log2(frac)), binwidth = bin) +
+    scale_x_continuous(
+      breaks = seq(-60, 0, 3),
+      sec.axis = sec_axis(
+        ~ 2 ^ ., 
+        breaks = signif(2^seq(-60, 0, 3), digits = 1),
+        name = "fractions"
+    )) +
+    labs(x = "log2(fractions)") +
+    #geom_vline(xintercept = log2(1 / ncol(getData(spSwarm, "spSwarm"))), lty = 2, colour = "red") +
+    geom_vline(xintercept = log2(1/2), lty = 2, colour = "grey") +
+    geom_vline(xintercept = log2(1/3), lty = 2, colour = "grey") +
+    geom_vline(xintercept = log2(1/4), lty = 2, colour = "grey") +
+    facet_wrap(~cellType)
+}
+
+detectedCellNumbers <- function(spSwarm, edge.cutoff) {
+  (getData(spSwarm, "spSwarm") > edge.cutoff) %>%
+    rowSums(.) %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "sample") %>%
+    setNames(c("sample", "cellNr")) %>%
+    as_tibble()
+}
+
+plotDetectedCellNumbers <- function(spSwarm, edge.cutoff) {
+  detectedCellNumbers(spSwarm, edge.cutoff) %>%
+  ggplot() +
+    geom_bar(aes(cellNr)) +
+    ggthemes::theme_few() +
+    labs(x = "Cells per multiplet", y = "Count")
+}
+
+plotCostVsNonzero <- function(spSwarm) {
+  tibble(
+    which0 = apply(getData(spSwarm, "spSwarm"), 1, function(x) length(which(x != 0))),
+    costs = getData(spSwarm, "costs")
+  ) %>%
+    ggplot() +
+    geom_point(aes(which0, costs), alpha = 1/5) +
+    ggthemes::theme_few() +
+    labs(x = "# non-zero in fraction", y = "cost")
+}
+
+fractionsPerCellNr <- function(spSwarm, edge.cutoff, bin = 0.05) {
+  swarm <- getData(spSwarm, "spSwarm") %>%
+    rownames_to_column(var = "sample") %>%
+    as_tibble()
+  
+  detectedCellNumbers(spSwarm, edge.cutoff) %>%
+    mutate(cellNr = paste0("Cells in multiplet: ", cellNr)) %>%
+    full_join(swarm, by = "sample") %>%
+    gather(cellType, frac, -(sample:cellNr)) %>%
+    ggplot() +
+    geom_histogram(aes(frac), binwidth = bin) +
+    facet_wrap(~cellNr) +
+    ggthemes::theme_few()
+}
+
+plotGFP <- function(spCountsSng, spUnsupervised) {
+  plotUnsupervisedClass(spUnsupervised, spCountsSng) %>%
+    plotData() %>%
+    mutate(GFP = Sample %in% filter(countsMgfpMeta, !filtered & GFP)) %>%
+    ggplot() +
+    geom_point(aes(`t-SNE dim 1`, `t-SNE dim 2`, colour = GFP))
+}
+
+plotRegev <- function(spUnsupervised, spCounts) {
+  plotUnsupervisedClass(spUnsupervised, spCounts) %>%
+    plotData() %>%
+    mutate(regev = if_else(str_detect(Sample, "SRR"), TRUE, FALSE)) %>%
+    ggplot() +
+    geom_point(aes(`t-SNE dim 1`, `t-SNE dim 2`, colour = regev)) +
+    ggthemes::theme_few() +
+    scale_colour_manual(values = viridis::cividis(2))
+}
+
+nn <- function(spCountsSng, iter, nn) {
+  nc <- ncol(getData(spCountsSng, "counts"))
+  select <- spTopMax(spCountsSng, 1000)
+  d <- pearsonsDist(spCounts, select)
+  dists <- map(1:iter, function(x) {
+     runTsne(my.dist = d, initial_dims = nc, max_iter = 5000, seed = (9823 + x), is_distance = TRUE)
+   }) %>%
+    map(., ~dist(.x, upper = TRUE, diag = TRUE)) %>%
+    map(as.matrix)
+
+  meanDists <- as.dist(Reduce('+', dists) / length(dists))
+  runTsne(my.dist = meanDists, initial_dims = nc, max_iter = 5000, seed = 9823, is_distance = TRUE)
+}
+```
+
+```{r, warning=FALSE}
+s <- str_detect(colnames(countsMgfp), "^s")
+commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
+
+sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
+mul <- countsMgfp[commonGenes, !s]
+
+erccSng <- cbind(countsMgfpERCC[, s], matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev)))
+erccMul <- cbind(countsMgfpERCC[, !s])
+
+boolMulC <- colnames(mul) %in% filter(countsMgfpMeta, tissue == "colon")$sample
+boolSngC <- colnames(sng) %in% filter(countsMgfpMeta, tissue == "colon")$sample
+
+#setup spCounts
+cObjSng <- spCounts(sng, erccSng)
+cObjMul <- spCounts(mul, erccMul)
+
+cObjSngSi <- spCounts(sng[, !boolSngC], erccSng[, !boolSngC])
+cObjSngC <- spCounts(sng[, boolSngC], erccSng[, boolSngC])
+
+cObjMulSi <- spCounts(mul[, !boolMulC], erccMul[, !boolMulC])
+cObjMulC <- spCounts(mul[, boolMulC], erccMul[, boolMulC])
+```
+
+```{r, eval = FALSE}
+uObjC <- spUnsupervised(cObjSngC, max_iter = 7000, initial_dims = sum(boolSngC), max = 750, seed = 876901)
+uObjSi <- spUnsupervised(cObjSngSi, max_iter = 7000, initial_dims = sum(!boolSngC), max = 1000, seed = 89142)
+
+#reclasify colon
+#C.Stem: A1, B1, K1 TA.Cell: C1
+#C.Colonocyte: G1, D1
+#C.Goblet: F1, E1
+#Blood: H1, J1
+#C.Enterocytes: I1
+
+#reclassify SI
+#SI.Stem: L1, K1, H1 SI.TA.Cells: D1, E1, F1
+#SI.Enterocytes: C1, G1
+#SI.Endocrine: I1
+#Blood: A1
+#SI.Tuft.Cells: J1
+#SI:Paneth: B1
+#SI.Goblet: B1
+
+si.paneth <- plotUnsupervisedClass(uObjSi, cObjSngSi) %>%
+  plotData() %>%
+  filter(Classification == "B1" & `t-SNE dim 1` < 30) %>%
+  pull(Sample)
+
+si.goblet <- plotUnsupervisedClass(uObjSi, cObjSngSi) %>%
+  plotData() %>%
+  filter(Classification == "B1" & `t-SNE dim 1` > 30) %>%
+  pull(Sample)
+
+colonClass <- tibble(
+  sample = rownames(getData(uObjC, "tsne")),
+  oldClass = getData(uObjC, "classification")
+) %>%
+  mutate(newClass = case_when(
+    oldClass %in% c("A1", "B1", "C1", "K1") ~ "C.Stem",
+    oldClass %in% c("G1", "D1") ~ "C.Colonocyte",
+    oldClass %in% c("F1", "E1") ~ "C.Goblet",
+    #oldClass %in% c("A1", "C1") ~ "C.TA.Cell",
+    oldClass %in% c("H1", "J1") ~ "Blood",
+    oldClass == "I1" ~ "C.Enterocytes",
+    TRUE ~ "error"
+  ))
+
+siClass <- tibble(
+  sample = rownames(getData(uObjSi, "tsne")),
+  oldClass = getData(uObjSi, "classification")
+) %>%
+  mutate(newClass = case_when(
+    oldClass %in% c("L1", "K1", "H1", "D1", "E1", "F1") ~ "SI.Stem",
+    #oldClass %in% c("M1", "B1") ~ "SI.TA.Cell",
+    oldClass %in% c("C1", "G1") ~ "SI.Enterocytes",
+    oldClass == "I1" ~ "SI.Endocrine",
+    oldClass == "A1" ~ "Blood",
+    oldClass == "J1" ~ "SI.Tuft.Cell",
+    sample %in% si.paneth ~ "SI.Paneth",
+    sample %in% si.goblet ~ "SI.Goblet",
+    TRUE ~ "error"
+  ))
+
+classification(uObjC) <- colonClass$newClass[match(rownames(getData(uObjC, "tsne")), colonClass$sample)]
+groupMeans(uObjC) <- averageGroupExpression(cObjSngC, getData(uObjC, "classification"), FALSE)
+tsneMeans(uObjC) <- tsneGroupMeans(getData(uObjC, "tsne"), getData(uObjC, "classification"))
+
+classification(uObjSi) <- siClass$newClass[match(rownames(getData(uObjSi, "tsne")), siClass$sample)]
+groupMeans(uObjSi) <- averageGroupExpression(cObjSngSi, getData(uObjSi, "classification"), FALSE)
+tsneMeans(uObjSi) <- tsneGroupMeans(getData(uObjSi, "tsne"), getData(uObjSi, "classification"))
+
+#define classes
+classDefinitionC <- defineClasses(uObjC, cObjSngC, nSeed = 10000, nFinal = 100, logfcCut = log2(1.75), even = FALSE)
+classDefinitionSi <- defineClasses(uObjSi, cObjSngSi, nSeed = 10000, nFinal = 100, logfcCut = log2(1.75), even = FALSE)
+```
+
+```{r, eval = FALSE, echo = FALSE}
+save(uObjSi, classDefinitionSi, file = "~/Github/sp.scRNAseqTesting/inst/grant_mar2018/uObjSi.rda", compress = "bzip2")
+save(uObjC, classDefinitionC, file = "~/Github/sp.scRNAseqTesting/inst/grant_mar2018/uObjC.rda", compress = "bzip2")
+```
+
+
+```{r, echo = FALSE}
+#load("~/Github/sp.scRNAseqTesting/inst/grant_mar2018/uObj.rda")
+load("~/Github/sp.scRNAseqTesting/inst/grant_mar2018/uObjSi.rda")
+load("~/Github/sp.scRNAseqTesting/inst/grant_mar2018/uObjC.rda")
+```
+
+```{r}
+classDef <- bind_rows(classDefinitionSi, classDefinitionC) %>%
+  add_row(class = "SI.Stem", gene = "Mki67") #add to try to differentiate cycling and non-cycling Lgr5 cells
+uObj <- spUnsupervised(cObjSng, max_iter = 6000, initial_dims = ncol(sng), type = "manual", genes = classDef$gene, seed = 87689)
+
+#reclasify colon
+#C.Stem: A1
+#C.Colonocyte: C1
+#C.Goblet: E1
+#Blood: B1
+#Endocrine: J1
+#SI.Stem: M1, Q1, H1 SI.TA.Cells: S1, L1, P1, I1, D1
+#SI.Enterocytes: K1, G1
+#SI.Tuft.Cells: F1
+#SI:Paneth: R1
+#SI.Goblet: N1, O1
+
+fullClass <- tibble(
+  sample = rownames(getData(uObj, "tsne")),
+  oldClass = getData(uObj, "classification")
+) %>%
+  mutate(newClass = case_when(
+    oldClass %in% c("M1", "Q1", "H1") ~ "SI.Stem",
+    oldClass %in% c("S1", "L1", "P1", "I1", "D1") ~ "SI.TA.Cells",
+    oldClass %in% c("G1", "K1") ~ "SI.Enterocytes",
+    oldClass == "J1" ~ "Endocrine",
+    oldClass == "B1" ~ "Blood",
+    oldClass == "F1" ~ "SI.Tuft.Cell",
+    oldClass == "R1" ~ "SI.Paneth",
+    oldClass %in% c("N1", "O1") ~ "SI.Goblet",
+    oldClass == "A1" ~ "C.Stem",
+    oldClass == "C1" ~ "C.Colonocyte",
+    oldClass == "E1" ~ "C.Goblet",
+    TRUE ~ "error"
+  ))
+
+classification(uObj) <- fullClass$newClass[match(rownames(getData(uObj, "tsne")), fullClass$sample)]
+groupMeans(uObj) <- averageGroupExpression(cObjSng, getData(uObj, "classification"), FALSE)
+tsneMeans(uObj) <- tsneGroupMeans(getData(uObj, "tsne"), getData(uObj, "classification"))
+
+classDefinition <- defineClasses(uObj, cObjSng, nSeed = 15000, nFinal = 1000, logfcCut = log2(1.5))
+#plotClassDefinition(classDefinitionNew)
+
+classHeatmap(
+  classDefinition, 
+  getData(cObjSng, "counts.log"), 
+  tibble(sample = rownames(getData(uObj, "tsne")), class = getData(uObj, "classification"))
+)
+
+save(uObj, classDefinition, file = "~/Github/sp.scRNAseqTesting/inst/grant_mar2018/uObj.rda", compress = "bzip2")
+
+cellNr <- estimateCells(cObjSng, cObjMul)
+selectInd(uObj) <- which(rownames(getData(uObj, "groupMeans")) %in% classDefinition$gene)
+
+sObj <- spSwarm(
+  cObjMul, uObj, distFun = "dtsnCellNum", e = 0.0025, cellNumbers = cellNr,
+  maxiter = 100, swarmsize = 500, cores = 2
+)
+
+save(sObj, file = "~/Github/sp.scRNAseqTesting/inst/grant_mar2018/sObj.rda", compress = "bzip2")
+
+res <- calcResiduals(cObjMul, uObj, sObj, clusters = NULL, edge.cutoff = NULL, e = 0.0025, cellNumber = cellNr) 
+res %>%
+  matrix_to_tibble("gene") %>%
+  gather(sample, res, -gene) %>%
+  full_join(classDefinition, by = "gene") %>%
+  ggplot() +
+  geom_violin(aes(class, res, fill = class, colour = class)) +
+  facet_wrap(~sample) +
+  ggthemes::theme_few() +
+  theme(axis.text.x = element_text(angle = 90))
+
+res %>%
+  matrix_to_tibble("gene") %>%
+  gather(sample, res, -gene) %>%
+  full_join(classDefinition, by = "gene") %>%
+  ggplot() +
+  geom_boxplot(aes(class, res, fill = class)) +
+  ggthemes::theme_few() +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+```{r}
+#swarm 
+cellNrC <- estimateCells(cObjSngC, cObjMulC)
+cellNrSi <- estimateCells(cObjSngSi, cObjMulSi)
+
+selectInd(uObjC) <- which(rownames(getData(uObjC, "groupMeans")) %in% classDefinitionC$gene)
+sObjC <- spSwarm(
+  cObjMulC, uObjC, distFun = "dtsnCellNum", e = 0.0025, cellNumbers = cellNrC,
+  maxiter = 10, swarmsize = 50, cores = 4
+)
+
+selectInd(uObjSi) <- which(rownames(getData(uObjSi, "groupMeans")) %in% classDefinitionSi$gene)
+sObjSi <- spSwarm(
+  cObjMulSi, uObjSi, distFun = "dtsnCellNum", e = 0.0025, cellNumbers = cellNrSi,
+  maxiter = 100, swarmsize = 250, cores = 4
+)
+```
+
+```{r, eval = FALSE}
+uObj <- spUnsupervised(cObjSng, max_iter = 5000, initial_dims = ncol(sng), max = 2000, seed = 976723)
+classDef <- rbind(classDefinitionC, classDefinitionSi)
+
+classifyByMarkerFraction(cObjSng, uObj, classDef)
+
+save(uObj, file = "~/Github/sp.scRNAseqTesting/inst/grant_mar2018/uObj.rda", compress = "bzip2")
+```
+
+```{r, echo = FALSE}
+load("~/Github/sp.scRNAseqTesting/inst/grant_mar2018/uObj.rda")
+```
+
+```{r}
+plotUnsupervisedClass(uObj, cObjSng)
+```
+
+```{r}
+sessionInfo()
+```
+
