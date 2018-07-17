@@ -1,18 +1,35 @@
 
-packages <- c("sp.scRNAseq", "sp.scRNAseqData", "purrr", "future", "future.apply")
+packages <- c("sp.scRNAseq", "sp.scRNAseqData", "tidyverse", "future", "future.apply")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 currPath <- getwd()
 
 ##spCounts
-s <- grepl("^s", colnames(countsSorted2))
-cObjSng <- spCounts(countsSorted2[, s], countsSortedERCC2[, s])
-#cObjMul <- spCounts(countsSorted2[, !s], countsSortedERCC2[, !s])
-cObjMul <- spCounts(countsSorted2[, c("m.NJB00204.C04", "m.NJB00204.E04")], countsSortedERCC2[, c("m.NJB00204.C04", "m.NJB00204.E04")])
+s <- str_detect(colnames(countsMgfp), "^s")
+commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
 
-load('../testingPoissonSorted/data/uObj.rda')
-load('../testingPoissonSorted/data/sObj.rda')
+sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
+mul <- countsMgfp[commonGenes, !s]
+
+erccSng <- cbind(
+  countsMgfpERCC[, s], 
+  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
+)
+erccMul <- cbind(countsMgfpERCC[, !s])
+
+#setup spCounts
+cObjSng <- spCounts(sng, erccSng)
+#cObjMul <- spCounts(mul, erccMul)
+
+testSamples <- c(
+  "m.NJA00107.G09", "m.NJA00107.D12", "m.NJA00107.A02",
+  "m.NJA00107.A10", "m.NJA00107.C08"
+)
+cObjMul <- spCounts(mul[, testSamples], erccMul[, testSamples])
+
+load('../testingPoissonMouse/data/uObj.rda')
+load('../testingPoissonMouse/data/sObj.rda')
 
 nPerms <- 10
 perms <- map(1:nPerms, function(x) {
@@ -23,5 +40,5 @@ perms <- map(1:nPerms, function(x) {
   )
 })
 
-
+save(perms, file = file.path(currPath, "permutations.rda"))
 
