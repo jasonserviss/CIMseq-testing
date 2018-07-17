@@ -48,28 +48,16 @@ plotUnsupervisedClass(uObj, cObjSng)
 
 ```{r}
 #cluster to get class order
-hc <- hclust(dist(t(getData(sObj, "spSwarm"))))
+hc <- hclust(as.dist(1 - cor(getData(sObj, "spSwarm"), method = "pearson")))
 cOrder <- hc[[4]][hc[[3]]]
 
 #cluster to get sample order
-hs <- hclust(dist(as.matrix(getData(sObj, "spSwarm"))))
+hs <- hclust(as.dist(1 - cor(t(getData(sObj, "spSwarm")), method = "pearson")))
 sOrder <- hs[[4]][hs[[3]]]
 
-#cluster to get sample order
-#cr <- cor(t(as.matrix(getData(sObj, "spSwarm"))), method = "pearson")
-#my.dist <- as.dist(1 - cr)
-#h <- hclust(my.dist)
-#sOrder <- h[[4]][h[[3]]]
-
-#cluster to get class order
-#cr <- cor(as.matrix(getData(sObj, "spSwarm")), method = "pearson")
-#my.dist <- as.dist(1 - cr)
-#h <- hclust(my.dist)
-#cOrder <- h[[4]][h[[3]]]
 ```
 
 ```{r, fig.align="center", fig.height=8, fig.width=10}
-#order data and plot
 getData(sObj, "spSwarm") %>%
   rownames_to_column("sample") %>%
   as_tibble() %>%
@@ -79,17 +67,24 @@ getData(sObj, "spSwarm") %>%
     sample = parse_factor(sample, levels = sOrder),
     class = parse_factor(class, levels = cOrder)
   ) %>%
-  mutate(classTissue = if_else(class %in% c("F1", "B1", "D1", "K1"), "colon", "SI")) %>%
+  mutate(classTissue = case_when(
+    str_detect(class, "^C") ~ "Colon",
+    str_detect(class, "^SI") ~ "Small Intestine",
+    TRUE ~ "Miscellaneous"
+  )) %>%
   ggplot() +
   geom_tile(aes(class, sample, fill = fraction)) +
   facet_grid(tissue ~ classTissue, scales = "free") +
   scale_fill_viridis() +
   theme_bw() +
+  labs(x = "Samples") +
   theme(
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
+    axis.title.x = element_blank(),
     legend.position = "top"
-  )
+  ) +
+  guides(fill = guide_colourbar(title = "Fraction", title.position = "top", title.hjust = 0.5))
 ```
 
 

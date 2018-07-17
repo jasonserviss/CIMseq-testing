@@ -16,6 +16,7 @@ erccMul <- cbind(countsMgfpERCC[, !s])
 
 #setup spCounts
 cObjSng <- spCounts(sng, erccSng)
+print("spCounts done")
 
 #run spUnsupervised
 uObj <- spUnsupervised(cObjSng, max_iter = 5000, initial_dims = ncol(sng), seed = 976723)
@@ -49,3 +50,6 @@ groupMeans(uObj) <- averageGroupExpression(cObjSng, getData(uObj, "classificatio
 tsneMeans(uObj) <- tsneGroupMeans(getData(uObj, "tsne"), getData(uObj, "classification"))
 
 save(uObj, file = file.path(currPath, "data/uObj.rda"))
+print("spUnsupervised done")
+writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_spUnsupervised.txt"))
+print("finished")

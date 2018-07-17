@@ -38,5 +38,5 @@ sObj <- spSwarm(cObjSng, cObjMul, uObj, maxiter = 100, swarmsize = 500, nSynthet
 print(paste0("Finished deconvolution at ", Sys.time()))
 
 save(sObj, file = file.path(currPath, "data/sObj.rda"))
-writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo.txt"))
+writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_spSwarm.txt"))
 print("finished")
