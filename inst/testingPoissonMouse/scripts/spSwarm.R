@@ -32,9 +32,13 @@ print("spUnsupervised done")
 
 ##spSwarm
 future::plan(multiprocess)
+selectIdx <- spTopVar(cObjSng, 2000)
 
 print(paste0("Starting deconvolution at ", Sys.time()))
-sObj <- spSwarm(cObjSng, cObjMul, uObj, maxiter = 100, swarmsize = 500, nSyntheticMultiplets = 400)
+sObj <- spSwarm(
+  cObjSng, cObjMul, uObj, maxiter = 100, swarmsize = 500,
+  nSyntheticMultiplets = 400, selectInd = selectIdx
+)
 print(paste0("Finished deconvolution at ", Sys.time()))
 
 save(sObj, file = file.path(currPath, "data/sObj.rda"))
