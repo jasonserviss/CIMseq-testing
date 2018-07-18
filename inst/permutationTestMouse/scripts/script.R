@@ -31,14 +31,15 @@ cObjMul <- spCounts(mul[, testSamples], erccMul[, testSamples])
 load('../testingPoissonMouse/data/uObj.rda')
 load('../testingPoissonMouse/data/sObj.rda')
 
-nPerms <- 10
+nPerms <- 1000
 perms <- map(1:nPerms, function(x) {
   plan(multiprocess)
   spSwarm(
     cObjSng, cObjMul, uObj, maxiter = 10, swarmsize = 150,
-    nSyntheticMultiplets = 400, permute = TRUE
+    nSyntheticMultiplets = 400, permute = TRUE, seed = x
   )
 })
 
-save(perms, file = file.path(currPath, "permutations.rda"))
+save(perms, file = file.path(currPath, "data/permutations.rda"))
+writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_spSwarm.txt"))
 

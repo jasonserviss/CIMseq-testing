@@ -84,9 +84,32 @@ map(perms, getData, "costs") %>%
   geom_point(aes(sample, cost, colour = type))
 ```
 
-
 ```{r}
-permScores <- map_dfr(perms, calculateConnectionScore, .id = "permutation")
-realScores <- calculateConnectionScore(sObj, samples = testSamples)
+permScores <- map_dfr(perms, calculateConnectionScore, .id = "permutation") %>%
+  add_column(type = "permuted")
+realScores <- calculateConnectionScore(sObj, samples = testSamples) %>%
+  add_column(permutation = NA, type = "real")
 ```
 
+```{r}
+bind_rows(permScores, realScores) %>%
+  unite(connection, from, to, sep = "-") %>%
+  ggplot() +
+  geom_point(aes(connection, score, colour = type)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+realScores %>%
+  mutate(permScore = map2(from, to, function(x, y) {
+    filter(permScores, from == x, to == y)$score
+  })) %>%
+  mutate(p.value = map2_dbl(score, permScore, function(r, p) {
+    if_else(
+      sum(p >= r) / length(p) == 0,
+      10^-log10(length(p)),
+      sum(p >= r) / length(p)
+    )
+  }))
+```
