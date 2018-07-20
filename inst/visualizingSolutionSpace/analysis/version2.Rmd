@@ -1,0 +1,133 @@
+---
+title: "Solution space"
+output:
+  html_document:
+    toc: no
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+#PACKAGES
+packages <- c(
+  "sp.scRNAseqData", "sp.scRNAseq", "seqTools",
+  "printr", "ggthemes", "tidyverse", "broom"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+#DATA
+load('../data/report.rda')
+```
+
+
+```{r, fig.align="center", fig.height=8, fig.width=10, warning=FALSE}
+#A375-HOS: m.NJB00204.G04
+#A375-A375-HCT116-HOS: m.NJB00204.F12
+#HCT116-HCT116-HOS: m.NJB00204.D07
+#Warnings set to false because of several NaN positions due to 999999999 fitness
+#This is expected and ok to ignore.
+
+d <- report %>% 
+  unnest() %>% 
+  gather(cellLine, position, -(sample:swarmMemberID)) %>% 
+  mutate(cells = case_when(
+    sample == "m.NJB00204.G04" ~ "A375-HOS",
+    sample == "m.NJB00204.D07" ~ "HCT116-HCT116-HOS",
+    sample == "m.NJB00204.F12" ~ "A375-A375-HCT116-HOS",
+    TRUE ~ "error"
+  )) %>%
+  mutate(cells = parse_factor(
+    cells,
+    levels = c("A375-HOS", "HCT116-HCT116-HOS", "A375-A375-HCT116-HOS")
+  )) %>%
+  group_by(iteration, cellLine, cells) %>%
+  arrange(desc(fitness)) %>%
+  mutate(c = rev(viridis::viridis(n()))) %>%
+  ungroup() %>%
+  group_by(cellLine, cells) %>%
+  mutate(error = (error - min(error)) / (max(error) - min(error))) %>%
+  ungroup() 
+
+p <- d %>%
+  ggplot() +
+  geom_point(aes(x = 0, y = 0, fill = fitness), alpha = 0) +
+  geom_line(aes(iteration, error, linetype = "Normalized to [0, 1]"), colour = "red", size = 0.5) +
+  geom_point(aes(iteration, position, colour = c), size = 0.1, alpha = 1) +
+  scale_linetype_manual(values = 1) +
+  facet_grid(cellLine ~ cells) +
+  scale_colour_identity() +
+  scale_fill_viridis_c() +
+  theme_bw() +
+  theme(legend.position = "top") +
+  labs(x = "Iteration", y = "Position") +
+  guides(
+    linetype = guide_legend(title = "Cost", title.position = "top", title.hjust = 0.5),
+    fill = guide_colorbar(title = "Fitness", title.position = "top", title.hjust = 0.5, barwidth = 12)
+  )
+
+p 
+
+ggsave(
+  plot = p,
+  filename = '../figures/figure2.pdf',
+  device = cairo_pdf,
+  height = 240,
+  width = 240,
+  units = "mm"
+)
+```
+
+
+```{r, eval = FALSE}
+report %>%
+  unnest() %>% 
+  gather(cellLine, position, -(sample:swarmMemberID)) %>% 
+  mutate(cells = case_when(
+    sample == "m.NJB00204.G04" ~ "A375-HOS",
+    sample == "m.NJB00204.D07" ~ "HCT116-HCT116-HOS",
+    sample == "m.NJB00204.F12" ~ "A375-A375-HCT116-HOS",
+    TRUE ~ "error"
+  )) %>%
+  group_by(cells, cellLine, iteration) %>%
+  mutate(
+    max = if_else(fitness == max(fitness), TRUE, FALSE),
+    min = if_else(fitness == min(fitness), TRUE, FALSE)
+  ) %>%
+  gather(Fitness, bool, -(sample:cells)) %>%
+  ggplot() +
+  geom_point(
+    data = . %>% filter(bool), 
+    aes(iteration, position, colour = Fitness)
+  ) +
+  geom_smooth(aes(iteration, position), span = 200) +
+  facet_grid(cellLine~cells) +
+  theme_bw() +
+  labs(y = "Position", x = "Iteration") +
+  scale_y_continuous(breaks = seq(0, 1, 0.1))
+```
+
+```{r, eval = FALSE}
+mat <- report %>%
+  unnest() %>%
+  group_by(sample, iteration) %>%
+  nest() %>%
+  mutate(pca = map(data, function(x) {
+    mat <- x %>% 
+      select(HOS, HCT116, A375) %>%
+      as.matrix()
+    
+    mat[is.na(mat)] <- 0
+    p <- prcomp(mat)
+    #as_tibble(as.data.frame(p$x))
+    t <- Rtsne::Rtsne(mat, check_duplicates = FALSE)
+    as_tibble(t$y)
+  }))
+
+```
+
+```{r}
+#calcluate and show total solution space
+```
+
