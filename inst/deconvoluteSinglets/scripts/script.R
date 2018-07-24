@@ -19,7 +19,8 @@ erccMul <- cbind(countsMgfpERCC[, !s])
 
 #setup spCounts
 cObjSng <- spCounts(sng, erccSng)
-#cObjMul <- spCounts(mul, erccMul)
+set.seed(29843)
+cObjMul <- spCounts(sng[, sample(1:ncol(sng), 100, replace = FALSE], erccMul)
 
 print("spCounts done")
 
@@ -31,12 +32,12 @@ if(file.exists(file.path(currPath, 'data/uObj.rda'))) {
 print("spUnsupervised done")
 
 ##spSwarm
-future::plan(multiprocess)
 selectIdx <- spTopVar(cObjSng, 2000)
-
 print(paste0("Starting deconvolution at ", Sys.time()))
+
+future::plan(multiprocess)
 sObj <- spSwarm(
-  cObjSng, cObjSng, uObj, maxiter = 100, swarmsize = 500,
+  cObjSng, cObjMul, uObj, maxiter = 100, swarmsize = 500,
   nSyntheticMultiplets = 400, selectInd = selectIdx
 )
 print(paste0("Finished deconvolution at ", Sys.time()))
