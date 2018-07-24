@@ -20,7 +20,7 @@ erccMul <- cbind(countsMgfpERCC[, !s])
 #setup spCounts
 cObjSng <- spCounts(sng, erccSng)
 set.seed(29843)
-cObjMul <- spCounts(sng[, sample(1:ncol(sng), 100, replace = FALSE], erccMul)
+cObjMul <- spCounts(sng[, sample(1:ncol(sng), 100, replace = FALSE)], erccMul)
 
 print("spCounts done")
 
