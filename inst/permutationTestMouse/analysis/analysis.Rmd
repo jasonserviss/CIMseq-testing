@@ -32,10 +32,11 @@ calculateConnectionScore <- function(sObj, samples = NULL) {
   costs <- getData(sObj, "costs")
   combos <- as.data.frame(combn(rownames(swarm), 2), stringsAsFactors = FALSE)
   prod <- map(combos, function(x) {
-    swarm[x[1], ] * swarm[x[2], ]
+    sum(swarm[x[1], ]) + sum(swarm[x[2], ]) * (swarm[x[1], ] * swarm[x[2], ])
   })
-  byCost <- map(prod, function(x) x / costs)
-  scores <- map_dbl(byCost, sum)
+  #byCost <- map(prod, function(x) x / costs)
+  #scores <- map_dbl(byCost, sum)
+  scores <- map_dbl(prod, sum)
   as.data.frame(t(combos), stringsAsFactors = FALSE) %>%
     as_tibble() %>%
     rename(from = V1, to = V2) %>%
@@ -65,12 +66,12 @@ testSamples <- c(
 )
 cObjMul <- spCounts(mul[, testSamples], erccMul[, testSamples])
 
-load('../testingPoissonMouse/data/uObj.rda')
-load('../testingPoissonMouse/data/sObj.rda')
-load('data/permutations.rda')
+load('../../testingPoissonMouse/data/uObj.rda')
+load('../../testingPoissonMouse/data/sObj.rda')
+load('../data/permutations.rda')
 ```
 
-```{r}
+```{r, fig.align="center", fig.width = 10, fig.height=8}
 map(perms, getData, "costs") %>%
   map(as_tibble) %>%
   reduce(bind_cols) %>%
@@ -84,6 +85,12 @@ map(perms, getData, "costs") %>%
   geom_point(aes(sample, cost, colour = type))
 ```
 
+```{r, fig.align="center", fig.width = 10, fig.height=8}
+map_dfr(perms, getData, "spSwarm") %>%
+  as.matrix() %>%
+  heatmap()
+```
+
 ```{r}
 permScores <- map_dfr(perms, calculateConnectionScore, .id = "permutation") %>%
   add_column(type = "permuted")
@@ -91,7 +98,7 @@ realScores <- calculateConnectionScore(sObj, samples = testSamples) %>%
   add_column(permutation = NA, type = "real")
 ```
 
-```{r}
+```{r, fig.align="center", fig.width = 10, fig.height=8}
 bind_rows(permScores, realScores) %>%
   unite(connection, from, to, sep = "-") %>%
   ggplot() +
@@ -111,5 +118,11 @@ realScores %>%
       10^-log10(length(p)),
       sum(p >= r) / length(p)
     )
-  }))
+  })) %>%
+  select(-permutation, -type, -permScore)
 ```
+
+```{r}
+sessionInfo()
+```
+
