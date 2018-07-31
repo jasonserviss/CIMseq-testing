@@ -1,0 +1,61 @@
+---
+title: "Singlet deconvolution"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+#PACKAGES
+packages <- c(
+  "sp.scRNAseq", "sp.scRNAseqData", "sp.scRNAseqTesting",
+  "printr", "ggthemes", "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+#DATA
+s <- str_detect(colnames(countsMgfp), "^s")
+commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
+
+sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
+mul <- countsMgfp[commonGenes, !s]
+
+erccSng <- cbind(
+  countsMgfpERCC[, s], 
+  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
+)
+erccMul <- cbind(countsMgfpERCC[, !s])
+
+#setup spCounts
+cObjSng <- spCounts(sng, erccSng)
+set.seed(29843)
+cObjMul <- spCounts(sng[, sample(1:ncol(sng), 100, replace = FALSE)], erccMul)
+
+load('../../testingPoissonMouse/data/uObj.rda')
+load('../data/sObj.rda')
+```
+
+```{r, fig.align="center", fig.width = 10, fig.height=8}
+getData(sObj, "spSwarm") %>%
+  rownames_to_column("sample") %>%
+  as_tibble() %>%
+  inner_join(
+    tibble(
+      sample = rownames(getData(uObj, "tsne")), 
+      class = getData(uObj, "classification")
+    ), by = "sample"
+  ) %>%
+  gather(cellType, fraction, -sample, -class) %>%
+  ggplot() + 
+  geom_tile(aes(sample, cellType, fill = fraction)) +
+  facet_wrap(~ class, scales = "free") +
+  scale_fill_viridis_c() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+

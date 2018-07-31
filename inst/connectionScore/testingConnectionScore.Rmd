@@ -110,3 +110,12 @@ So for each connection the following is calculated:
 $$Score_{connection} = \sum_{i=1}^{n} \frac{(F_{ct1}\ from\ M_i * F_{ct2}\ from\ M_i)}{Cost\ from\ M_i}$$
 
 Where: _F_ = fraction; _ct_ = cell type; _M_ = multiplet
+
+```{r}
+s <- seq(0, 1, 0.1)
+c <- expand.grid(s, s)
+combos <- c[rowSums(c) == 1, ]
+combos
+matrixStats::rowProds(as.matrix(combos))
+```
+

@@ -40,6 +40,7 @@ generateSyntheticMultiplets <- function(
   rownames(mat) <- rownames(singlets)
   mat
 }
+############
 
 ##RUN ALGO
 s <- grepl("^s", colnames(countsSorted2))

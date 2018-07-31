@@ -9,10 +9,15 @@ Setting LC_CTYPE failed, using "C"
 -- Conflicts ------------------------------------------ tidyverse_conflicts() --
 x dplyr::filter() masks stats::filter()
 x dplyr::lag()    masks stats::lag()
-is.na(c(counts, counts.ercc) returned TRUE
-ncol(counts) != ncol(counts.ercc).
+
+Attaching package: 'future.apply'
+
+The following object is masked from 'package:future':
+
+    future_lapply
+
 [1] "spCounts done"
 [1] "spUnsupervised done"
-[1] "Starting deconvolution at 2018-07-24 15:04:39"
-[1] "Finished deconvolution at 2018-07-25 09:09:54"
+[1] "Starting deconvolution at 2018-07-25 15:12:23"
+[1] "Finished deconvolution at 2018-07-25 17:55:10"
 [1] "finished"
