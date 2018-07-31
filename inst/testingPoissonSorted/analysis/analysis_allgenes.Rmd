@@ -1,5 +1,6 @@
 ---
 title: "Testing Poisson Swarm Algorithm with Sorted Multiplets Dataset"
+subtitle: "Including all genes in deconvolution"
 author: "Jason T. Serviss"
 date: "`r Sys.Date()`"
 output:
@@ -20,7 +21,7 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-load("~/Github/sp.scRNAseqTesting/inst/testingPoissonSorted/data/sObj.rda")
+load("../data/sObj_allgenes.rda")
 ```
 
 ### Show average stats for multiplets dependant on the number of cell in the multiplet.
