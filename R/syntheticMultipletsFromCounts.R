@@ -37,52 +37,83 @@ NULL
 #' @importFrom tibble as_tibble
 
 syntheticMultipletsFromCounts <- function(
+  counts, classes, fractions, seed = 87909023, ...
+){
+  set.seed(seed)
+  out <- as.numeric(sampleSinglets(classes)) %>%
+  subsetSinglets(counts, .) %>%
+  adjustAccordingToFractions(fractions, .) %>%
+  multipletSums()
+  
+  rownames(out) <- rownames(counts)
+  out
+}
+
+#syntheticMultipletsFromCounts <- function(
+#  counts,
+#  classes,
+#  combos,
+#  adjustment,
+#  seed = 87909023,
+#  ...
+#){
+#  set.seed(seed)
+#
+#  #setup output structure
+#  output <- data.frame(gene = rownames(counts), stringsAsFactors = FALSE)
+#
+#  combos %>%
+#  as.data.frame(stringsAsFactors = FALSE) %>%
+#  #for each combination in combos...
+#  map(., function(x) {
+#    #the x variable is a character vector including the names of the cell types
+#    # to be included in the multiplet
+#
+#    #select one cell from the pool for each cell type
+#    exCounts <- counts[, map_int(x, ~sample(which(classes == .x), 1))]
+#   colnames(exCounts) <- x
+#
+#    #adjust the counts by multiplying with the corresponding values in the
+#    # adjustment variable provided as an arg
+#    adj <- adjustment[match(x, names(adjustment))]
+#    adjusted <- round(t(t(exCounts) * adj))
+#
+#    #calculate the sum of counts for each gene and expand the gene names to the
+#    # length of the corresponding counts. This provides the total pool of counts
+#    # to sample from to generate the multiplet.
+#
+#    rs <- matrixStats::rowSums2(adjusted)
+#
+#    #Sample from the poisson distribution for each gene with lambda = rs
+#    matrix(
+#      rpois(n = length(rs), lambda = rs),
+#      dimnames = list(rownames(exCounts), "multiplet")
+#    ) %>%
+#      as.data.frame() %>%
+#      rownames_to_column("gene") %>%
+#      setNames(c("gene", paste(sort(x), collapse = "-")))
+#  }) %>%
+#  #reformat as tibble for easy integration with output from other function calls
+#  reduce(full_join, by = "gene") %>%
+#  full_join(output, by = "gene") %>%
+#  replace(is.na(.), 0) %>%
+#  as_tibble()
+#}
+
+syntheticMultipletsFromCounts <- function(
   counts,
   classes,
-  combos,
-  adjustment,
+  fractions,
   seed = 87909023,
   ...
 ){
   set.seed(seed)
+  out <- as.numeric(sampleSinglets(classes)) %>%
+  subsetSinglets(counts, .) %>%
+  adjustAccordingToFractions(fractions, .) %>%
+  multipletSums()
   
-  #setup output structure
-  output <- data.frame(gene = rownames(counts), stringsAsFactors = FALSE)
-  
-  combos %>%
-  as.data.frame(stringsAsFactors = FALSE) %>%
-  #for each combination in combos...
-  map(., function(x) {
-    #the x variable is a character vector including the names of the cell types
-    # to be included in the multiplet
-    
-    #select one cell from the pool for each cell type
-    exCounts <- counts[, map_int(x, ~sample(which(classes == .x), 1))]
-    colnames(exCounts) <- x
-    
-    #adjust the counts by multiplying with the corresponding values in the
-    # adjustment variable provided as an arg
-    adj <- adjustment[match(x, names(adjustment))]
-    adjusted <- round(t(t(exCounts) * adj))
-    
-    #calculate the sum of counts for each gene and expand the gene names to the
-    # length of the corresponding counts. This provides the total pool of counts
-    # to sample from to generate the multiplet.
-    
-    rs <- matrixStats::rowSums2(adjusted)
-    
-    #Sample from the poisson distribution for each gene with lambda = rs
-    matrix(
-      rpois(n = length(rs), lambda = rs),
-      dimnames = list(rownames(exCounts), "multiplet")
-    ) %>%
-      as.data.frame() %>%
-      rownames_to_column("gene") %>%
-      setNames(c("gene", paste(sort(x), collapse = "-")))
-  }) %>%
-  #reformat as tibble for easy integration with output from other function calls
-  reduce(full_join, by = "gene") %>%
-  full_join(output, by = "gene") %>%
-  replace(is.na(.), 0) %>%
-  as_tibble()
+  rownames(out) <- rownames(counts)
+  out
 }
+
