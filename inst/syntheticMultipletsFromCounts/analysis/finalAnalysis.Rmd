@@ -37,100 +37,94 @@ norm <- function(counts) {
 }
 ```
 
-The deconvolution algorithm requires the synthesis of synthetic multiplets where
-the fractions of individual contribution of cells in the multiplet is 
-dynamically adjusted. These synthetic multiplets, with a known composition, are
-subsequently compared to real multiplets allowing the deduction of their 
-composition and, thus, the cell-cell connections they contain. 
+The synthetic multiplets are based on the mixing of real synthetic singlets. The 
+algorithm for generating the synthetic multiplets works as follows: The sum of 
+counts is calculated for each gene in two randomly selected singlets from 
+each cell type contributing to the multiplet. The fraction of input into the 
+multiplet can be adjusted so that, e.g. cell type A only contributes half of 
+what cell type B contributes to the multiplet. A vector is then generated where 
+each gene name is represented one time for each of the total counts (e.g. if 
+gene "A" has a sum of counts from all singlets from the cell types 
+contributing to the multiplet of 10, "A" will be repreated 10 times in the 
+vector). This vector is then sampled without replacment. It is sampled x times, 
+where x is equal to the sum of all the counts in all singlets contributing to 
+the multiplet divided by the total number of singlets contributing to the 
+multiplet. Gene names are then counted which provides the raw counts for the 
+newly synthesized multiplet.
 
-The success of this process depends on our ability to accurately synthesize 
-multiplets from singlets and adjust the input from the individual cell types.
-In this analysis we test our multiplet synthesis algorithm finding that it is 
-capable of achieving both of these goals.
+Here we utilize the sorted cell line dataset to generate multiplets from the 
+singlets. The synthesized multiplets are then compared to the real multiplets
+to acertain the quality of the _in silico_ synthesis. We begin by synthesizing 
+one multiplet per cell line combination, i.e. a A375-HCT116, A375-HOS, and 
+HCT116-HOS multiplet.
 
-The algorithm for generating the synthetic multiplets works as follows: The sum 
-of normalized counts (counts per million) is calculated for each gene in two 
-randomly selected singlets from each cell type contributing to the multiplet. 
-The fraction of input into the multiplet can be adjusted so that, e.g. cell type 
-_A_ only contributes half of what cell type _B_ contributes to the multiplet. 
-The sum of adjusted counts for each gene is then calculated after which a 
-random value is drawn from the Poisson distribution for each gene with lambda
-equal to the adjusted count values.
+### Synthesize 10 multiplets per combination.
 
-Here we utilize the sorted cell line dataset to generate synthetic multiplets.
-The synthetic multiplets are then compared to the real multiplets to ascertain 
-the quality of the _in silico_ synthesis.
-
-### Distribution of real vs synthetic multiplets..
-
-There are 3 possible duplicate combinations in this dataset; A375-HCT116, 
-A375-HOS, and HCT116-HOS. We begin by synthesizing 10 synthetic multiplets for 
-each possible combination and examine the distribution of gene expression values
-compared to the sorted multiplets.
-
-```{r, fig.align="center", fig.width=10, fig.height=8, message = FALSE}
+Here we continue to examine the ability of the synthesized multiplets to 
+accuratley reflect the real multiplets by generating 10 multiplets per 
+combination. It is hoped that this will show that the synthesized multiplets as
+a whole, accuratley capture the diversity of the real multiplets.
+```{r}
 s <- str_detect(colnames(countsSorted2), "^s")
 sng <- countsSorted2[, s]
 classes <- slice(countsSortedMeta2, match(colnames(sng), countsSortedMeta2$sample))$cellTypes
-combos <- apply(combn(unique(classes), 2), 2, sort)
-adjustment <- rep(1, length(unique(classes)))
-names(adjustment) <- unique(classes)
-
 n <- 10
-names <- paste(
-  apply(combos, 2, paste, collapse = "-"), 
-  rep(1:n, each = ncol(combos)), 
-  sep = "."
-)
 
-#synthesize multiplets
-synth <- sng %>%
-  norm() %>%
-  {map(1:n, function(x) {
-    syntheticMultipletsFromCounts(., classes, combos, adjustment, seed = x + 9789)
-  })} %>%
-  reduce(full_join, by = "gene") %>%
-  setNames(c("gene", names)) %>%
-  norm()
+fractions <- unique(classes) %>%
+  sort() %>%
+  combn(2) %>%
+  as.data.frame(stringsAsFactors = FALSE) %>% 
+  {paste(.[1, ], .[2, ], sep = "-")} %>%
+  c(., "A375-HCT116-HOS") %>%
+  setNames(., .) %>%
+  map(function(x) {
+    vec <- rep(0, length(unique(classes)))
+    names(vec) <- unique(classes)
+    sp <- str_split(x, "-")[[1]]
+    vec[names(vec) %in% sp] <- 1/length(sp)
+    vec[!names(vec) %in% sp] <- (1 - sum(vec)) / length(which(vec == 0))
+    vec
+  }) %>%
+  rep(., n)
 
-#get real multiplet data
+
+synth <- map(1:length(fractions), function(i) {
+    syntheticMultipletsFromCounts(norm(sng), classes, fractions[[i]], seed = 92830 + i)
+  }) %>%
+  do.call("cbind", .) %>%
+  matrix_to_tibble("gene") %>%
+  setNames(c(
+    "gene",
+    paste(names(fractions), rep(1:n, each = length(fractions) / n), sep = ".")
+  )) %>%
+  gather(cellTypes, `Synthetic counts`, -gene) %>%
+  separate(cellTypes, into = c("cellTypes", "syntheticMultipletID"), sep = "\\.")
+
 mul <- countsSorted2[, !s] %>%
   norm() %>%
   matrix_to_tibble("gene") %>%
-  gather(sample, counts, -gene) %>%
+  gather(sample, `Counts`, -gene) %>%
   left_join(countsSortedMeta2, by = "sample") %>%
-  select(gene, counts, cellTypes, sample)
+  select(gene, `Counts`, cellTypes, sample)
+```
 
-#plot real and synthetic distributions
-p1 <- synth %>% 
-  gather(typeRep, synCounts, -gene) %>%
-  separate(typeRep, c("cellTypes", "sample"), sep = "\\.") %>%
-  inner_join(., mul, by = c("gene", "cellTypes")) %>% 
-  gather(type, counts, -(gene:sample.x), -sample.y) %>%
-  mutate(counts = log2(counts + 1)) %>%
-  mutate(type = if_else(
-    type == "counts", 
-    "Real multiplets", 
-    "Synthetic multiplets"
-  )) %>%
-  ggplot() + 
+Plot results.
+
+```{r, fig.align="center", fig.width=10, fig.height=8, message = FALSE}
+p1 <- synth %>%
+  inner_join(mul, by = c("gene", "cellTypes")) %>%
+  gather(type, value, -(gene:syntheticMultipletID), -sample) %>%
+  ggplot() +
   geom_histogram(
-    aes(counts, stat(ndensity), fill = type), 
+    aes(log2(value + 1), stat(ndensity), fill = type),
     alpha = 0.5, binwidth = 0.25, position = "identity"
   ) +
-  facet_wrap(~cellTypes) + 
-  labs(
-    x = "log2(cpm + 1)", y = "Density", tag = "A)",
-    caption = paste0(
-      "Histograms of gene expression in 10 synthetic multiplets ", 
-      "(red) and 10 sorted multiplets (blue) in three different multiplet ",
-      "types. y-axis (Density) scaled to [0, 1]."
-    )
-  ) +
+  facet_wrap(~cellTypes) +
+  labs(x = "log2(Cpm)", y = "Density") +
   theme_bw() +
   ggthemes::scale_fill_ptol() +
   guides(fill = guide_legend(title = "")) +
-  theme(legend.position = "top", plot.caption = element_text(hjust = 0))
+  theme(legend.position = "top")
 
 p1
 
@@ -144,27 +138,37 @@ ggsave(
 )
 ```
 
-The results indicate a strong similarity in the distributions of the sorted and
-synthesized multiplets. There is some disparity in the lower non-dropout reads 
-but dropouts themselves and more highly expressed genes have nearly identical 
-distributions. Overall, the results indicate that synthetic multiplets largely 
-mirror real multiplets.
-
 <br></br>
 
 ### Adjusting multiplet contribution
 
-Next, we synthesized 25 synthetic multiplets and adjusted the contribution of 
-HOS cells. To help visualize the results we first identified 25 genes that were 
-highly specific for each cell type. We then visualize the mean expression of 
-these genes in several subsets; sorted multiplets, non-adjusted synthetic 
-multiplets, adjusted multiplets with multiple levels of adjustment, and 
-singlets.
+Synthesize 25 multiplets for each combination and reduce the contribution
+of HOS cells by 0%, 25%, 50%, 75%, or 99%. Calculate the mean gene expression of
+25 cell type specific genes for each combination and plot together with the real
+multiplets and corresponding singlets.
+
+Show genes used in figure.
+```{r}
+#find overexpressed genes in each cell type
+genes <- countsSortedMeta2 %>%
+  filter(cellNumber == "Singlet") %>%
+  rename(class = cellTypes) %>%
+  foldChangePerClass(cpm(sng), .) %>%
+  matrix_to_tibble("gene") %>%
+  select(gene, A375, HCT116, HOS) %>%
+  gather(geneType, fold, -gene) %>%
+  group_by(geneType) %>%
+  top_n(25, fold) %>%
+  ungroup()
+
+as.data.frame(genes)
+```
+
+Plot figure.
 
 ```{r}
 ###FUNCTIONS
-#function to calculate the mean gene expression for a specific cell type. Used 
-#previous to heatmap plotting
+#function to calculate the mean gene expression for a specific cell type. 
 typeMeans <- function(type) {
   countsSortedMeta2 %>%
   filter(cellTypes == type) %>% 
@@ -176,134 +180,108 @@ typeMeans <- function(type) {
   setNames(c("gene", "counts")) %>%
   mutate(cellType = type)
 }
-
-#wrapper to generate and reformat multiplets
-generateAdjustedMultiplets <- function(sng, classes, combos, adjustment, name) {
-  q.name <- enquo(name)
-  sng %>%
-    norm() %>%
-    {map(1:n, function(x) {
-      syntheticMultipletsFromCounts(., classes, combos, adjustment, seed = x + 9789)
-    })} %>%
-    reduce(full_join, by = "gene") %>%
-    setNames(c("gene", names)) %>%
-    norm() %>%
-    gather(cellTypes, !!q.name, -gene) %>%
-    mutate(cellTypes = str_replace(cellTypes, "(.*)\\..*", "\\1")) %>%
-    group_by(gene, cellTypes) %>%
-    summarize(!! quo_name(q.name) := mean(!!q.name)) %>%
-    ungroup()
-}
 ###
 
-#Synthesize multiplets with varying levels of adjusted HOS input
+#Synthesize 25 multiplets with varying levels of adjusted HOS input
+#Calculate the mean gene expression in the 25 multiplets for each condition
 s <- str_detect(colnames(countsSorted2), "^s")
 sng <- countsSorted2[, s]
 classes <- slice(countsSortedMeta2, match(colnames(sng), countsSortedMeta2$sample))$cellTypes
-combos <- apply(combn(unique(classes), 2), 2, sort)
 
-adjustment <- rep(1, length(unique(classes)))
-names(adjustment) <- unique(classes)
-n <- 25
-names <- paste(
-  apply(combos, 2, paste, collapse = "-"), 
-  rep(1:n, each = ncol(combos)), 
-  sep = "."
-)
+#setup fractions
+.assignFractions <- function(ct, adj) {
+  vec <- rep(0, length(unique(classes)))
+  names(vec) <- sort(unique(classes))
+  if("HOS" %in% ct) {
+    vec[names(vec) == "HOS"] <- 1/length(ct) * adj
+    vec[names(vec) %in% ct[ct != "HOS"]] <- (1 - sum(vec)) / length(ct[ct != "HOS"])
+  } else {
+    vec[names(vec) %in% ct] <- 1/length(ct)
+    vec[!names(vec) %in% ct] <- (1 - sum(vec)) / length(which(vec == 0))
+  }
+  vec
+}
 
 adj <- c(1, 0.75, 0.5, 0.25, 0.01)
-synth <- map(adj, function(x) {
-  adjustment[names(adjustment) == "HOS"] <- x
-  generateAdjustedMultiplets(sng, classes, combos, adjustment, synCounts)
-}) %>%
-  reduce(inner_join, by = c("gene", "cellTypes")) %>%
-  setNames(c("gene", "cellTypes", paste0("HOS reduced ", (1 - adj) * 100, "%")))
+n <- 25
 
-#find overexpressed genes in each cell type
-genes <- foldChangePerClass(cpm(sng), rename(countsSortedMeta2, class = cellTypes)) %>%
-  matrix_to_tibble("gene") %>%
-  select(gene, A375, HCT116, HOS) %>%
-  gather(cellType, fold, -gene) %>%
-  group_by(cellType) %>%
-  top_n(25, fold) %>%
-  ungroup()
+combos <- unique(classes) %>%
+  sort() %>%
+  combn(2) %>%
+  as.data.frame(stringsAsFactors = FALSE) %>% 
+  {paste(.[1, ], .[2, ], sep = "-")}
+
+set.seed(192)
+fractions <- tibble(
+  cellType = rep(combos, each = length(adj) * n),
+  adjustment = rep(adj, length(combos) * n),
+  ns = rep(rep(1:n, each = length(adj), length(combos)))
+) %>%
+  mutate(cellTypes = map(cellType, function(x) str_split(x, "-")[[1]])) %>%
+  mutate(fractions = map2(cellTypes, adjustment, ~.assignFractions(.x, .y))) %>%
+  mutate(seed = runif(1, 1, 99999) + 1:n())
+
+#synthesize multiplets
+synth <- fractions %>%
+  mutate(sm = map2(fractions, seed, function(f, s) {
+    syntheticMultipletsFromCounts(norm(sng), classes, f, seed = s) %>%
+      matrix_to_tibble("gene")
+  })) %>% 
+  select(cellType, adjustment, ns, sm) %>%
+  unnest() %>%
+  group_by(cellType, adjustment, gene) %>%
+  summarize(counts_synthetic = mean(V1)) %>%
+  ungroup() %>%
+  spread(adjustment, counts_synthetic) %>%
+  setNames(c(
+    "cellType", "gene", 
+    paste0("HOS reduced ", (1 - as.numeric(colnames(.)[-c(1:2)])) * 100, "%")
+  ))
 
 #calculate the mean gene expression for each type of singlet
 realSng <- map_dfr(c("A375", "HCT116", "HOS"), typeMeans)
 
 #calculate the mean gene expression for each type of multiplet
+realMul <- map_dfr(c("A375-HCT116", "A375-HOS", "HCT116-HOS"), typeMeans) %>%
+  rename(Multiplet = counts) %>% 
+  separate(cellType, into = c("cellType1", "cellType2"), sep = "-", remove = FALSE)
+
 #concatenate real singlet, real multiplet, and info for genes corresponding to 
 #a cell type
-
-real <- map_dfr(c("A375-HCT116", "A375-HOS", "HCT116-HOS"), typeMeans) %>%
-  rename(Multiplet = counts, cellTypes = cellType) %>% 
-  separate(cellTypes, into = c("cellType1", "cellType2"), sep = "-", remove = FALSE) %>%
+realData <- realMul %>%
   inner_join(realSng, by = c("cellType1" = "cellType", "gene" = "gene")) %>% 
   inner_join(realSng, by = c("cellType2" = "cellType", "gene" = "gene")) %>%
+  rename(counts_cellType1 = counts.x, counts_cellType2 = counts.y) %>%
   inner_join(genes, by = "gene") %>%
-  filter(cellType == cellType1 | cellType == cellType2) %>%
-  rename(geneType = cellType)
-```
+  filter(geneType == cellType1 | geneType == cellType2) %>%
+  select(
+    gene, geneType, cellType, cellType1, cellType2, 
+    counts_cellType1, counts_cellType2, Multiplet
+  )
 
-```{r, eval = FALSE}
-#join everything and plot
-real %>% 
-  inner_join(synth, by = c("gene", "cellTypes")) %>%
-  gather(type, cpm, -gene, -(geneType:fold), -(cellTypes:cellType2)) %>%
-  mutate(type = case_when(
-    type == "counts.x" ~ cellType1, 
-    type == "counts.y" ~ cellType2, 
-    TRUE ~ type
+#concatenate real and synthetic data and prepare for plotting
+plotData <- realData %>% 
+  inner_join(synth, by = c("gene", "cellType")) %>%
+  gather(cpmType, cpm, -gene, -geneType, -cellType, -cellType1, -cellType2) %>%
+  mutate(cpmType = case_when(
+    cpmType == "counts_cellType1" ~ cellType1,
+    cpmType == "counts_cellType2" ~ cellType2,
+    TRUE ~ cpmType
   )) %>%
-  mutate(type = parse_factor(type, levels = c(
+  mutate(cpmType = parse_factor(cpmType, levels = c(
       "Multiplet", "HOS reduced 0%", "HOS reduced 25%", "HOS reduced 50%", "HOS reduced 75%", "HOS reduced 99%", "A375", "HCT116", "HOS"
   ))) %>%
-  arrange(geneType, fold) %>%
   mutate(plotGene = paste0(gene, " (", geneType, ")")) %>%
   mutate(plotGene = parse_factor(plotGene, levels = unique(plotGene))) %>%
-  mutate(cellTypes = parse_factor(cellTypes, levels = c("A375-HOS", "HCT116-HOS", "A375-HCT116"))) %>%
-  ggplot() +
-  geom_tile(aes(type, plotGene, fill = log2(cpm + 1))) +
-  facet_wrap(~cellTypes, scale = "free") +
-  viridis::scale_fill_viridis() +
-  theme_few() +
-  theme(
-    axis.text.x = element_text(angle = 90),
-    axis.title.x = element_blank(),
-    legend.position = "top"
-  ) +
-  labs(y = "Gene (Cell type)")
+  mutate(cellType = parse_factor(cellType, levels = c("A375-HOS", "HCT116-HOS", "A375-HCT116", "A375-HCT116-HOS")))
 ```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8, message = FALSE}
-p2 <- real %>% 
-  inner_join(synth, by = c("gene", "cellTypes")) %>%
-  gather(type, cpm, -gene, -(geneType:fold), -(cellTypes:cellType2)) %>%
-  mutate(type = case_when(
-    type == "Multiplet" ~ paste0(cellTypes, " multiplets"),
-    type == "counts.x" ~ paste0(cellType1, " singlets"), 
-    type == "counts.y" ~ paste0(cellType2, " singlets"),
-    TRUE ~ type
-  )) %>%
-  mutate(type = parse_factor(type, levels = c(
-    "A375-HCT116 multiplets", "A375-HOS multiplets", 
-    "HCT116-HOS multiplets", "HOS reduced 0%", "HOS reduced 25%", 
-    "HOS reduced 50%", "HOS reduced 75%", "HOS reduced 99%", 
-    "A375 singlets", "HCT116 singlets", "HOS singlets"
-  ))) %>%
-  arrange(geneType, fold) %>%
-  mutate(plotGene = paste0(gene, " (", geneType, ")")) %>%
-  mutate(plotGene = parse_factor(plotGene, levels = unique(plotGene))) %>%
-  mutate(cellTypes = parse_factor(cellTypes, levels = c("A375-HOS", "HCT116-HOS", "A375-HCT116"))) %>%
+p2 <- plotData %>%
   ggplot() +
-  geom_line(aes(type, log2(cpm + 1), group = gene, colour = geneType)) +
-  geom_point(aes(type, log2(cpm + 1), colour = geneType), size = 0.75) +
-  facet_wrap(~cellTypes, scales = "free") +
-  labs(tag = "B)", y = "Mean log2(cpm + 1)", caption = paste0(
-    "Expression of 25 cell type specific genes from each cell type in sorted ",
-    "multiplets, synthetic multiplets (0%), adjusted synthetic multiplets ",
-    "(25-99%), and singlets."
-  )) +
+  geom_line(aes(cpmType, log2(cpm + 1), group = gene, colour = geneType)) +
+  geom_point(aes(cpmType, log2(cpm + 1), colour = geneType), size = 0.75) +
+  facet_wrap(~cellType, scales = "free") +
   theme_bw() +
   ggthemes::scale_colour_ptol() +
   theme(
@@ -343,5 +321,6 @@ multiplets is capable of mirroring the gene expression profile in multiplets
 of a known composition. Furthermore, adjusting the input of a specific cell type
 in the multiplet results in the expected changes in the multiplets gene 
 expression.
+
 <br></br>
 
