@@ -323,7 +323,8 @@ setupPlate <- function(
     costs = vector(mode = "numeric"),
     convergence = vector(mode = "character"),
     stats = list(),
-    arguments = list()
+    arguments = list(),
+    syntheticMultiplets = matrix()
   )
 }
 
