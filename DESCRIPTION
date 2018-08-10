@@ -17,7 +17,6 @@ Collate:
     'generalFunctions.R'
     'groupSizeTest.R'
     'noiseDataTest.R'
-    'syntheticDataTest.R'
     'complexity171116.R'
     'permutationFunctions.R'
     'testingNewConditions.R'

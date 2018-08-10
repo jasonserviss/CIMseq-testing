@@ -294,7 +294,7 @@ NULL
 #' @importFrom dplyr pull
 #' @importFrom stringr str_split
 #' @importFrom purrr map_dfr
-#' @importFrom tibble add_column column_to_rownames
+#' @importFrom tibble tibble add_column column_to_rownames
 #' @importFrom magrittr "%>%"
 
 setupPlate <- function(
@@ -322,9 +322,9 @@ setupPlate <- function(
     spSwarm = spSwarm,
     costs = vector(mode = "numeric"),
     convergence = vector(mode = "character"),
-    stats = list(),
-    arguments = list(),
-    syntheticMultiplets = matrix()
+    stats = tibble(),
+    singletIdx = list(),
+    arguments = list()
   )
 }
 

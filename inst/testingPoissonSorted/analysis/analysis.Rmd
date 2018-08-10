@@ -23,10 +23,11 @@ rm(packages)
 load("~/Github/sp.scRNAseqTesting/inst/testingPoissonSorted/data/sObj.rda")
 ```
 
-### Show average stats for multiplets dependant on the number of cell in the multiplet.
+### Show number of expected edges vs number of observed edges
+
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 known <- setupPlate(countsSortedMeta2)
-res <- checkResults(sObj, known, 0)
+res <- checkResults(sObj, known, 0.01)
 
 
 d <- res %>% 
@@ -42,10 +43,14 @@ e <- res %>%
   count(expected)
 
 full_join(d, e, by = c("detected" = "expected")) %>% 
-  rename(connection = detected, n.expected = n.y, n.detected = n.x) %>%
-  replace_na(list(n.expected = 0, n.detected = 0)) %>%
-  select(connection, n.expected, n.detected)
+  rename(connection = detected, n.expected.edges = n.y, n.detected.edges = n.x) %>%
+  replace_na(list(n.expected.edges = 0, n.detected.edges = 0)) %>%
+  select(connection, n.expected.edges, n.detected.edges)
+```
 
+### Show average stats for multiplets dependant on the number of cell in the multiplet.
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
 res %>%
   inner_join(countsSortedMeta2, by = c("multiplet" = "sample")) %>%
   mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
@@ -55,21 +60,10 @@ res %>%
     meanTNR = mean(TNR, na.rm = TRUE),
     meanACC = mean(ACC, na.rm = TRUE)
   )
-
-res %>% 
-  inner_join(countsSortedMeta2, by = c("multiplet" = "sample")) %>%
-  mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
-  ggplot() +
-  geom_dotplot(
-    aes(cellsInMultiplet, ACC, group = cellsInMultiplet), 
-    binaxis = "y", binwidth = 0.01, dotsize = 0.75, stackdir = "center"
-  ) + 
-  theme_bw() +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 1)) +
-  labs(x = "Cell types", y = "Accuracy")
 ```
 
 ### Show average stats for multiplets dependant on the combination of cells in the multiplet.
+
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 res %>%
   inner_join(countsSortedMeta2, by = c("multiplet" = "sample")) %>%
@@ -80,33 +74,10 @@ res %>%
     meanTNR = mean(TNR, na.rm = TRUE),
     meanACC = mean(ACC, na.rm = TRUE)
   )
-
-res %>% 
-  inner_join(countsSortedMeta2, by = c("multiplet" = "sample")) %>%
-  mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
-  arrange(cellsInMultiplet) %>%
-  mutate(cellTypes = parse_factor(cellTypes, levels = unique(cellTypes))) %>%
-  ggplot() +
-  geom_dotplot(
-    aes(
-      cellTypes, ACC, group = cellTypes, fill = factor(cellsInMultiplet), 
-      colour = factor(cellsInMultiplet)
-    ),
-    binaxis = "y", binwidth = 0.01, dotsize = 0.75, stackdir = "center"
-  ) +
-  theme_bw() +
-  scale_fill_ptol() +
-  scale_colour_ptol() +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 1)) +
-  labs(x = "Cell types", y = "Accuracy") +
-  theme(axis.text.x = element_text(angle = 90)) +
-  guides(
-    fill = guide_legend(title = "# of cells in multiplet"), 
-    colour = guide_legend(title = "# of cells in multiplet")
-  )
 ```
 
 ### Print all stats.
+
 ```{r}
 print <- res %>% 
   mutate(connections.detected = map_chr(data.detected, function(x) paste(unlist(x), collapse = ", "))) %>%
