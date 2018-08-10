@@ -62,9 +62,8 @@ determineEdgeCutoff <- function(cObjSng, uObj, sObj, reps = 10) {
     select(-cidx)
 }
 
-.determineEdgeCutoff_generateSM <- function(cObjSng, uObj, sObj, fractions, seed = 8923) {
-  selectInd <- getData(sObj, "arguments")$selectInd
-  counts <- getData(cObjSng, "counts.cpm")[selectInd, ]
+.determineEdgeCutoff_generateSM <- function(cObjSng, uObj, fractions, seed = 8923) {
+  counts <- getData(cObjSng, "counts.cpm")
   classes <- getData(uObj, "classification")
   
   sm <- map(1:nrow(fractions), function(i) {
@@ -97,13 +96,14 @@ determineEdgeCutoff <- function(cObjSng, uObj, sObj, reps = 10) {
   sobj
 }
 
+#only works with doublets
 .determineEdgeCutoff_process <- function(uObj, sObj_out) {
-  uClass <- unique(getData(uObj, "classification"))
+  uClass <- sort(unique(getData(uObj, "classification")))
   getData(sObj_out, "spSwarm") %>%
     rownames_to_column("info") %>%
     as_tibble() %>%
-    separate(info, into = c("celltype_reduced", "interval", "repetition"), sep = "_") %>%
-    nest(-(celltype_reduced:repetition)) %>%
+    separate(info, into = c("celltype_reduced", "interval", "repetition", "combo"), sep = "_") %>%
+    nest(-(celltype_reduced:combo)) %>%
     mutate(data = map(data, function(d) as.numeric(as.data.frame(d)[1, ]))) %>%
     mutate(mat = map(data, function(d) {
       matrix(d, nrow = 1, dimnames = list(NULL, uClass))
@@ -144,13 +144,13 @@ load('../testingPoissonSorted/data/sObj.rda')
 frac <- .determineEdgeCutoff_generateFractions_doublet(uObj, reps = 10)
 save(frac, file = "data/frac.rda", compress = "bzip2")
 
-sm <- .determineEdgeCutoff_generateSM(cObjSng, uObj, sObj, frac, seed = 8923)
+sm <- .determineEdgeCutoff_generateSM(cObjSng, uObj, frac, seed = 8923)
 save(sm, file = "data/sm.rda", compress = "bzip2")
 
 swarm <- .determineEdgeCutoff_swarm(cObjSng, uObj, sm)
 save(swarm, file = "data/swarm.rda", compress = "bzip2")
 
-edgeData <- .determineEdgeCutoff_process(swarm)
+edgeData <- .determineEdgeCutoff_process(uObj, swarm)
 
 #SAVE
 save(frac, sm, swarm, edgeData, file = "data/determineEdgeCutoff.rda", compress = "bzip2")
