@@ -31,6 +31,7 @@ print("spUnsupervised done")
 
 ##spSwarm
 select <- 1:nrow(countsSorted2)
+options(future.globals.maxSize = +Inf)
 future::plan(multiprocess)
 print(paste0("Starting deconvolution at ", Sys.time()))
 sObj <- spSwarm(

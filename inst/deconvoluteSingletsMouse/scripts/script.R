@@ -25,8 +25,8 @@ cObjMul <- spCounts(sng[, sample(1:ncol(sng), 100, replace = FALSE)], erccMul)
 print("spCounts done")
 
 #spUnsupervised
-if(file.exists(file.path('/home/jason/Github/sp.scRNAseqTesting/inst/testingPoissonMouse', 'data/uObj.rda'))) {
-  load(file.path('/home/jason/Github/sp.scRNAseqTesting/inst/testingPoissonMouse', "data/uObj.rda"))
+if(file.exists(file.path('~/Github/sp.scRNAseqTesting/inst/testingPoissonMouse', 'data/uObj.rda'))) {
+  load(file.path('~/Github/sp.scRNAseqTesting/inst/testingPoissonMouse', "data/uObj.rda"))
 } else {
   stop("Could not load spUnsupervised data")
 }

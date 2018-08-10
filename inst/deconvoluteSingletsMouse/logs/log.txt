@@ -7,6 +7,9 @@
 ✖ dplyr::filter() masks stats::filter()
 ✖ dplyr::lag()    masks stats::lag()
 is.na(c(counts, counts.ercc) returned TRUE
+ncol(counts) != ncol(counts.ercc).
 [1] "spCounts done"
 [1] "spUnsupervised done"
+[1] "Starting deconvolution at 2018-08-06 18:03:18"
+[1] "Finished deconvolution at 2018-08-08 16:08:24"
 [1] "finished"

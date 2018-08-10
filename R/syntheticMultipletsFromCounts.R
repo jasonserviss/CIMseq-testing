@@ -1,4 +1,44 @@
 
+#' syntheticSinglets
+#'
+#' This unit uses the negative binomial distribution to synthesize the
+#' singlets.
+#'
+#'
+#' @name syntheticSinglets
+#' @aliases syntheticSinglets
+#' @param nGenes Number of genes in generated synthetic data.
+#' @param nCells Number of cells per cell type in generated synthetic data.
+#' @param nCellTypes Number of cell types in generated synthetic data.
+#' @param ... additional arguments to pass on
+#' @return A matrix with synthetic counts.
+#' @author Jason T. Serviss
+#' @keywords internal
+#' @examples
+#'
+#' synth <- syntheticSinglets(10, 10, 10)
+#'
+NULL
+#' @export
+#' @import sp.scRNAseq
+
+syntheticSinglets <- function(
+  nGenes, nCells, nCellTypes, seed = 8732, ...
+){
+  synth <- sapply(1:nCellTypes, function(x) {
+    set.seed(seed + x)
+    rnbinom(nGenes * nCells, mu = 2^runif(nGenes, 0, 5), size = x)
+  })
+    
+  singlets <- matrix(as.numeric(synth), nrow = nGenes)
+    
+  colnames(singlets) <- paste(
+    sort(rep(LETTERS, nCells))[1:(nCellTypes * nCells)],
+    1:nCells, sep = ""
+  )
+  as.matrix(singlets)
+}
+
 #' syntheticMultipletsFromCounts
 #'
 #' Generates one multiplet per combo using the singlet counts data input to the
@@ -100,20 +140,5 @@ syntheticMultipletsFromCounts <- function(
 #  as_tibble()
 #}
 
-syntheticMultipletsFromCounts <- function(
-  counts,
-  classes,
-  fractions,
-  seed = 87909023,
-  ...
-){
-  set.seed(seed)
-  out <- as.numeric(sampleSinglets(classes)) %>%
-  subsetSinglets(counts, .) %>%
-  adjustAccordingToFractions(fractions, .) %>%
-  multipletSums()
-  
-  rownames(out) <- rownames(counts)
-  out
-}
+
 

@@ -10,9 +10,8 @@ Setting LC_CTYPE failed, using "C"
 x dplyr::filter() masks stats::filter()
 x dplyr::lag()    masks stats::lag()
 is.na(c(counts, counts.ercc) returned TRUE
-ncol(counts) != ncol(counts.ercc).
 [1] "spCounts done"
 [1] "spUnsupervised done"
-[1] "Starting deconvolution at 2018-07-24 15:04:39"
-[1] "Finished deconvolution at 2018-07-25 09:09:54"
+[1] "Starting deconvolution at 2018-08-06 11:47:27"
+[1] "Finished deconvolution at 2018-08-08 21:51:04"
 [1] "finished"

@@ -18,6 +18,6 @@ The following object is masked from 'package:future':
 
 [1] "spCounts done"
 [1] "spUnsupervised done"
-[1] "Starting deconvolution at 2018-07-25 15:12:23"
-[1] "Finished deconvolution at 2018-07-25 17:55:10"
+[1] "Starting deconvolution at 2018-08-03 13:07:44"
+[1] "Finished deconvolution at 2018-08-03 15:47:47"
 [1] "finished"

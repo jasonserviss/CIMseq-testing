@@ -116,7 +116,7 @@ print <- res %>%
   inner_join(countsSortedMeta2, by = c("multiplet" = "sample")) %>%
   select(-(plate:cellNumber)) %>%
   rename(cellsSorted = cellTypes) %>%
-  inner_join(matrix_to_tibble(getData(sObj, "spSwarm"), "multiplet"), by = "multiplet") %>%
+  inner_join(as_tibble(rownames_to_column(getData(sObj, "spSwarm"), "multiplet")), by = "multiplet") %>%
   mutate(HOS = round(HOS, digits = 5), HCT116 = round(HCT116, digits = 5), A375 = round(A375, digits = 5)) %>%
   unite(fractions, HOS, HCT116, A375, sep = ", ") %>%
   rename("fractions (HOS, HCT116, A375)" = fractions) %>%

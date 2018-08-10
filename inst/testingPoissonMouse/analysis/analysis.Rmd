@@ -54,11 +54,10 @@ cOrder <- hc[[4]][hc[[3]]]
 #cluster to get sample order
 hs <- hclust(as.dist(1 - cor(t(getData(sObj, "spSwarm")), method = "pearson")))
 sOrder <- hs[[4]][hs[[3]]]
-
 ```
 
 ```{r, fig.align="center", fig.height=8, fig.width=10}
-getData(sObj, "spSwarm") %>%
+p <- getData(sObj, "spSwarm") %>%
   rownames_to_column("sample") %>%
   as_tibble() %>%
   gather(class, fraction, -sample) %>%
@@ -85,6 +84,17 @@ getData(sObj, "spSwarm") %>%
     legend.position = "top"
   ) +
   guides(fill = guide_colourbar(title = "Fraction", title.position = "top", title.hjust = 0.5))
+
+p
+
+#ggsave(
+#  plot = p,
+#  filename = '../figures/figure.pdf',
+#  device = cairo_pdf,
+#  height = 180,
+#  width = 240,
+#  units = "mm"
+#)
 ```
 
 

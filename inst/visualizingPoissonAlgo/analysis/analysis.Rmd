@@ -11,16 +11,18 @@ editor_options:
 ---
 
 ```{r, message = FALSE}
+#PACKAGES
 packages <- c(
   "sp.scRNAseq","sp.scRNAseqData", "sp.scRNAseqTesting", "printr",
   "ggthemes", "tidyverse", "future", "patchwork"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
-```
 
-```{r, warning=FALSE}
 ##DATA
+s <- grepl("^s", colnames(countsSorted2))
+cObjSng <- spCounts(countsSorted2[, s], countsSortedERCC2[, s])
+cObjMul <- spCounts(countsSorted2[, !s], countsSortedERCC2[, !s])
 load('../data/algoOut.rda')
 load('../data/syntheticMultiplets.rda')
 ```
@@ -53,329 +55,10 @@ p1 <- getData(cObjSng, "counts.cpm")[g, ] %>%
   scale_colour_ptol() +
   theme_few() +
   labs(y = "CPM") +
-  guides(colour = guide_legend(title = "Gene"))
+  guides(colour = guide_legend(title = "Gene")) + 
+  theme(axis.title.y = element_blank())
 
-p1 + theme(axis.title.y = element_blank())
-
-# p <- p + theme(
-#     plot.title = element_blank(),
-#     plot.margin = unit(rep(0.1, 4), "lines"),
-#     legend.position = "top",
-#     legend.background = element_blank(),
-#     legend.box.spacing = unit(5, "pt"), #this controls the spacing between strip.text.x and the legend
-#     legend.margin = margin(rep(0, 4), unit = "pt"),
-#     legend.key.size = unit(1/5, "cm"),
-#     legend.title = element_text(size = 5),
-#     legend.text = element_text(size = 4),
-#     axis.title.y = element_blank(),
-#     axis.title = element_text(size = 5),
-#     axis.title.x = element_text(margin = margin(t = 5)),
-#     axis.text.y = element_text(size = 4),
-#     axis.text.x = element_text(size = 4),
-#     axis.ticks = element_line(size = 0.25),
-#     axis.ticks.length = unit(1/15, "cm"),
-#     strip.text.x = element_text(
-#       margin = margin(1, 0, 1, 0, "pt")
-#     ),
-#     strip.text = element_text(size = 3.25),
-#     panel.border = element_rect(fill = NA, size = 0.15)
-#   )
-
-# ggsave(
-#   plot = p,
-#   filename = '../figures/figure1.pdf',
-#   device = cairo_pdf,
-#   height = 60,
-#   width = 83,
-#   units = "mm"
-# )
-```
-
-```{r, eval = FALSE}
-#this gives warnings because type: wrong, gene: ANXA3 is only one value (0). These
-#can be ignored
-p2 <- synthetic.mul %>%
-  mutate(dpois = map2_dbl(real.multiplet, value, ~dpois(.x, .y, TRUE))) %>%
-  mutate(cost = if_else(is.infinite(dpois), -323.0052, dpois)) %>%
-  mutate(cost = cost * -1) %>%
-  ggplot() + 
-  geom_histogram(
-    aes(value, ..ndensity..), 
-    binwidth = 10, fill = "darkgrey"
-  ) + 
-  geom_line(
-    aes(x = 0, y = 0, linetype = "Synthetic multiplet values  ")
-  ) +
-  facet_grid(gene ~ type, scales = "free_y") +
-  geom_smooth(
-     data = . %>% 
-      select(value, gene, cost, type) %>% 
-      distinct() %>% 
-      group_by(gene, type) %>% 
-      mutate(cost.norm = cost / sum(cost)),
-    aes(value, cost.norm, group = interaction(gene, type), linetype = "Costs  "), 
-    se = FALSE, size = 0.5, span = 0.99, n = 100, method = "loess",
-    formula = y ~ x, colour = "#3366FF"
-  ) +
-  geom_segment(
-    data = . %>% select(gene, real.multiplet) %>% distinct(),
-    aes(
-      x = real.multiplet, xend = real.multiplet, y = 0, yend = 1.05,
-      linetype = "Real multiplet values  "
-    ),
-    size = 0.5, colour = "red"
-  ) +
-  geom_text(
-    data = . %>%
-      select(value, gene, cost, type) %>% 
-      distinct() %>% 
-      group_by(gene, type) %>% 
-      summarize(mean = mean(cost)),
-    aes(
-      x = 0, y = 1.1, label = paste0("Mean cost: ", round(mean))
-    ), colour = "gray13", hjust = 0, size = 3.5
-  ) +
-  theme_few() +
-  labs(y = "Density", x = "CPM") +
-  scale_linetype_manual(values = c(1, 2, 1)) +
-  guides(linetype = guide_legend(
-      title = "",
-      override.aes = list(
-        fill = rep("white", 3),
-        colour = c("#3366FF", "red", "darkgrey")
-      )
-  )) +
-  theme(
-    legend.position = "top",
-    legend.key = element_blank(),
-    legend.title = element_blank()
-  )
-
-    #geom_point(
-  #  data = . %>%
-  #   select(value, gene, dpois, type) %>%
-  #   distinct() %>%
-  #   group_by(gene, type) %>%
-  #   mutate(d.norm = dpois / sum(dpois)),
-  # aes(value, d.norm), colour = "blue"
-  #) 
-
-p2
-
-# p <- p + theme(
-#     plot.title = element_blank(),
-#     plot.margin = unit(rep(0.1, 4), "lines"),
-#     legend.position = "top",
-#     legend.background = element_blank(),
-#     legend.box.spacing = unit(5, "pt"), #this controls the spacing between strip.text.x and the legend
-#     legend.margin = margin(rep(0, 4), unit = "pt"),
-#     legend.key.size = unit(1/5, "cm"),
-#     legend.title = element_text(size = 9),
-#     legend.text = element_text(size = 7),
-#     axis.title = element_text(size = 5),
-#     axis.title.x = element_text(margin = margin(t = 5)),
-#     axis.text.y = element_text(size = 4),
-#     axis.text.x = element_text(size = 4),
-#     axis.ticks = element_line(size = 0.25),
-#     axis.ticks.length = unit(1/15, "cm"),
-#     strip.text.x = element_text(
-#       margin = margin(1, 0, 1, 0, "pt")
-#     ),
-#     strip.text = element_text(size = 3.25),
-#     panel.border = element_rect(fill = NA, size = 0.15)
-#   )
-```
-
-```{r, fig.align="center", fig.height=8, fig.width=10, warning=FALSE, eval = FALSE}
-p2 <- synthetic.mul %>%
-  mutate(pos = list(seq(0, max(value) + 200, 1))) %>%
-  mutate(rpois = map2(value, pos, ~dpois(.y, .x))) %>%
-  #mutate(rpois = map(value, ~rpois(100, .x))) %>%
-  mutate(dpois.real = map2_dbl(real.multiplet, value, ~dpois(.x, .y, TRUE))) %>%
-  mutate(cost.real = if_else(is.infinite(dpois.real), -323.0052, dpois.real)) %>%
-  mutate(cost.real = cost.real * -1) %>%
-  mutate(dpois.lambdas = list(seq(0, max(value), length.out = 100))) %>%
-  mutate(dpois = map2(real.multiplet, dpois.lambdas, function(r, v) {
-    dpois(r, v, TRUE)
-  })) %>%
-  mutate(cost = map(dpois, function(d) {
-    d <- if_else(is.infinite(d), -323.0052, d)
-    d * -1
-  })) %>%
-  ggplot() + 
-  geom_histogram(
-    aes(value, ..density..), 
-    binwidth = 1, fill = "black"
-  ) +
-  #this just facilitates the histogram legend
-  geom_line(
-    aes(x = 0, y = 0, linetype = "Synthetic multiplet values  ")
-  ) +
-  geom_line(
-    data = . %>%
-      select(pos, rpois, gene, type, value) %>%
-      unnest() %>%
-      group_by(gene, type) %>%
-      mutate(rpois = (rpois - min(rpois)) / (max(rpois) - min(rpois))),
-    aes(pos, rpois, group = interaction(gene, type, value)),
-    size = 0.1, colour = "lightgrey"
-  ) +
-  facet_grid(gene ~ type, scales = "free_y") +
-  geom_smooth(
-     data = . %>% 
-      select(dpois.lambdas, gene, cost, type) %>%
-       unnest() %>%
-      distinct() %>% 
-      group_by(gene, type) %>% 
-      #mutate(cost.norm = cost / sum(cost)),
-      mutate(cost.norm = (cost - min(cost)) / (max(cost) - min(cost))),
-    aes(dpois.lambdas, cost.norm, group = interaction(gene, type), linetype = "Costs  "), 
-    se = FALSE, size = 0.5, span = 0.99, n = 100, method = "loess",
-    formula = y ~ x, colour = "#3366FF"
-  ) +
-  geom_segment(
-    data = . %>% select(gene, real.multiplet) %>% distinct(),
-    aes(
-      x = real.multiplet, xend = real.multiplet, y = 0, yend = 1.05,
-      linetype = "Real multiplet values  "
-    ),
-    size = 0.5, colour = "red"
-  ) +
-  geom_text(
-    data = . %>%
-      select(value, gene, cost.real, type) %>% 
-      distinct() %>% 
-      group_by(gene, type) %>% 
-      summarize(mean = mean(cost.real)),
-    aes(
-      x = 0, y = 1.1, label = paste0("Mean cost: ", round(mean))
-    ), colour = "gray13", hjust = 0, size = 3.5
-  ) +
-  theme_few() +
-  labs(y = "Density", x = "CPM") +
-  scale_linetype_manual(values = c(1, 2, 1)) +
-  guides(linetype = guide_legend(
-      title = "",
-      override.aes = list(
-        fill = rep("white", 3),
-        colour = c("#3366FF", "red", "black")
-      )
-  )) +
-  theme(
-    legend.position = "top",
-    legend.key = element_blank(),
-    legend.title = element_blank()
-  )
-```
-
-```{r, fig.align="center", fig.height=8, fig.width=10, warning=FALSE, eval = FALSE}
-max.cost <- synthetic.mul %>%
-  mutate(dpois.x = list(round(seq(0, max(value), length.out = 100)))) %>%
-  mutate(dpois = map2(dpois.x, value, function(r, v) {dpois(r, v, TRUE)})) %>%
-  mutate(cost = map(dpois, function(d) {
-    d <- if_else(is.infinite(d), -323.0052, d)
-    d * -1
-  })) %>%
-  select(cost) %>%
-  unnest() %>% 
-  pull(cost) %>%
-  max()
-
-synthetic.mul %>%
-  #poisson distribution of each synthetic multiplet value
-  mutate(pos = list(seq(0, max(value) + 200, 10))) %>%
-  mutate(rpois = map2(value, pos, ~dpois(.y, .x))) %>%
-  #calculate dpois only for the real synthetic multiplet values to be able to 
-  #show the real mean cost per gene
-  mutate(dpois.real = map2_dbl(real.multiplet, value, ~dpois(.x, .y, TRUE))) %>%
-  mutate(cost.real = if_else(is.infinite(dpois.real), -323.0052, dpois.real)) %>%
-  mutate(cost.real = cost.real * -1) %>%
-  #calculate the entire cost space (blue line)
-  mutate(dpois.x = list(round(seq(0, max(value), length.out = 100)))) %>%
-  mutate(dpois = map2(dpois.x, value, ~dpois(.x, .y, TRUE))) %>%
-  mutate(cost = map(dpois, function(d) {
-    d <- if_else(is.infinite(d), -323.0052, d)
-    d * -1
-  })) %>%
-  #plot
-  ggplot() +
-  #synthetic multiplet values
-  geom_histogram(
-    aes(value, ..density..), 
-    binwidth = 1, fill = "black"
-  ) +
-  facet_grid(gene ~ type, scales = "free_y") +
-  #this just facilitates the histogram legend
-  geom_line(
-    aes(x = 0, y = 0, linetype = "Synthetic multiplet values  ")
-  ) +
-  #poisson distribution of individual synthetic multiplets
-  geom_line(
-    data = . %>%
-      select(pos, rpois, gene, type, value) %>%
-      unnest() %>%
-      group_by(gene, type) %>%
-      mutate(rpois = (rpois - min(rpois)) / (max(rpois) - min(rpois))),
-    aes(pos, rpois, group = interaction(gene, type, value), linetype = "Distribution  "),
-    size = 0.1, colour = "lightgrey"
-  ) +
-  #geom_point(
-  #  data = . %>%
-  #    select(pos, rpois, gene, type, value) %>%
-  #    unnest() %>%
-  #    group_by(gene, type) %>%
-  #    mutate(rpois = (rpois - min(rpois)) / (max(rpois) - min(rpois))),
-  #  aes(pos, rpois),
-  #  size = 0.1, colour = "green"
-  #) +
-  #costs
-  geom_line(
-    data = . %>% 
-      select(dpois.x, gene, cost, type) %>%
-      unnest() %>%
-      group_by(dpois.x, gene, type) %>% 
-      summarize(mean = mean(cost)) %>%
-      ungroup() %>%
-      mutate(mean.norm = (mean - min(mean)) / (max(mean) - min(mean))),
-    aes(dpois.x, mean.norm, linetype = "Costs  "), 
-    colour = "#3366FF"
-  ) +
-  #real multiplet value
-  geom_segment(
-    data = . %>% select(gene, real.multiplet) %>% distinct(),
-    aes(
-      x = real.multiplet, xend = real.multiplet, y = 0, yend = 1.05,
-      linetype = "Real multiplet values  "
-    ),
-    size = 0.5, colour = "red"
-  ) +
-  #adds mean cost
-  geom_text(
-    data = . %>%
-      select(value, gene, cost.real, type) %>% 
-      distinct() %>% 
-      group_by(gene, type) %>% 
-      summarize(mean = mean(cost.real)),
-    aes(
-      x = 0, y = 1.1, label = paste0("Mean cost: ", round(mean))
-    ), colour = "gray13", hjust = 0, size = 3.5
-  ) +
-  theme_few() +
-  labs(y = "Density", x = "CPM") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), sec.axis = sec_axis(~. * max.cost, name = "Cost")) +
-  scale_linetype_manual(values = c(1, 1, 2, 1)) +
-  guides(linetype = guide_legend(
-      title = "",
-      override.aes = list(
-        fill = rep("white", 4),
-        colour = c("#3366FF", "lightgrey", "red", "black")
-      )
-  )) +
-  theme(
-    legend.position = "top",
-    legend.key = element_blank(),
-    legend.title = element_blank()
-  )
+p1 
 ```
 
 ```{r, fig.align="center", fig.height=8, fig.width=10}
@@ -422,10 +105,7 @@ p2 <- synthetic.mul %>%
   #plot
   ggplot() +
   #synthetic multiplet values
-  geom_histogram(
-    aes(value, ..density..), 
-    binwidth = 1, fill = "black"
-  ) +
+  geom_rug(aes(value), size = 0.1) +
   facet_grid(gene ~ type, scales = "free_y") +
   #this just facilitates the histogram legend
   geom_line(
@@ -482,7 +162,7 @@ p2 <- synthetic.mul %>%
 p2
 ```
 
-```{r}
+```{r, eval = TRUE}
 p1 <- p1 +
   theme(
     axis.title.y = element_blank(),
