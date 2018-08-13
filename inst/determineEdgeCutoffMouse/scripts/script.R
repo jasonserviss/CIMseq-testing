@@ -137,8 +137,15 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 #DATA
-s <- grepl("^s", colnames(countsMgfp))
-cObjSng <- spCounts(countsMgfp[, s], countsMgfpERCC[, s])
+s <- str_detect(colnames(countsMgfp), "^s")
+commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
+sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
+erccSng <- cbind(
+  countsMgfpERCC[, s],
+  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
+)
+cObjSng <- spCounts(sng, erccSng)
+
 load('../testingPoissonMouse/data/uObj.rda')
 load('../testingPoissonMouse/data/sObj.rda')
 
