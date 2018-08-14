@@ -1,5 +1,5 @@
 ---
-title: "Deconvolution of mouse small intestine and colon multiplets"
+title: "Determine edge cutoff for sorted multiplet dataset"
 author: "Jason T. Serviss"
 date: "`r Sys.Date()`"
 output:
@@ -64,7 +64,7 @@ d <- getData(swarm, "spSwarm") %>%
   unnest() %>%
   unnest() %>%
   gather(direction, frac, -(celltype_reduced:correct)) %>%
-  mutate(interval = parse_factor(interval, levels = sort(as.numeric(interval)))) %>%
+  mutate(interval = parse_factor(interval, levels = rev(sort(as.numeric(interval))))) %>%
   filter(!is.nan(frac))
 
 #d %>% 

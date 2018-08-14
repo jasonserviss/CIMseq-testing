@@ -142,13 +142,13 @@ load('../testingPoissonSorted/data/sObj.rda')
 
 #SCRIPT
 frac <- .determineEdgeCutoff_generateFractions_doublet(uObj, reps = 10)
-save(frac, file = "data/frac.rda", compress = "bzip2")
+#save(frac, file = "data/frac.rda", compress = "bzip2")
 
 sm <- .determineEdgeCutoff_generateSM(cObjSng, uObj, frac, seed = 8923)
-save(sm, file = "data/sm.rda", compress = "bzip2")
+#save(sm, file = "data/sm.rda", compress = "bzip2")
 
 swarm <- .determineEdgeCutoff_swarm(cObjSng, uObj, sm)
-save(swarm, file = "data/swarm.rda", compress = "bzip2")
+#save(swarm, file = "data/swarm.rda", compress = "bzip2")
 
 edgeData <- .determineEdgeCutoff_process(uObj, swarm)
 
