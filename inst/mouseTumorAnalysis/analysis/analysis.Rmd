@@ -1,0 +1,134 @@
+---
+title: "Mouse Tumor analysis"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c(
+    "sp.scRNAseq",
+    "sp.scRNAseqData",
+    "seqTools",
+    "printr",
+    "ggthemes",
+    "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+#DATA
+load('../data/uObjs.rda')
+```
+
+### Only tumor cells
+
+```{r}
+st <- str_detect(colnames(countsMgfpTumor), "^s")
+cObjSng <- spCounts(countsMgfpTumor[, st], countsMgfpTumorERCC[, st])
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(uObj_tumor, cObjSng)
+plotUnsupervisedMarkers(
+  uObj_tumor, cObjSng,
+  c("Lgr5", "Muc2", "Ptprc", "Chga", "Lyz1", "Dclk1", "Slc40a1"), 
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+#wont plot Alpi; error; why?
+```
+
+
+```{r, warning=FALSE}
+sn <- str_detect(colnames(countsMgfp), "^s")
+commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
+commonGenes <- intersect(commonGenes, rownames(countsMgfpTumor))
+
+sng <- cbind(countsMgfp[commonGenes, sn], countsMgfpTumor[commonGenes, st], countsRegev[commonGenes, ])
+mul <- cbind(countsMgfp[commonGenes, !sn], countsMgfpTumor[commonGenes, !st])
+
+erccSng <- cbind(
+  countsMgfpERCC[, sn],
+  countsMgfpTumorERCC[, st],
+  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
+)
+erccMul <- cbind(countsMgfpERCC[, !sn], countsMgfpTumorERCC[, !st])
+
+#setup spCounts
+cObjSng <- spCounts(sng, erccSng)
+cObjMul <- spCounts(mul, erccMul)
+```
+
+### All cells
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(uObj_all, cObjSng)
+plotUnsupervisedMarkers(
+  uObj_all, cObjSng,
+  c("Lgr5", "Muc2", "Ptprc", "Chga", "Alpi", "Lyz1", "Dclk1", "Slc40a1"), 
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+
+plotUnsupervisedClass(uObj_all, cObjSng) %>%
+  plotData() %>%
+  mutate(type = if_else(Sample %in% countsMgfpTumorMeta$sample, "Tumor", "Normal")) %>%
+  ggplot() +
+  geom_point(aes(`t-SNE dim 1`, `t-SNE dim 2`, colour = type)) +
+  theme_few()
+```
+
+More blood markers
+
+t-cell: Cd4^1^  
+b-cell: Cd19^1^ 
+dendritic cell: Cd11c (Itgax)^1^  
+NK cell: Tbx21^2^  
+Stem/precursor: Cd34^1^  
+Macrophage: Cd11b (Itgam)^1^  
+Granulocyte: Arg2^3^  
+Platelet: Cd9^1^  
+Erythrocyte: Rhag^4^  
+
+1. https://www.bdbiosciences.com/documents/cd_marker_handbook.pdf  
+2. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3572860/  
+3. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4184787/  
+4. https://www.bdbiosciences.com/documents/BD_Reagents_CDMarkerMouse_Poster.pdf  
+
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+#https://www.bdbiosciences.com/documents/cd_marker_handbook.pdf
+#t-cell: CD3, CD4, CD8
+#b-cell: CD19
+#dendritic cell: CD11c (Itgax), CD123 (Il3ra)
+#NK cell: Arsb, Tbx21, Ifng (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3572860/)
+#Stem/precursor: CD34
+#Macrophage: CD11b (Itgam), Ly-71
+#Granulocyte: Ceacam10, Arg2 (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4184787/)
+#Platelet: CD41, CD9
+#Erythrocyte: Rhag (https://www.bdbiosciences.com/documents/BD_Reagents_CDMarkerMouse_Poster.pdf)
+#Endothelial Cell: CD106, CD31
+#Epithelial Cell: CD326 (EPCAM1)
+
+plotUnsupervisedMarkers(
+  uObj_all, cObjSng,
+  c("Cd4", "Cd19", "Tbx21", "Cd34", "Itgam", "Arg2", "Cd9", "Rhag"), 
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+Classification from fig 1. overlayed on fig 2.
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(uObj_all, cObjSng) %>%
+  plotData() %>%
+  full_join(tibble(Sample = rownames(getData(uObj_tumor, "tsne")), class = getData(uObj_tumor, "classification"))) %>%
+  ggplot() +
+  geom_point(aes(`t-SNE dim 1`, `t-SNE dim 2`, colour = class)) +
+  theme_few()
+```
+
