@@ -12,7 +12,7 @@ determineEdgeCutoff <- function(cObjSng, uObj, sObj, reps = 10) {
   uClass <- sort(unique(classes))
   lc <- length(uClass)
   li <- length(c(1/lc, 10^-(1:5)))
-  
+
   tibble(
     class_reduced = rep(uClass, each = li * reps),
     interval = rep(rep(round(c(1/lc, 10^-(1:5)), digits = 5), each = reps), lc),
@@ -39,11 +39,11 @@ determineEdgeCutoff <- function(cObjSng, uObj, sObj, reps = 10) {
     c(x)[c(x) != c]
   })
   names(key) <- uClass
-  
+
   li <- length(interval)
   lk <- length(key[[1]])
   lc <- length(uClass)
-  
+
   tibble(
     class_reduced = rep(uClass, each = li * reps * lk),
     interval = rep(rep(round(interval, digits = 5), each = reps * lk), lc),
@@ -67,15 +67,15 @@ determineEdgeCutoff <- function(cObjSng, uObj, sObj, reps = 10) {
 .determineEdgeCutoff_generateSM <- function(cObjSng, uObj, fractions, seed = 8923) {
   counts <- getData(cObjSng, "counts.cpm")
   classes <- getData(uObj, "classification")
-  
+
   sm <- map(1:nrow(fractions), function(i) {
     eps <- sample(1:1000, 1)
     f <- as.numeric(pull(slice(fractions, i), fractions)[[1]])
     syntheticMultipletsFromCounts(counts, classes, f, seed + eps)
-  }) %>% 
-    bind_cols() %>% 
+  }) %>%
+    bind_cols() %>%
     as.matrix()
-  
+
   cn <- select(fractions, -fractions) %>% unite(name, 1:ncol(.)) %>% pull(name)
   colnames(sm) <- cn
   rownames(sm) <- rownames(counts)
@@ -87,11 +87,11 @@ determineEdgeCutoff <- function(cObjSng, uObj, sObj, reps = 10) {
   swarmsize <- getData(sObj, "arguments")$swarmsize
   nSyntheticMultiplets <- getData(sObj, "arguments")$nSyntheticMultiplets
   selectInd <- getData(sObj, "arguments")$selectInd
-  
+
   print(paste0("starting deconvolution: ", Sys.time()))
   plan(multiprocess)
   sobj <- spSwarm(
-    cObjSng, sm, uObj, maxiter = maxiter, swarmsize = swarmsize, 
+    cObjSng, sm, uObj, maxiter = maxiter, swarmsize = swarmsize,
     nSyntheticMultiplets = nSyntheticMultiplets, selectInd = selectInd
   )
   print(paste0("finished deconvolution: ", Sys.time()))
@@ -99,7 +99,7 @@ determineEdgeCutoff <- function(cObjSng, uObj, sObj, reps = 10) {
 }
 
 #only works with doublets
-.determineEdgeCutoff_process <- function(uObj, sObj_out) {
+.determineEdgeCutoff_process <- function(uObj, sObj_out, edge.cutoff = 0) {
   uClass <- sort(unique(getData(uObj, "classification")))
   getData(sObj_out, "spSwarm") %>%
     rownames_to_column("info") %>%
@@ -126,7 +126,7 @@ syntheticMultipletsFromCounts <- function(
     subsetSinglets(counts, .) %>%
     adjustAccordingToFractions(fractions, .) %>%
     multipletSums()
-  
+
   rownames(out) <- rownames(counts)
   out
 }
@@ -160,7 +160,7 @@ save(sm, file = "data/sm.rda", compress = "bzip2")
 swarm <- .determineEdgeCutoff_swarm(cObjSng, uObj, sm)
 save(swarm, file = "data/swarm.rda", compress = "bzip2")
 
-edgeData <- .determineEdgeCutoff_process(uObj, swarm)
+edgeData <- .determineEdgeCutoff_process(uObj, swarm, 0)
 
 #SAVE
 save(frac, sm, swarm, edgeData, file = "data/determineEdgeCutoff.rda", compress = "bzip2")
