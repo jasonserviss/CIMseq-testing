@@ -46,7 +46,6 @@ mutate(newClass = case_when(
 ))
 
 classification(uObj) <- classes$newClass[match(rownames(getData(uObj, "tsne")), classes$sample)]
-groupMeans(uObj) <- averageGroupExpression(cObjSng, getData(uObj, "classification"), FALSE)
 tsneMeans(uObj) <- tsneGroupMeans(getData(uObj, "tsne"), getData(uObj, "classification"))
 
 save(uObj, file = file.path(currPath, "data/uObj.rda"))
