@@ -2,54 +2,41 @@ packages <- c("sp.scRNAseq", "sp.scRNAseqData", "seqTools", "tidyverse")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
+#check package version
+algoV <- sessionInfo()$otherPkgs$sp.scRNAseq$Version
+last3 <- paste(
+  strsplit(sessionInfo()$otherPkgs$sp.scRNAseq$Version, "\\.")[[1]][2:4],
+  collapse = ""
+)
+if(!as.numeric(last3) >= 102) {
+  stop("sp.scRNAseq package version too low. Must be >= 0.1.0.2")
+}
+
 currPath <- getwd()
 
 #setup spCounts
+keep.plates.SI <- c("NJA01202", "NJA01301", "NJA01302")
+keep.plates.colon <- c("NJA01303", "NJA01401", "NJA01205", "NJA00609")
+
 s <- str_detect(colnames(countsMgfp), "^s")
-e <- colnames(countsMgfp) %in% filter(countsMgfpMeta, is.na(GFP) & !filtered)$sample
+e <- colnames(countsMgfp) %in% filter(countsMgfpMeta, is.na(GFP) & !filtered & plate %in% c(keep.plates.SI, keep.plates.colon))$sample
 boolSng <- s & e
 boolMul <- !s & e
 
 #setup spCounts
 cObjSng <- spCounts(countsMgfp[, boolSng], countsMgfpERCC[, boolSng])
-cObjMul <- spCounts(countsMgfp[, boolMul], countsMgfpERCC[, boolMul])
 
 #all cells
 print(paste0("Starting all cells analysis at ", Sys.time()))
-uObj <- spUnsupervised(cObjSng, max_iter = 5000, initial_dims = ncol(sng), seed = 7234834, max = 1000)
+uObj <- spUnsupervised(
+  cObjSng, max_iter = 3000, initial_dims = sum(boolSng), seed = 7976898,
+  max = 1500, perplexity = 30, pcVarPercent = 0.35, kNN = 50, distCut = 0.75,
+  classCut = 4
+)
 print(paste0("Done all cells analysis at ", Sys.time()))
 
-#rename classes
-#paneth <- plotUnsupervisedMarkers(uObj, cObjSng, "Lyz1") %>%
-#  plotData() %>%
-#  filter(Classification == "L1" & `t-SNE dim 1` < -100) %>%
-#  pull(Sample)
-#
-#classes <- tibble(
-#  sample = rownames(getData(uObj, "tsne")),
-#  oldClass = getData(uObj, "classification"),
-#  newClass = case_when(
-#    oldClass %in% c("O1", "N1", "J1", "K1") ~ "SI.Stem",
-#    oldClass %in% c("M1") ~ "SI.Enterocyte",
-#    oldClass %in% c("L1") & sample %in% paneth ~ "SI.Paneth",
-#    oldClass %in% c("L1") ~ "SI.Goblet",
-#    oldClass %in% c("E1") ~ "SI.Tufft",
-#    oldClass %in% c("H1", "A1", "I1", "C1") ~ "C.Stem",
-#    oldClass %in% c("D1") ~ "C.Colonocyte",
-#    oldClass %in% c("B1") ~ "C.Goblet",
-#    oldClass %in% c("G1") ~ "Endocrine",
-#    oldClass %in% c("F1") ~ "Blood",
-#    TRUE ~ "error"
-#  )
-#)
-#
-#classification(uObj) <- classes$newClass
-#tsneMeans(uObj) <- tsneGroupMeans(getData(uObj, "tsne"), getData(uObj, "classification"))
-
 #save
-#save(uObjC, file = file.path(currPath, "data/uObjC.rda"))
-#save(uObjSi, file = file.path(currPath, "data/uObjSi.rda"))
-save(uObj, file = file.path(currPath, "data/uObj_engeOnly.rda"))
+save(uObj, file = file.path(currPath, "data/uObj.rda"))
 
 #write logs
-writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_spUnsupervised_engeOnly.txt"))
+writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_spUnsupervised.txt"))

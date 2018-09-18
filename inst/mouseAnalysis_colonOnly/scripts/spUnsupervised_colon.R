@@ -26,32 +26,30 @@ cObjMulC <- spCounts(mul[, boolMulC], erccMul[, boolMulC])
 
 #only colon
 print(paste0("Starting colon cells analysis at ", Sys.time()))
-uObjC <- spUnsupervised(cObjSngC, max_iter = 7000, initial_dims = sum(boolSngC), max = 1000, seed = 876901)
+uObjC <- spUnsupervised(cObjSngC, max_iter = 7000, initial_dims = sum(boolSngC), max = 1000, seed = 32932)
 print(paste0("Done colon cells analysis at ", Sys.time()))
 
 #rename classes
+#plotUnsupervisedMarkers(uObjC, cObjSngC, c("Lgr5", "Muc2", "Ptprc", "Chga", "Slc40a1", "Dclk1"), pal = RColorBrewer::brewer.pal(8, "Set1"))
+#
 #classes <- tibble(
-#  oldClass = getData(uObj, "classification"),
+#  oldClass = getData(uObjC, "classification"),
 #  newClass = case_when(
-#    oldClass %in% c("Q1", "O1", "N1", "R1", "B1", "I1", "T1", "L1") ~ "SI.Stem",
-#    oldClass %in% c("F1", "H1") ~ "SI.Enterocyte",
-#    oldClass %in% c("G1", "P1") ~ "SI.Goblet",
-#    oldClass %in% c("S1") ~ "SI.Paneth",
-#    oldClass %in% c("K1") ~ "SI.Tufft",
-#    oldClass %in% c("A1", "E1") ~ "C.Stem",
-#    oldClass %in% c("J1") ~ "C.Colonocyte",
-#    oldClass %in% c("C1") ~ "C.Goblet",
-#    oldClass %in% c("M1") ~ "Endocrine",
-#    oldClass %in% c("D1") ~ "Blood",
+#    oldClass %in% c("I1", "A1", "J1", "C1", "D1", "H1") ~ "C.Stem",
+#    oldClass %in% c("E1", "F1") ~ "C.Colonocyte",
+#    oldClass %in% c("K1", "B1", "G1") ~ "C.Goblet",
+#    oldClass %in% c("N1") ~ "Endocrine",
+#    oldClass %in% c("M1") ~ "Blood",
+#    oldClass %in% c("L1") ~ "C.Tufft",
 #    TRUE ~ "error"
 #  )
 #)
-
-#classification(uObj) <- classes$newClass
-#tsneMeans(uObj) <- tsneGroupMeans(getData(uObj, "tsne"), getData(uObj, "classification"))
+#
+#classification(uObjC) <- classes$newClass
+#tsneMeans(uObjC) <- tsneGroupMeans(getData(uObjC, "tsne"), getData(uObjC, "classification"))
 
 #save
-#save(uObjC, file = file.path(currPath, "data/uObjC.rda"))
+save(uObjC, file = file.path(currPath, "data/uObjC.rda"))
 
 #write logs
 writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_spUnsupervised.txt"))

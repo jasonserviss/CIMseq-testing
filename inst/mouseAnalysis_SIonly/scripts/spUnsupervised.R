@@ -17,38 +17,41 @@ erccSng <- cbind(
 )
 erccMul <- cbind(countsMgfpERCC[, !s])
 
-boolMulSI <- colnames(mul) %in% filter(countsMgfpMeta, tissue == "SI")$sample
-boolSngSI <- colnames(sng) %in% filter(countsMgfpMeta, tissue == "SI")$sample
+boolMulSi <- colnames(mul) %in% filter(countsMgfpMeta, tissue == "SI")$sample
+boolSngSi <- colnames(sng) %in% filter(countsMgfpMeta, tissue == "SI")$sample
 
 #setup spCounts
-cObjSngSi <- spCounts(sng[, !boolSngSi], erccSng[, !boolSngSi])
-cObjMulSi <- spCounts(mul[, !boolMulSi], erccMul[, !boolMulSi])
+cObjSngSi <- spCounts(sng[, boolSngSi], erccSng[, boolSngSi])
+cObjMulSi <- spCounts(mul[, boolMulSi], erccMul[, boolMulSi])
 
 #only small intestine
 print(paste0("Starting SI cells analysis at ", Sys.time()))
-uObjSi <- spUnsupervised(cObjSngSi, max_iter = 7000, initial_dims = sum(!boolSngC), max = 1000, seed = 23)
+uObjSi <- spUnsupervised(cObjSngSi, max_iter = 7000, initial_dims = sum(boolSngSi), max = 1000, seed = 348592)
 print(paste0("Done SI cells analysis at ", Sys.time()))
 
 #rename classes
-#classes <- tibble(
-#  oldClass = getData(uObj, "classification"),
-#  newClass = case_when(
-#    oldClass %in% c("Q1", "O1", "N1", "R1", "B1", "I1", "T1", "L1") ~ "SI.Stem",
-#    oldClass %in% c("F1", "H1") ~ "SI.Enterocyte",
-#    oldClass %in% c("G1", "P1") ~ "SI.Goblet",
-#    oldClass %in% c("S1") ~ "SI.Paneth",
-#    oldClass %in% c("K1") ~ "SI.Tufft",
-#    oldClass %in% c("A1", "E1") ~ "C.Stem",
-#    oldClass %in% c("J1") ~ "C.Colonocyte",
-#    oldClass %in% c("C1") ~ "C.Goblet",
-#    oldClass %in% c("M1") ~ "Endocrine",
-#    oldClass %in% c("D1") ~ "Blood",
-#    TRUE ~ "error"
-#  )
-#)
+plotUnsupervisedMarkers(
+  uObjSi, cObjSngSi,
+  c("Lgr5", "Muc2", "Ptprc", "Chga", "Alpi", "Lyz1", "Dclk1"),
+  pal = RColorBrewer::brewer.pal(7, "Set2")
+)
 
-#classification(uObj) <- classes$newClass
-#tsneMeans(uObj) <- tsneGroupMeans(getData(uObj, "tsne"), getData(uObj, "classification"))
+classes <- tibble(
+  oldClass = getData(uObjSi, "classification"),
+  newClass = case_when(
+    oldClass %in% c("P1", "K1", "N1", "B1", "L1") ~ "SI.Stem",
+    oldClass %in% c("Q1", "O1") ~ "SI.Enterocyte",
+    oldClass %in% c("M1") ~ "SI.Goblet",
+    oldClass %in% c("R1") ~ "SI.Paneth",
+    oldClass %in% c("H1") ~ "SI.Tufft",
+    oldClass %in% c("M1") ~ "Endocrine",
+    oldClass %in% c("D1") ~ "Blood",
+    TRUE ~ "error"
+  )
+)
+
+classification(uObjSi) <- classes$newClass
+tsneMeans(uObjSi) <- tsneGroupMeans(getData(uObjSi, "tsne"), getData(uObjSi, "classification"))
 
 #save
 #save(uObjSi, file = file.path(currPath, "data/uObjSi.rda"))
