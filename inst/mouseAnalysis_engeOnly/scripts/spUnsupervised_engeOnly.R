@@ -1,4 +1,4 @@
-packages <- c("sp.scRNAseq", "sp.scRNAseqData", "seqTools", "tidyverse")
+packages <- c("sp.scRNAseq", "sp.scRNAseqData", "tidyverse")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
