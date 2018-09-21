@@ -3,7 +3,6 @@
 \docType{methods}
 \name{permuteSwarm}
 \alias{permuteSwarm}
-\alias{permuteSwarm}
 \alias{permuteSwarm,spCounts-method}
 \title{permuteSwarm}
 \usage{
