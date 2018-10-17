@@ -5,28 +5,26 @@ rm(packages)
 currPath <- getwd()
 
 #setup spCounts
-s <- str_detect(colnames(countsMgfp), "^s")
-commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
+keep.plates.SI <- c("NJA01202", "NJA01301", "NJA01302")
+keep.plates.colon <- c("NJA01303", "NJA01401", "NJA01205", "NJA00609")
+keep <- c(keep.plates.SI, keep.plates.colon)
 
-sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
-mul <- countsMgfp[commonGenes, !s]
-
-erccSng <- cbind(
-  countsMgfpERCC[, s],
-  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
-)
-erccMul <- cbind(countsMgfpERCC[, !s])
-
-boolMulSi <- colnames(mul) %in% filter(countsMgfpMeta, tissue == "SI")$sample
-boolSngSi <- colnames(sng) %in% filter(countsMgfpMeta, tissue == "SI")$sample
+s <- str_detect(colnames(MGA.Counts), "^s")
+samples <- filter(MGA.Meta, !filtered & plate %in% keep & sub_tissue == "small_intestine")$sample
+e <- colnames(MGA.Counts) %in% samples
+boolSng <- s & e
+boolMul <- !s & e
 
 #setup spCounts
-cObjSngSi <- spCounts(sng[, boolSngSi], erccSng[, boolSngSi])
-cObjMulSi <- spCounts(mul[, boolMulSi], erccMul[, boolMulSi])
+cObjSng <- spCounts(MGA.Counts[, boolSng], MGA.CountsERCC[, boolSng])
 
 #only small intestine
 print(paste0("Starting SI cells analysis at ", Sys.time()))
-uObjSi <- spUnsupervised(cObjSngSi, max_iter = 7000, initial_dims = sum(boolSngSi), max = 1000, seed = 348592)
+uObjSi <- spUnsupervised(
+  cObjSng, max_iter = 3000, initial_dims = sum(boolSng), seed = 7976898,
+  max = 1500, perplexity = 30, pcVarPercent = 0.35, kNN = 50, distCut = 0.75,
+  classCut = 4
+)
 print(paste0("Done SI cells analysis at ", Sys.time()))
 
 #rename classes

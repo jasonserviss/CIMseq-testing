@@ -5,17 +5,14 @@ rm(packages)
 
 currPath <- getwd()
 
-s <- str_detect(colnames(countsMgfp), "^s")
-commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
+s <- str_detect(colnames(MGA.Counts), "^s")
+commonGenes <- intersect(rownames(MGA.Counts), rownames(RSI.Counts))
 
-sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
-mul <- countsMgfp[commonGenes, !s]
+sng <- cbind(MGA.Counts[commonGenes, s], RSI.Counts[commonGenes, ])
+mul <- MGA.Counts[commonGenes, !s]
 
-erccSng <- cbind(
-  countsMgfpERCC[, s], 
-  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
-)
-erccMul <- cbind(countsMgfpERCC[, !s])
+erccSng <- cbind(MGA.CountsERCC[, s], RSI.CountsERCC)
+erccMul <- cbind(MGA.CountsERCC[, !s])
 
 #setup spCounts
 cObjSng <- spCounts(sng, erccSng)

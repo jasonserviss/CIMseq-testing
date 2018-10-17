@@ -24,14 +24,16 @@ load('../data/sObj.rda')
 #setup spCounts
 keep.plates.SI <- c("NJA01202", "NJA01301", "NJA01302")
 keep.plates.colon <- c("NJA01303", "NJA01401", "NJA01205", "NJA00609")
+keep <- c(keep.plates.SI, keep.plates.colon)
 
-s <- str_detect(colnames(countsMgfp), "^s")
-e <- colnames(countsMgfp) %in% filter(countsMgfpMeta, is.na(GFP) & !filtered & plate %in% c(keep.plates.SI, keep.plates.colon))$sample
+s <- str_detect(colnames(MGA.Counts), "^s")
+samples <- filter(MGA.Meta, !filtered & unique_key %in% keep)$sample
+e <- colnames(MGA.Counts) %in% samples
 boolSng <- s & e
 boolMul <- !s & e
 
-cObjSng <- spCounts(countsMgfp[, boolSng], countsMgfpERCC[, boolSng])
-cObjMul <- spCounts(countsMgfp[, boolMul], countsMgfpERCC[, boolMul])
+cObjSng <- spCounts(MGA.Counts[, boolSng], MGA.CountsERCC[, boolSng])
+cObjMul <- spCounts(MGA.Counts[, boolMul], MGA.CountsERCC[, boolMul])
 ```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
@@ -85,7 +87,7 @@ p <- swarm %>%
     class %in% c("12", "11") ~ "miscellaneous", 
     TRUE ~ "error"
   )) %>%
-  inner_join(countsMgfpMeta, by = "sample") %>%
+  inner_join(MGA.Meta, by = "sample") %>%
   mutate(class = renameClasses(class)) %>%
   inner_join(edgeDat, by = c("sample" = "multiplet")) %>%
   arrange(edges) %>%
@@ -121,7 +123,7 @@ p <- round(swarm, digits = 2) %>%
     class %in% c("12", "11") ~ "miscellaneous", 
     TRUE ~ "error"
   )) %>%
-  inner_join(countsMgfpMeta, by = "sample") %>%
+  inner_join(MGA.Meta, by = "sample") %>%
   mutate(class = renameClasses(class)) %>%
   inner_join(edgeDat, by = c("sample" = "multiplet")) %>%
   arrange(edges) %>%

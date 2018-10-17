@@ -1,33 +1,14 @@
 #PACKAGES
-packages <- c("sp.scRNAseq", "sp.scRNAseqData", "tidyverse", "future")
+packages <- c("CIMseq", "sp.scRNAseqData", "tidyverse", "future")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 currPath <- getwd()
 
-#setup spCounts
-keep.plates.SI <- c("NJA01202", "NJA01301", "NJA01302")
-keep.plates.colon <- c("NJA01303", "NJA01401", "NJA01205", "NJA00609")
-
-s <- str_detect(colnames(countsMgfp), "^s")
-e <- colnames(countsMgfp) %in% filter(countsMgfpMeta, is.na(GFP) & !filtered & plate %in% c(keep.plates.SI, keep.plates.colon))$sample
-boolSng <- s & e
-boolMul <- !s & e
-
-cObjSng <- spCounts(countsMgfp[, boolSng], countsMgfpERCC[, boolSng])
-cObjMul <- spCounts(countsMgfp[, boolMul], countsMgfpERCC[, boolMul])
-
-print("spCounts done")
-
-#spUnsupervised
-if(file.exists(file.path(currPath, 'data/uObj.rda'))) {
-  load(file.path(currPath, 'data/uObj.rda'))
+#load data
+if(file.exists(file.path(currPath, 'data/CIMseqData.rda'))) {
+  load(file.path(currPath, 'data/CIMseqData.rda'))
 }
-
-print("spUnsupervised done")
-
-##spSwarm
-selectIdx <- spTopVar(cObjSng, 2000)
 
 #future::plan(multiprocess)
 options(future.wait.interval = 30.0)
@@ -43,9 +24,8 @@ future::plan(
 )
 
 print(paste0("Starting deconvolution at ", Sys.time()))
-sObj <- spSwarm(
-  cObjSng, cObjMul, uObj, maxiter = 100, swarmsize = 500,
-  nSyntheticMultiplets = 400, selectInd = selectIdx
+sObj <- CIMseqSwarm(
+  cObjSng, cObjMul, maxiter = 100, swarmsize = 500, nSyntheticMultiplets = 400
 )
 print(paste0("Finished deconvolution at ", Sys.time()))
 
