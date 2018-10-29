@@ -1,0 +1,507 @@
+---
+title: "Mouse analysis"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "sp.scRNAseqData", "tidyverse")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../data/CIMseqData.rda')
+load('../data/sObj.rda')
+```
+
+```{r}
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "SI.Stem.prolif",
+    class == "1" ~ "SI.TA.early.1",
+    class == "2" ~ "C.Goblet.distal",
+    class == "3" ~ "C.Stem.proximal.2",
+    class == "4" ~ "C.Colonocyte",
+    class == "5" ~ "C.Goblet.proximal",
+    class == "6" ~ "C.Stem.proximal.1",
+    class == "7" ~ "SI.Goblet",
+    class == "8" ~ "SI.TA.late",
+    class == "9" ~ "SI.Stem.quies",
+    class == "10" ~ "C.Stem.distal",
+    class == "11" ~ "SI.Enterocytes",
+    class == "12" ~ "C.TA.cells",
+    class == "13" ~ "SI.TA.early.2",
+    class == "14" ~ "Chromaffin",
+    class == "15" ~ "Tufft",
+    class == "16" ~ "SI.Paneth",
+    class == "17" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul,
+  c("Lgr5", "Muc2", "Ptprc", "Chga", "Alpi", "Lyz1", "Dclk1", "Slc40a1"), 
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+Show table of number of cells detected per multiplet with edge cutoff = 0.01.
+```{r}
+cut1 <- apply(fractions, 1, function(r) {
+  length(which(r > 0.01))
+})
+table(cut1)
+```
+
+Show table of number of cells detected per multiplet with edge cutoff = 0.001.
+```{r}
+cut2 <- apply(fractions, 1, function(r) {
+  length(which(r > 0.001))
+})
+table(cut2)
+```
+
+Show histogram of fractions.
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+tibble(fractions = c(fractions)) %>%
+  mutate(cut = if_else(fractions > 0.001, TRUE, FALSE)) %>%
+  ggplot() +
+  geom_histogram(aes(fractions), binwidth = 0.01) +
+  facet_wrap(~cut, scales = "free")
+```
+
+Show cost per number of detected connections. Connections quantified with edge 
+cutoff 0.01.
+```{r}
+cut1 <- apply(fractions, 1, function(r) {
+  length(which(r > 0.01))
+})
+
+tibble(nConnections = cut1, cost = getData(sObj, "costs")) %>%
+  mutate(nConnections = parse_factor(nConnections, levels = sort(unique(nConnections)))) %>%
+  ggplot() + 
+  geom_boxplot(aes(nConnections, cost))
+```
+
+```{r, eval = FALSE}
+ideal <- c(
+  "C.Goblet.distal", "C.Stem.distal", "C.TA.distal", "C.Colonocyte",
+  "C.TA.proximal.1", "C.TA.proximal.2", "C.Stem.proximal", "C.Goblet.proximal",
+  "Chromaffin", "Tufft", "Blood", "SI.Goblet", "SI.Paneth", "SI.Stem.1",
+  "SI.Stem.2", "SI.TA.early.1", "SI.TA.early.2", "SI.TA.intermediate",
+  "SI.TA.late", "SI.Enterocyte"
+)
+cut <- 0.01
+o <- tibble(sample = rownames(fractions)) %>%
+  mutate(connections = map(sample, function(s) {
+    sample <- fractions[s, ]
+    colnames(fractions)[sample >= cut]
+  })) %>%
+  mutate(ctext = map_chr(connections, paste, collapse = ", ")) %>%
+  mutate(cellNumber = map_int(connections, length)) %>%
+  filter(cellNumber < 4) %>%
+  mutate(ord = map_int(connections, function(c) {
+    match(c[1], ideal)
+  })) %>%
+  mutate(ord2 = map_int(connections, function(c) {
+    sum(match(c, ideal))
+  })) %>%
+  mutate(ord3 = map2_chr(sample, connections, function(s, c) {
+    fractions[s, c[1]]
+  })) %>%
+  arrange(ord, cellNumber, ord2, ord3) 
+
+fractions[pull(o, sample), ] %>%
+  matrix_to_tibble("sample") %>%
+  mutate(sample = parse_factor(sample, levels = unique(sample))) %>%
+  gather(class, frac, -sample) %>%
+  mutate(class = parse_factor(class, levels = ideal)) %>%
+  group_by(sample) %>%
+  mutate(cn = length(which(frac > cut))) %>%
+  ungroup() %>%
+  ggplot() +
+  geom_tile(aes(class, sample, fill = frac)) +
+  #facet_wrap( ~ cn, scales = "free_x") +
+  scale_fill_viridis_c() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  coord_flip()
+```
+
+```{r, eval = FALSE}
+#a quick test with 2 samples to confirm plotting is working as expected
+ideal <- c(
+  "C.Goblet.distal", "C.Stem.distal", "C.TA.distal", "C.Colonocyte",
+  "C.TA.proximal.1", "C.TA.proximal.2", "C.Stem.proximal", "C.Goblet.proximal",
+  "Chromaffin", "Tufft", "Blood", "SI.Goblet", "SI.Paneth", "SI.Stem.1",
+  "SI.Stem.2", "SI.TA.early.1", "SI.TA.early.2", "SI.TA.intermediate",
+  "SI.TA.late", "SI.Enterocytes"
+)
+fractions <- getData(sObj, "fractions")
+test <- c("m.NJA01301.F22", "m.NJA01202.J20")
+
+cut <- 0.01
+tibble(sample = test) %>%
+  mutate(from = map(sample, function(s) {
+    sample <- fractions[s, ]
+    n <- colnames(fractions)[sample > cut]
+    if(length(n) == 1) {
+      tibble(Var1 = n, Var2 = n)
+    } else {
+      expand.grid(n, n, stringsAsFactors = FALSE) %>%
+        as.tibble()
+    }
+  })) %>%
+  unnest() %>%
+  filter(Var1 != Var2) %>%
+  inner_join(matrix_to_tibble(fractions, "sample"), by = "sample") %>%
+  gather(class, frac, -(sample:Var2)) %>%
+  mutate(frac = pmap_dbl(list(Var1, Var2, class, frac), function(fr, to, c, f) {
+    if_else(c %in% c(fr, to), f, 0)
+  })) %>% 
+  mutate(
+    xord1 = match(Var1, ideal),
+    xord2 = match(Var2, ideal)
+  ) %>%
+  arrange(xord1, xord2, frac) %>%
+  mutate(x = paste(sample, Var1, Var2, sep = "-")) %>%
+  mutate(x = parse_factor(x, levels = unique(x))) %>%
+  mutate(class = parse_factor(class, levels = ideal)) %>%
+  mutate(Var1 = parse_factor(Var1, levels = ideal)) %>%
+  inner_join(tibble(
+    sample = rownames(getData(sObj, "fractions")), 
+    detectedCon = apply(getData(sObj, "fractions"), 1, function(r) {
+      length(which(r > 0.01))
+    })
+  )) %>%
+  filter(detectedCon == 3) %>%
+  ggplot() +
+  geom_tile(aes(x, class, fill = frac)) +
+  facet_wrap(~ Var1, scales = "free_x") +
+  labs(x = "Connections", y = "Class") +
+  scale_fill_viridis_c() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  guides(fill = guide_colorbar(title = "Fractions"))
+```
+
+Plot results for all multiplets.
+
+```{r, fig.align="center", fig.width=12, fig.height=10}
+ideal <- c(
+  "C.Goblet.distal", "C.Stem.distal", "C.Colonocyte", "C.TA.cells",
+  "C.Stem.proximal.1", "C.Stem.proximal.2", "C.Goblet.proximal",
+  "Chromaffin", "Tufft", "Blood", "SI.Goblet", "SI.Paneth", "SI.Stem.quies",
+  "SI.Stem.prolif", "SI.TA.early.1", "SI.TA.early.2", "SI.TA.late",
+  "SI.Enterocytes"
+)
+
+cut <- 0.01
+tibble(sample = rownames(fractions)) %>%
+  mutate(from = map(sample, function(s) {
+    sample <- fractions[s, ]
+    n <- colnames(fractions)[sample > cut]
+    if(length(n) == 1) {
+      tibble(Var1 = n, Var2 = n)
+    } else {
+      expand.grid(n, n, stringsAsFactors = FALSE) %>%
+        as.tibble()
+    }
+  })) %>%
+  unnest() %>%
+  filter(Var1 != Var2) %>%
+  inner_join(matrix_to_tibble(fractions, "sample"), by = "sample") %>%
+  gather(class, frac, -(sample:Var2)) %>%
+  mutate(frac = pmap_dbl(list(Var1, Var2, class, frac), function(fr, to, c, f) {
+    if_else(c %in% c(fr, to), f, 0)
+  })) %>% 
+  mutate(
+    xord1 = match(Var1, ideal),
+    xord2 = match(Var2, ideal)
+  ) %>%
+  arrange(xord1, xord2, frac) %>%
+  mutate(x = paste(sample, Var1, Var2, sep = "-")) %>%
+  mutate(x = parse_factor(x, levels = unique(x))) %>%
+  mutate(class = parse_factor(class, levels = ideal)) %>%
+  mutate(Var1 = parse_factor(Var1, levels = ideal)) %>%
+  ggplot() +
+  geom_tile(aes(x, class, fill = frac)) +
+  facet_wrap(~ Var1, scales = "free_x") +
+  labs(x = "Connections", y = "Class") +
+  scale_fill_viridis_c() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  guides(fill = guide_colorbar(title = "Fractions"))
+```
+
+Plot results for multiplets with duplicates detected.
+
+```{r, fig.align="center", fig.width=12, fig.height=10}
+ideal <- c(
+  "C.Goblet.distal", "C.Stem.distal", "C.TA.distal", "C.Colonocyte",
+  "C.TA.proximal.1", "C.TA.proximal.2", "C.Stem.proximal", "C.Goblet.proximal",
+  "Chromaffin", "Tufft", "Blood", "SI.Goblet", "SI.Paneth", "SI.Stem.1",
+  "SI.Stem.2", "SI.TA.early.1", "SI.TA.early.2", "SI.TA.intermediate",
+  "SI.TA.late", "SI.Enterocyte"
+)
+
+cut <- 0.001
+tibble(sample = rownames(fractions)) %>%
+  mutate(from = map(sample, function(s) {
+    sample <- fractions[s, ]
+    n <- colnames(fractions)[sample >= cut]
+    if(length(n) == 1) {
+      tibble(Var1 = n, Var2 = n)
+    } else {
+      expand.grid(n, n, stringsAsFactors = FALSE) %>%
+        as.tibble()
+    }
+  })) %>%
+  unnest() %>%
+  full_join(matrix_to_tibble(fractions, "sample"), by = "sample") %>%
+  gather(class, frac, -(sample:Var2)) %>%
+  mutate(frac = pmap_dbl(list(Var1, Var2, class, frac), function(fr, to, c, f) {
+    if_else(c %in% c(fr, to), f, 0)
+  })) %>% 
+  mutate(
+    xord1 = match(Var1, ideal),
+    xord2 = match(Var2, ideal)
+  ) %>%
+  arrange(xord1, xord2, frac) %>%
+  mutate(x = paste(sample, Var1, Var2, sep = "-")) %>%
+  mutate(x = parse_factor(x, levels = unique(x))) %>%
+  mutate(class = parse_factor(class, levels = ideal)) %>%
+  mutate(Var1 = parse_factor(Var1, levels = ideal)) %>%
+  full_join(tibble(
+    sample = rownames(getData(sObj, "fractions")), 
+    detectedCon = apply(getData(sObj, "fractions"), 1, function(r) {
+      length(which(r > 0.01))
+    })
+  )) %>%
+  filter(detectedCon == 2) %>%
+  ggplot() +
+  geom_tile(aes(x, class, fill = frac)) +
+  facet_wrap(~ Var1, scales = "free_x") +
+  labs(x = "Connections", y = "Class") +
+  scale_fill_viridis_c() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  guides(fill = guide_colorbar(title = "Fractions"))
+```
+
+Plot results for multiplets with triplicates detected.
+
+```{r, fig.align="center", fig.width=12, fig.height=10}
+ideal <- c(
+  "C.Goblet.distal", "C.Stem.distal", "C.TA.distal", "C.Colonocyte",
+  "C.TA.proximal.1", "C.TA.proximal.2", "C.Stem.proximal", "C.Goblet.proximal",
+  "Chromaffin", "Tufft", "Blood", "SI.Goblet", "SI.Paneth", "SI.Stem.1",
+  "SI.Stem.2", "SI.TA.early.1", "SI.TA.early.2", "SI.TA.intermediate",
+  "SI.TA.late", "SI.Enterocyte"
+)
+
+cut <- 0.001
+tibble(sample = rownames(fractions)) %>%
+  mutate(from = map(sample, function(s) {
+    sample <- fractions[s, ]
+    n <- colnames(fractions)[sample >= cut]
+    if(length(n) == 1) {
+      tibble(Var1 = n, Var2 = n)
+    } else {
+      expand.grid(n, n, stringsAsFactors = FALSE) %>%
+        as.tibble()
+    }
+  })) %>%
+  unnest() %>%
+  full_join(matrix_to_tibble(fractions, "sample"), by = "sample") %>%
+  gather(class, frac, -(sample:Var2)) %>%
+  mutate(frac = pmap_dbl(list(Var1, Var2, class, frac), function(fr, to, c, f) {
+    if_else(c %in% c(fr, to), f, 0)
+  })) %>% 
+  mutate(
+    xord1 = match(Var1, ideal),
+    xord2 = match(Var2, ideal)
+  ) %>%
+  arrange(xord1, xord2, frac) %>%
+  mutate(x = paste(sample, Var1, Var2, sep = "-")) %>%
+  mutate(x = parse_factor(x, levels = unique(x))) %>%
+  mutate(class = parse_factor(class, levels = ideal)) %>%
+  mutate(Var1 = parse_factor(Var1, levels = ideal)) %>%
+  full_join(tibble(
+    sample = rownames(getData(sObj, "fractions")), 
+    detectedCon = apply(getData(sObj, "fractions"), 1, function(r) {
+      length(which(r > 0.01))
+    })
+  )) %>%
+  filter(detectedCon == 3) %>%
+  ggplot() +
+  geom_tile(aes(x, class, fill = frac)) +
+  facet_wrap(~ Var1, scales = "free_x") +
+  labs(x = "Connections", y = "Class") +
+  scale_fill_viridis_c() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  guides(fill = guide_colorbar(title = "Fractions"))
+```
+
+```{r, fig.align="center", fig.width=12, fig.height=10, eval = FALSE}
+
+
+edgeDat <- getEdgesForMultiplet(sObj, 0.001, rownames(fractions)) %>%
+  group_by(multiplet) %>%
+  summarize(edges = paste(paste(from, to, sep = "-"), collapse = ", "))
+
+p <- fractions %>%
+  matrix_to_tibble("sample") %>%
+  gather(class, fraction, -sample) %>%
+  mutate(classTissue = case_when(
+    str_detect(class, "^C\\.") ~ "colon", 
+    str_detect(class, "^S") ~ "SI",
+    str_detect(class, "^[T, C, B]") ~ "miscellaneous", 
+    TRUE ~ "error"
+  )) %>%
+  inner_join(MGA.Meta, by = "sample") %>%
+  inner_join(edgeDat, by = c("sample" = "multiplet")) %>%
+  arrange(edges) %>%
+  mutate(sample = parse_factor(sample, levels = unique(sample))) %>%
+  ggplot() +
+  geom_tile(aes(class, sample, fill = log2(fraction + 1))) +
+  facet_grid(. ~ classTissue, scales = "free") +
+  scale_fill_viridis_c() +
+  theme_bw() +
+  labs(x = "Samples", caption = "edge cutoff = 0") +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(angle = 90),
+    legend.position = "top",
+    plot.caption = element_text(hjust = 0)
+  ) +
+  guides(fill = guide_colourbar(title = "Fraction", title.position = "top", title.hjust = 0.5))
+
+p
+```
+
+```{r, fig.align="center", fig.width=12, fig.height=10, eval = FALSE}
+p <- round(swarm, digits = 2) %>%
+  add_column(cd = apply(., 1, function(f) length(which(f != 0)))) %>%
+  rownames_to_column("sample") %>%
+  as_tibble() %>%
+  gather(class, fraction, -sample, -cd) %>%
+  mutate(classTissue = case_when(
+    class %in% c("5", "1", "15", "6", "4") ~ "colon", 
+    class %in% c("10", "13", "14", "2", "3", "7", "8", "9") ~ "SI",
+    class %in% c("12", "11") ~ "miscellaneous", 
+    TRUE ~ "error"
+  )) %>%
+  inner_join(MGA.Meta, by = "sample") %>%
+  mutate(class = renameClasses(class)) %>%
+  inner_join(edgeDat, by = c("sample" = "multiplet")) %>%
+  arrange(edges) %>%
+  mutate(sample = parse_factor(sample, levels = unique(sample))) %>%
+  ggplot() +
+  geom_tile(aes(class, sample, fill = log2(fraction + 1))) +
+  facet_grid(cd ~ classTissue, scales = "free") +
+  scale_fill_viridis_c() +
+  theme_bw() +
+  labs(x = "Samples", caption = "edge cutoff = 0.01") +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(angle = 90),
+    legend.position = "top",
+    plot.caption = element_text(hjust = 0)
+  ) +
+  guides(fill = guide_colourbar(title = "Fraction", title.position = "top", title.hjust = 0.5))
+
+p
+```
+
+```{r, fig.align="center", fig.width=12, fig.height=10, eval = FALSE}
+spSwarmPoisson(sObj, 0.001) %>%
+  filter(from != "undefined" & to != "undefined") %>%
+  arrange(from, to) %>%
+  mutate(
+    from.name = renameClasses(from),
+    to.name = renameClasses(to)
+  ) %>%
+  mutate(
+    from.name = parse_factor(from.name, levels = unique(from.name)),
+    to.name = parse_factor(to.name, levels = unique(to.name))
+  ) %>%
+  ggplot() +
+  geom_tile(aes(from.name, to.name, fill = weight)) +
+  scale_fill_viridis_c() +
+  labs(x = "from", y = "to", caption = "edge.cutoff = 0.01") +
+  theme(
+    plot.caption = element_text(hjust = 0),
+    axis.text.x = element_text(angle = 90),
+    legend.position = "top"
+  ) +
+  guides(fill = guide_colourbar(title = "Weight", title.position = "top", title.hjust = 0.5))
+```
+
+```{r, fig.align="center", fig.width=12, fig.height=10, eval = FALSE}
+weights <- spSwarmPoisson(sObj, 0.1)
+
+freq <- expand.grid(colnames(fractions), colnames(fractions), stringsAsFactors = FALSE) %>%
+  as_tibble() %>%
+  mutate(weight = map2_int(Var1, Var2, function(f, t) {
+    filter(weights, (from == f & to == t) | (from == t & to == f))$weight
+  })) %>%
+  group_by(Var1) %>%
+  mutate(totalWeights = sum(weight)) %>%
+  ungroup() %>%
+  mutate(Frequency = weight / totalWeights)
+
+data <- spSwarmPoisson(sObj, 0.1) %>%
+  filter(from != "undefined" & to != "undefined") %>%
+  arrange(from, to) %>%
+  mutate(
+    from.name = parse_factor(from, levels = unique(from)),
+    to.name = parse_factor(to, levels = unique(to))
+  ) %>%
+  inner_join(freq, by = c("from" = "Var1", "to" = "Var2"))
+
+
+data %>%
+  ggplot() +
+  geom_tile(aes(from.name, to.name, fill = Frequency)) +
+  scale_fill_viridis_c() +
+  labs(x = "from", y = "to", caption = "edge.cutoff = 0.01; 'Frequency' is the frequency of 'from' interaction with 'to'.") +
+  theme(
+    plot.caption = element_text(hjust = 0),
+    axis.text.x = element_text(angle = 90),
+    legend.position = "top"
+  ) +
+  guides(fill = guide_colourbar(title = "Frequency", title.position = "top", title.hjust = 0.5))
+```
+

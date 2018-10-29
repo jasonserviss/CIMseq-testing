@@ -20,7 +20,7 @@ cell types included in the multiplet.}
 data.frame
 }
 \description{
-Sets up the spSwarm object for the \code{known} argument to the
+Sets up the CIMseqSwarm object for the \code{known} argument to the
 \code{checkResults} function.
 }
 \author{

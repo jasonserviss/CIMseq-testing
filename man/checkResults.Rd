@@ -4,10 +4,10 @@
 \alias{checkResults}
 \title{checkResults}
 \arguments{
-\item{sObj}{A spSwarm object.}
+\item{swarm}{CIMseqSwarm; A CIMseqSwarm object.}
 
-\item{known}{A spSwarm object of the known result. The results should be
-represented in the spSwarm slot according to the edge.cutoff provided.}
+\item{known}{A CIMseqSwarm object of the known result. The results should be
+represented in the fractions slot according to the edge.cutoff provided.}
 
 \item{edge.cutoff}{Standard definition.}
 

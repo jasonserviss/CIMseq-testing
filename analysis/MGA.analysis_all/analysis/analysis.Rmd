@@ -1,0 +1,151 @@
+---
+title: "Mouse analysis"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c(
+  "CIMseq", "sp.scRNAseqData", "printr", "ggthemes", "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../data/CIMseqData.rda')
+load('../data/sObj.rda')
+```
+
+```{r}
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "C.Stem.proximal",
+    class == "1" ~ "SI.TA",
+    class == "2" ~ "SI.Stem",
+    class == "3" ~ "C.Goblet.distal.1",
+    class == "4" ~ "C.Stem.distal",
+    class == "5" ~ "C.Colonocyte.proximal",
+    class == "6" ~ "C.TA",
+    class == "7" ~ "SI.Enterocyte",
+    class == "8" ~ "C.Goblet.proximal",
+    class == "9" ~ "SI.Goblet",
+    class == "10" ~ "Tufft",
+    class == "11" ~ "C.Colonocyte.distal",
+    class == "12" ~ "Chromaffin",
+    class == "13" ~ "C.Goblet.distal.2",
+    class == "14" ~ "SI.Paneth",
+    class == "15" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+plotUnsupervisedClass(cObjSng, cObjMul)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, 
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1", "Lyz1", "Alpi", "Hoxb13", "Mki67"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+Show table of number of cells detected per multiplet with edge cutoff = 0.01.
+```{r}
+cut1 <- apply(fractions, 1, function(r) {
+  length(which(r > 0.01))
+})
+table(cut1)
+```
+
+Show table of number of cells detected per multiplet with edge cutoff = 0.001.
+```{r}
+cut2 <- apply(fractions, 1, function(r) {
+  length(which(r > 0.001))
+})
+table(cut2)
+```
+
+Show histogram of fractions.
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+tibble(fractions = c(fractions)) %>%
+  mutate(cut = if_else(fractions > 0.001, TRUE, FALSE)) %>%
+  ggplot() +
+  geom_histogram(aes(fractions), binwidth = 0.01) +
+  facet_wrap(~cut, scales = "free")
+```
+
+Show cost per number of detected connections. Connections quantified with edge 
+cutoff 0.01.
+```{r}
+cut1 <- apply(fractions, 1, function(r) {
+  length(which(r > 0.01))
+})
+
+tibble(nConnections = cut1, cost = getData(sObj, "costs")) %>%
+  mutate(nConnections = parse_factor(nConnections, levels = sort(unique(nConnections)))) %>%
+  ggplot() + 
+  geom_boxplot(aes(nConnections, cost))
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE, echo = FALSE}
+
+ideal <- c(
+  "C.Goblet.distal.1", "C.Goblet.distal.2", "C.Stem.distal", "C.TA", "C.Colonocyte.distal",
+  "C.Colonocyte.proximal", "C.Stem.proximal", "C.Goblet.proximal",
+  "Chromaffin", "Tufft", "Blood", "SI.Goblet", "SI.Paneth", "SI.Stem",
+  "SI.TA", "SI.Enterocyte"
+)
+
+cut <- 0.01
+tibble(sample = rownames(fractions)) %>%
+  mutate(from = map(sample, function(s) {
+    sample <- fractions[s, ]
+    n <- colnames(fractions)[sample > cut]
+    if(length(n) == 1) {
+      tibble(Var1 = n, Var2 = n)
+    } else {
+      expand.grid(n, n, stringsAsFactors = FALSE) %>%
+        as.tibble()
+    }
+  })) %>%
+  unnest() %>%
+  filter(Var1 != Var2) %>%
+  inner_join(matrix_to_tibble(fractions, "sample"), by = "sample") %>%
+  gather(class, frac, -(sample:Var2)) %>%
+  mutate(frac = pmap_dbl(list(Var1, Var2, class, frac), function(fr, to, c, f) {
+    if_else(c %in% c(fr, to), f, 0)
+  })) %>% 
+  mutate(
+    xord1 = match(Var1, ideal),
+    xord2 = match(Var2, ideal)
+  ) %>%
+  arrange(xord1, xord2, frac) %>%
+  mutate(x = paste(sample, Var1, Var2, sep = "-")) %>%
+  mutate(x = parse_factor(x, levels = unique(x))) %>%
+  mutate(class = parse_factor(class, levels = ideal)) %>%
+  mutate(Var1 = parse_factor(Var1, levels = ideal)) %>%
+  ggplot() +
+  geom_tile(aes(x, class, fill = frac)) +
+  facet_wrap(~ Var1, scales = "free_x") +
+  labs(x = "Connections", y = "Class") +
+  scale_fill_viridis_c() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  guides(fill = guide_colorbar(title = "Fractions"))
+```
+
+

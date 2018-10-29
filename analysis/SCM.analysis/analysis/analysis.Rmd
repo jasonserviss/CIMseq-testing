@@ -1,0 +1,116 @@
+---
+title: "Testing Poisson Swarm Algorithm with Sorted Multiplets Dataset"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+#PACKAGES
+packages <- c(
+  "CIMseq", "sp.scRNAseqData", "printr", "ggthemes", "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load("../data/CIMseqData.rda")
+load("../data/sObj.rda")
+
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "A375",
+    class == "1" ~ "HCT116",
+    class == "2" ~ "HOS",
+    TRUE ~ "error"
+  )
+}
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+### Show number of expected edges vs number of observed edges
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+known <- sp.scRNAseqTesting::setupPlate(SCM.Meta)
+res <- sp.scRNAseqTesting::checkResults(sObj, known, 0.01)
+
+
+d <- res %>% 
+  mutate(detected = map(data.detected, pull, connections)) %>% 
+  select(detected) %>%
+  unnest() %>%
+  count(detected)
+
+e <- res %>% 
+  mutate(expected = map(data.expected, pull, connections)) %>% 
+  select(expected) %>%
+  unnest() %>%
+  count(expected)
+
+full_join(d, e, by = c("detected" = "expected")) %>% 
+  rename(connection = detected, n.expected.edges = n.y, n.detected.edges = n.x) %>%
+  replace_na(list(n.expected.edges = 0, n.detected.edges = 0)) %>%
+  select(connection, n.expected.edges, n.detected.edges)
+```
+
+### Show average stats for multiplets dependant on the number of cell in the multiplet.
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+res %>%
+  inner_join(SCM.Meta, by = c("multiplet" = "sample")) %>%
+  mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
+  group_by(cellsInMultiplet) %>%
+  summarize(
+    meanTPR = mean(TPR, na.rm = TRUE),
+    meanTNR = mean(TNR, na.rm = TRUE),
+    meanACC = mean(ACC, na.rm = TRUE)
+  )
+```
+
+### Show average stats for multiplets dependant on the combination of cells in the multiplet.
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+res %>%
+  inner_join(SCM.Meta, by = c("multiplet" = "sample")) %>%
+  mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
+  group_by(cellTypes) %>%
+  summarize(
+    meanTPR = mean(TPR, na.rm = TRUE),
+    meanTNR = mean(TNR, na.rm = TRUE),
+    meanACC = mean(ACC, na.rm = TRUE)
+  )
+```
+
+### Print all stats.
+
+```{r}
+print <- res %>% 
+  mutate(connections.detected = map_chr(data.detected, function(x) paste(unlist(x), collapse = ", "))) %>%
+  mutate(connections.expected = map_chr(data.expected, function(x) paste(unlist(x), collapse = ", "))) %>%
+  select(-(data.detected:data.expected)) %>%
+  inner_join(SCM.Meta, by = c("multiplet" = "sample")) %>%
+  #select(-(plate:cellNumber)) %>%
+  rename(cellsSorted = cellTypes) %>%
+  inner_join(matrix_to_tibble(getData(sObj, "fractions"), "multiplet"), by = "multiplet") %>%
+  mutate(HOS = round(HOS, digits = 5), HCT116 = round(HCT116, digits = 5), A375 = round(A375, digits = 5)) %>%
+  unite(fractions, HOS, HCT116, A375, sep = ", ") %>%
+  rename("fractions (HOS, HCT116, A375)" = fractions) %>%
+  select(multiplet, cellsSorted, connections.expected, connections.detected, `fractions (HOS, HCT116, A375)`, tp:ACC)
+
+as.data.frame(print)
+```
+
+```{r}
+sessionInfo()
+```
+

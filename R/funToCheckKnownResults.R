@@ -6,9 +6,9 @@
 #' @name checkResults
 #' @rdname checkResults
 #' @aliases checkResults
-#' @param sObj A spSwarm object.
-#' @param known A spSwarm object of the known result. The results should be
-#' represented in the spSwarm slot according to the edge.cutoff provided.
+#' @param swarm CIMseqSwarm; A CIMseqSwarm object.
+#' @param known A CIMseqSwarm object of the known result. The results should be
+#' represented in the fractions slot according to the edge.cutoff provided.
 #' @param edge.cutoff Standard definition.
 #' @param ... additional arguments to pass on
 #' @return data.frame
@@ -18,7 +18,7 @@
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom tidyr unite nest
 #' @importFrom dplyr full_join mutate
 #' @importFrom purrr map2_int pmap_int
@@ -26,41 +26,34 @@ NULL
 #' @importFrom magrittr "%>%"
 
 checkResults <- function(
-  sObj,
-  known,
-  edge.cutoff,
-  ...
+  swarm, known, edge.cutoff, ...
 ){
-  
-  detected <- getEdgesForMultiplet(
-    sObj,
-    edge.cutoff,
-    rownames(getData(sObj, "spSwarm"))
+
+  detected <- CIMseq::getEdgesForMultiplet(
+    swarm, edge.cutoff, rownames(getData(swarm, "fractions"))
   ) %>%
-  unite(connections, from, to, sep = "-") %>%
-  distinct() %>%
-  nest(-multiplet)
-  
-  expected <- getEdgesForMultiplet(
-    known,
-    edge.cutoff,
-    rownames(getData(sObj, "spSwarm"))
+    unite(connections, from, to, sep = "-") %>%
+    distinct() %>%
+    nest(-multiplet)
+
+  expected <- CIMseq::getEdgesForMultiplet(
+    known, edge.cutoff, rownames(getData(swarm, "fractions"))
   ) %>%
-  unite(connections, from, to, sep = "-") %>%
-  distinct() %>%
-  nest(-multiplet)
-  
+    unite(connections, from, to, sep = "-") %>%
+    distinct() %>%
+    nest(-multiplet)
+
   full_join(detected, expected, by = "multiplet") %>%
-  mutate(
-    tp = .tp(.),
-    fp = .fp(.),
-    fn = .fn(.),
-    tn = .tn(., sObj, known),
-    TPR = .TPR(tp, fn),
-    TNR = .TNR(tn, fp),
-    ACC = .ACC(tp, tn, fp, fn),
-  ) %>%
-  rename(data.detected = data.x, data.expected = data.y)
+    mutate(
+      tp = .tp(.),
+      fp = .fp(.),
+      fn = .fn(.),
+      tn = .tn(., sObj, known),
+      TPR = .TPR(tp, fn),
+      TNR = .TNR(tn, fp),
+      ACC = .ACC(tp, tn, fp, fn)
+    ) %>%
+    rename(data.detected = data.x, data.expected = data.y)
 }
 
 #calculates the true positives
@@ -92,7 +85,7 @@ checkResults <- function(
 # both expected and detected, the .possibleCombs function is used.
 .tn <- function(data, sObj, known) {
   possibleCombs <- .possibleCombs(sObj, known)
-  
+
   data %>%
   add_column(possibleCombs = list(possibleCombs)) %>%
   {pmap_int(
@@ -108,9 +101,9 @@ checkResults <- function(
 #Calculates all possible connections with all cell types
 #Helper for .tn
 .possibleCombs <- function(sObj, known) {
-  ctKnown <- colnames(getData(known, "spSwarm"))
-  ctDetected <- colnames(getData(sObj, "spSwarm"))
-  
+  ctKnown <- colnames(getData(known, "fractions"))
+  ctDetected <- colnames(getData(sObj, "fractions"))
+
   c(ctKnown, ctDetected) %>%
   unique() %>%
   combn(., 2) %>%
@@ -170,17 +163,17 @@ printResults <- function(
   #expand connections
   data.detected <- select(data, multiplet, data.detected) %>%
   .expandNested()
-  
+
   data.expected <- select(data, multiplet, data.expected) %>%
   .expandNested()
-  
+
   expanded <- select(data, -data.detected, -data.expected) %>%
   full_join(data.detected, by = "multiplet") %>%
   full_join(data.expected, by = "multiplet") %>%
   rename(data.detected = connections.x, data.expected = connections.y) %>%
   select(costFunction:cellsInWell, data.expected, data.detected, tp:ACC) %>%
   arrange(costFunction, multiplet)
-  
+
   #add fractions
   if(addFractions) {
     return(.addFractions(expanded, spSwarm))
@@ -201,7 +194,7 @@ printResults <- function(
   fracs <- getData(spSwarm, "spSwarm")
   names <- paste(colnames(fracs), collapse = ", ")
   formated <- paste("frac (", names, ")", sep = "")
-  
+
   fracs %>%
   round(digits = 2) %>%
   rownames_to_column("multiplet") %>%
@@ -246,7 +239,7 @@ resultsInPlate <- function(
   var,
   ...
 ){
-  
+
   results %>%
   select(multiplet, var) %>%
   full_join(plate, by = c("multiplet" = "multipletName")) %>%
@@ -266,7 +259,7 @@ resultsInPlate <- function(
 
 #' setupPlate
 #'
-#' Sets up the spSwarm object for the \code{known} argument to the
+#' Sets up the CIMseqSwarm object for the \code{known} argument to the
 #' \code{checkResults} function.
 #'
 #' @name setupPlate
@@ -290,7 +283,7 @@ resultsInPlate <- function(
 NULL
 
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom dplyr pull
 #' @importFrom stringr str_split
 #' @importFrom purrr map_dfr
@@ -301,40 +294,40 @@ setupPlate <- function(
   plateData,
   ...
 ){
-  
+
   #make spSwarm slot for spSwarm object
   spSwarm <- plateData %>%
-  filter(cellNumber == "Multiplet") %>%
-  mutate(connections = str_split(cellTypes, "-")) %>%
-  mutate(connections = {map(.$connections, combn, 2)}) %>%
-  {map_dfr(.$connections, function(x) {
-    cellTypes <- .getCellTypes(plateData)
-    vec <- vector(mode = "numeric", length = length(cellTypes))
-    names(vec) <- cellTypes
-    vec[names(vec) %in% unique(as.character(x))] <- 1 / length(unique(as.character(x)))
-    as.data.frame(t(as.data.frame(vec)))
-  })} %>%
-  add_column(rowname = filter(plateData, cellNumber == "Multiplet")$sample) %>%
-  column_to_rownames()
-  
+    filter(cellNumber == "Multiplet") %>%
+    mutate(connections = str_split(cellTypes, "-")) %>%
+    mutate(connections = {map(.$connections, combn, 2)}) %>%
+    {map_dfr(.$connections, function(x) {
+      cellTypes <- .getCellTypes(plateData)
+      vec <- vector(mode = "numeric", length = length(cellTypes))
+      names(vec) <- cellTypes
+      vec[names(vec) %in% unique(as.character(x))] <- 1 / length(unique(as.character(x)))
+      as.data.frame(t(as.data.frame(vec)))
+    })} %>%
+    add_column(rowname = filter(plateData, cellNumber == "Multiplet")$sample) %>%
+    column_to_rownames()
+
   #create spSwarm object
-  new("spSwarm",
-    spSwarm = spSwarm,
+  new("CIMseqSwarm",
+    fractions = as.matrix(spSwarm),
     costs = vector(mode = "numeric"),
     convergence = vector(mode = "character"),
     stats = tibble(),
     singletIdx = list(),
-    arguments = list()
+    arguments = tibble()
   )
 }
 
 .getCellTypes <- function(plateData) {
   plateData %>%
-  pull(cellTypes) %>%
-  str_split("-") %>%
-  unlist() %>%
-  unique() %>%
-  sort()
+    pull(cellTypes) %>%
+    str_split("-") %>%
+    unlist() %>%
+    unique() %>%
+    sort()
 }
 
 #' viewAsPlate

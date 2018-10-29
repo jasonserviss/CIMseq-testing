@@ -1,0 +1,139 @@
+---
+title: "Permutation analysis mouse data"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+#PACKAGES
+packages <- c(
+  "CIMseq", "sp.scRNAseqData", "printr", "ggthemes", "tidyverse"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+#DATA
+load('../data/permutations.rda')
+load('../../SCM.analysis/data/CIMseqData.rda')
+load('../../SCM.analysis/data/sObj.rda')
+
+#Rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "A375",
+    class == "1" ~ "HCT116",
+    class == "2" ~ "HOS",
+    TRUE ~ "error"
+  )
+}
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+
+perms <- map(perms, function(p) {
+  fractions <- getData(p, "fractions")
+  colnames(fractions) <- renameClasses(colnames(fractions))
+  p@fractions <- fractions
+  p
+})
+
+#FUNCTIONS
+calculateConnectionScore <- function(sObj, samples = NULL) {
+  swarm <- getData(sObj, "fractions")
+  
+  if(is.null(samples)) {
+    samples <- rownames(swarm)
+  }
+  
+  swarm <- as.data.frame(t(swarm[samples, ]), stringsAsFactors = FALSE)
+  costs <- getData(sObj, "costs")
+  names(costs) <- rownames(getData(sObj, "fractions"))
+  #combos <- as.data.frame(combn(rownames(swarm), 2), stringsAsFactors = FALSE)
+  combos <- as.data.frame(
+    t(expand.grid(rownames(swarm), rownames(swarm), stringsAsFactors = FALSE)),
+    stringsAsFactors = FALSE
+  )
+  scores <- map_dbl(combos, function(x) {
+    adjust <- if_else(identical(x[1], x[2]), 0.5, 1)
+    b <- apply(swarm[c(x[1], x[2]), ], 2, function(r) all(r > 0))
+    c <- costs[names(b)[b]]
+    (sum(swarm[x, names(b)[b]]) * adjust) / sum(swarm[x, ]) / sum(c)
+  })
+  as.data.frame(t(combos), stringsAsFactors = FALSE) %>%
+    as_tibble() %>%
+    rename(from = Var1, to = Var2) %>%
+    add_column(score = scores)
+}
+```
+
+Known connections with SCM dataset
+A375-A375 = 22   
+A375-HCT116 = 84
+A375-HOS = 100
+HCT116-HCT116 = 20
+HCT116-HOS = 52
+HOS-HOS = 42
+
+```{r, fig.align="center", fig.width = 10, fig.height=8}
+map(perms, getData, "costs") %>%
+  map(as_tibble) %>%
+  reduce(bind_cols) %>%
+  setNames(1:length(perms)) %>%
+  add_column(real = getData(sObj, "costs")) %>%
+  add_column(sample = rownames(getData(sObj, "fractions"))) %>%
+  gather(type, cost, -sample) %>%
+  mutate(permutation = if_else(type == "real", "NA", type)) %>%
+  mutate(type = if_else(type == "real", "real", "permuted")) %>%
+  inner_join(select(SCM.Meta, sample, cellTypes)) %>%
+  ggplot() +
+  geom_point(aes(sample, log(cost), colour = type)) +
+  theme(axis.text.x = element_blank()) +
+  facet_wrap(~ cellTypes, scales = "free")
+```
+
+```{r, fig.align="center", fig.width = 10, fig.height=8}
+map(perms, getData, "fractions") %>%
+  reduce(rbind) %>%
+  heatmap()
+```
+
+```{r, fig.align="center", fig.width = 10, fig.height=8}
+permScores <- map_dfr(perms, calculateConnectionScore, .id = "permutation") %>%
+  add_column(type = "permuted")
+realScores <- calculateConnectionScore(sObj) %>%
+  add_column(permutation = NA, type = "real")
+
+bind_rows(permScores, realScores) %>%
+  unite(connection, from, to, sep = "-") %>%
+  ggplot() +
+  geom_point(aes(connection, score, colour = type)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+realScores %>%
+  select(-permutation, -type) %>%
+  mutate(permScore = map2(from, to, function(x, y) {
+    filter(permScores, from == x, to == y)$score
+  })) %>%
+  mutate(p.value = map2_dbl(score, permScore, function(r, p) {
+    if_else(
+      (sum(p >= r) / length(p)) == 0,
+      10^-log10(length(p)),
+      sum(p >= r) / length(p)
+    )
+  }))
+```
+
+```{r}
+sessionInfo()
+```
+
