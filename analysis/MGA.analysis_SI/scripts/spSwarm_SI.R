@@ -1,49 +1,43 @@
 #PACKAGES
-packages <- c("sp.scRNAseq", "sp.scRNAseqData", "tidyverse", "future")
+packages <- c("CIMseq", "sp.scRNAseqData", "tidyverse", "future")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 currPath <- getwd()
 
-s <- str_detect(colnames(countsMgfp), "^s")
-commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
-
-sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
-mul <- countsMgfp[commonGenes, !s]
-
-erccSng <- cbind(
-  countsMgfpERCC[, s],
-  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
-)
-erccMul <- cbind(countsMgfpERCC[, !s])
-
-boolMulC <- colnames(mul) %in% filter(countsMgfpMeta, tissue == "colon")$sample
-boolSngC <- colnames(sng) %in% filter(countsMgfpMeta, tissue == "colon")$sample
-
-#setup spCounts
-cObjSngSi <- spCounts(sng[, !boolSngC], erccSng[, !boolSngC])
-cObjMulSi <- spCounts(mul[, !boolMulC], erccMul[, !boolMulC])
-
-print("spCounts done")
-
-#spUnsupervised
-if(file.exists(file.path(currPath, 'data/uObjSi.rda'))) {
-  load(file.path(currPath, 'data/uObjSi.rda'))
+#load data
+if(file.exists(file.path(currPath, 'data/CIMseqData.rda'))) {
+  load(file.path(currPath, 'data/CIMseqData.rda'))
 }
 
-print("spUnsupervised done")
+#testing 
+#cObjMul <- CIMseqMultiplets(
+#  getData(cObjMul, "counts")[, 1:2],
+#  getData(cObjMul, "counts.ercc")[, 1:2],
+#  getData(cObjMul, "features")
+#)
 
-##spSwarm
-future::plan(multiprocess)
-selectIdx <- spTopVar(cObjSngSi, 2000)
+#future::plan(multiprocess)
+options(future.wait.interval = 10000.0)
+options(future.wait.timeout = 1e9)
+future::plan(
+  future.batchtools::batchtools_slurm,
+  template = "/crex/proj/snic2018-8-151/private/batchtools.slurm.tmpl",
+  resources = list(
+    account = "snic2018-8-151", partition = "core", ntasks = 1L,
+    time = "24:00:00", jobname = "testingPoissonSorted",
+    modules = "R_packages/3.5.0", R = "R/3.5.0", log.file = file.path(currPath, "logs/slurm.txt")
+  ),
+  workers = 100
+)
 
+#run deconvolution
 print(paste0("Starting deconvolution at ", Sys.time()))
-sObjSi <- spSwarm(
-  cObjSngSi, cObjMulSi, uObjSi, maxiter = 100, swarmsize = 500,
-  nSyntheticMultiplets = 400, selectInd = selectIdx
+sObj <- CIMseqSwarm(
+  cObjSng, cObjMul, maxiter = 100, swarmsize = 500, nSyntheticMultiplets = 400
 )
 print(paste0("Finished deconvolution at ", Sys.time()))
 
-save(sObjSi, file = file.path(currPath, "data/sObjSi.rda"))
-writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo.spSwarm_Si.txt"))
+save(sObj, file = file.path(currPath, "data/sObj.rda"))
+writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_spSwarm.SI.txt"))
 print("finished")

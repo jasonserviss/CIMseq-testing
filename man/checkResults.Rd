@@ -9,6 +9,8 @@
 \item{known}{A CIMseqSwarm object of the known result. The results should be
 represented in the fractions slot according to the edge.cutoff provided.}
 
+\item{singlets}{CIMseqSinglets; A CIMseqSinglets object.}
+
 \item{edge.cutoff}{Standard definition.}
 
 \item{...}{additional arguments to pass on}

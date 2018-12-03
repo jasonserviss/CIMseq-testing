@@ -9,6 +9,7 @@
 #' @param swarm CIMseqSwarm; A CIMseqSwarm object.
 #' @param known A CIMseqSwarm object of the known result. The results should be
 #' represented in the fractions slot according to the edge.cutoff provided.
+#' @param singlets CIMseqSinglets; A CIMseqSinglets object.
 #' @param edge.cutoff Standard definition.
 #' @param ... additional arguments to pass on
 #' @return data.frame
@@ -26,18 +27,18 @@ NULL
 #' @importFrom magrittr "%>%"
 
 checkResults <- function(
-  swarm, known, edge.cutoff, ...
+  swarm, known, singlets, edge.cutoff, ...
 ){
 
   detected <- CIMseq::getEdgesForMultiplet(
-    swarm, edge.cutoff, rownames(getData(swarm, "fractions"))
+    swarm, singlets, edge.cutoff, rownames(getData(swarm, "fractions"))
   ) %>%
     unite(connections, from, to, sep = "-") %>%
     distinct() %>%
     nest(-multiplet)
 
   expected <- CIMseq::getEdgesForMultiplet(
-    known, edge.cutoff, rownames(getData(swarm, "fractions"))
+    known, singlets, edge.cutoff, rownames(getData(swarm, "fractions"))
   ) %>%
     unite(connections, from, to, sep = "-") %>%
     distinct() %>%
