@@ -16,7 +16,7 @@ currPath <- getwd()
 #setup spCounts
 keep.plates.colon <- c(
   "NJA01303", "NJA01401", "NJA01205", "NJA01203", "NJA00609", "NJA01503",
-  "NJA01504", "NJA01602", "NJA01701"
+  "NJA01504", "NJA01602", "NJA01701", "NJA0801"
 )
 
 s <- str_detect(colnames(MGA.Counts), "^s")

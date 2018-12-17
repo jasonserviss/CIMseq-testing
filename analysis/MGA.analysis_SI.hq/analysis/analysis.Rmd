@@ -16,8 +16,8 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-load('../data/CIMseqData.rda')
-load('../data/sObj.rda')
+load('../data/output.rda')
+load('../../MGA.analysis_SI/data/CIMseqData_181126.rda')
 ```
 
 ```{r}
@@ -41,6 +41,7 @@ renameClasses <- function(class) {
 }
 
 
+getData(cObjSng.hq, "classification") <- renameClasses(getData(cObjSng.hq, "classification"))
 getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
 fractions <- getData(sObj, "fractions")
 colnames(fractions) <- renameClasses(colnames(fractions))
@@ -48,13 +49,21 @@ sObj@fractions <- fractions
 ```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-plotUnsupervisedClass(cObjSng, cObjMul)
-plotUnsupervisedMarkers(
-  cObjSng, cObjMul,
-  c("Mki67", "Lgr5", "Muc2", "Ptprc", "Chga", "Alpi", "Lyz1", "Dclk1"), 
-  pal = RColorBrewer::brewer.pal(8, "Set1")
-)
+cbind(getData(cObjSng.hq, "dim.red"), getData(cObjSng.hq, "classification")) %>%
+  matrix_to_tibble("sample") %>%
+  mutate(
+    V1 = as.numeric(V1),
+    V2 = as.numeric(V2)
+  ) %>%
+  ggplot() +
+  geom_point(aes(V1, V2, colour = V3)) +
+  scale_colour_manual(values = col40())
 ```
+
+```{r}
+spSwarmPoisson(sObj, cObjSng, 0.03)
+```
+
 
 Show table of number of cells detected per multiplet with edge cutoff = 0.01.
 ```{r}

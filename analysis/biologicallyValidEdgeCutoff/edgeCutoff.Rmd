@@ -1,0 +1,431 @@
+---
+title: "Edge cutoff"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r, warning = FALSE, message = FALSE}
+#PACKAGES
+library(CIMseq)
+library(sp.scRNAseqData)
+library(tidyverse)
+library(printr)
+```
+
+One question that has repeatedly arisen is where to set the edge cutoff. The
+edge cutoff, in this case, referes to the minimum value of a fraction that is 
+needed to constitute an edge. Multiple factors are valid to consider when 
+determining this, one of which is the RNA contribution from the individual cell
+types included in a multiplet. In the case that the multiplet is a doublet and 
+the RNA contribution is equal from both cells, we would expect the fractions for
+the deconvolution to be 0.5 and 0.5. Although, RNA contribution is typically not
+equal from both cells. In the case that the multiplet is a doublet and one cell
+contributes less RNA than the other cell, we expect that the cell contributing 
+less RNA than the other cell will get a lower fraction.
+
+In order ot get a understanding of what the range of "valid" fractions are for 
+any set of cells, we can use the following steps:
+
+1) Use the ERCC reads to calculate the RNA content from all of the individual 
+singlets.
+2) Make all possible multiplet conbinations based on the cell types included in
+the dataset. For example, if there are 3 cell types (A, B, and C) the possible 
+duplicate multiplets are A-A, A-B, A-C, B-B, B-C, and C-C. 
+3) Randomly pick singlets to make the multiplets in 2). Calculate the fraction
+of RNA contribution from each.
+4) Repeat 3) n times to get a good representation of the distribution for 
+that specific combination.
+
+### Sorted Multiplet Dataset
+
+```{r, message = FALSE}
+#DATA
+load('../SCM.analysis/data/CIMseqData.rda')
+load('../SCM.analysis/data/sObj.rda')
+
+#Rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "A375",
+    class == "1" ~ "HCT116",
+    class == "2" ~ "HOS",
+    TRUE ~ "error"
+  )
+}
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+
+#Read ercc info
+ercc.info <- read_csv2('ercc.conc.csv')
+ercc.info <- mutate(ercc.info, bp.ul = ((amol.ul * Length)* 10e-18)/6.02214076*10e23)
+ercc.info <- mutate(ercc.info, bp.per.well = (bp.ul/(24 * 10e6))*4)
+ercc.sum <- sum(pull(ercc.info, bp.per.well))
+
+#calculate RNA abundance
+counts <- getData(cObjSng, "counts")
+counts.ercc <- getData(cObjSng, "counts.ercc")
+cs.counts <- matrixStats::colSums2(counts)
+cs.counts.ercc <- matrixStats::colSums2(counts.ercc)
+data <- tibble(
+  sample = colnames(counts),
+  frac.ercc = cs.counts.ercc / (cs.counts + cs.counts.ercc),
+  frac.counts = cs.counts / (cs.counts + cs.counts.ercc),
+  bp = (1 / frac.ercc) * ercc.sum
+) %>% 
+  inner_join(tibble(
+    sample = colnames(getData(cObjSng, "counts")),
+    class = getData(cObjSng, "classification")
+  ))
+
+#Plot ercc fraction per class
+data %>%
+  ggplot() +
+  geom_boxplot(aes(class, frac.ercc)) +
+  theme(axis.text.x = element_text(angle = 90))
+
+#calculate fraction of contribution for all possible combinations
+u.classes <- unique(getData(cObjSng, "classification"))
+dups <- expand.grid(u.classes, u.classes, stringsAsFactors = FALSE)
+trips <- expand.grid(u.classes, u.classes, u.classes, stringsAsFactors = FALSE)
+quads <- expand.grid(u.classes, u.classes, u.classes, u.classes, stringsAsFactors = FALSE)
+quints <- expand.grid(u.classes, u.classes, u.classes, u.classes, u.classes, stringsAsFactors = FALSE)
+
+#remove duplicate multiplets
+dups <- map_dfr(1:nrow(dups), ~data.frame(unname(sort(dups[.x, ]))))
+trips <- map_dfr(1:nrow(trips), ~data.frame(unname(sort(trips[.x, ]))))
+quads <- map_dfr(1:nrow(quads), ~data.frame(unname(sort(quads[.x, ]))))
+quints <- map_dfr(1:nrow(quints), ~data.frame(unname(sort(quints[.x, ]))))
+
+dups <- dups[!duplicated(dups), ]
+trips <- trips[!duplicated(trips), ]
+quads <- quads[!duplicated(quads), ]
+quints <- quints[!duplicated(quints), ]
+
+#assign additional info and reformat
+
+dups$id <- 1:nrow(dups)
+trips$id <- 1:nrow(trips)
+quads$id <- 1:nrow(quads)
+quints$id <- 1:nrow(quints)
+
+dups$type <- "duplicates"
+trips$type <- "triplicates"
+quads$type <- "quadruplicates"
+quints$type <- "quintuplets"
+
+dups <- nest(dups, -(id:type))
+trips <- nest(trips, -(id:type))
+quads <- nest(quads, -(id:type))
+qunits <- nest(quints, -(id:type))
+combos <- bind_rows(dups, trips, quads, qunits)
+pic.vec <- data$bp
+names(pic.vec) <- data$class
+
+#calculate contribution
+reps <- 500
+out <- combos %>%
+  as_tibble() %>%
+  mutate(frac = map(data, function(c) {
+    idx <- map_dfc(c, ~sample(which(names(pic.vec) == .x), reps, replace = TRUE))
+    map_dbl(1:nrow(idx), function(i) {
+      curr.idxs <- as.numeric(idx[i, ])
+      min(map_dbl(curr.idxs, function(i) pic.vec[i] / sum(pic.vec[curr.idxs])))
+    })
+  })) %>%
+  mutate(data = map_chr(data, ~paste(.x, collapse = "-"))) %>%
+  unnest()
+```
+
+Plot the fraction of contributions per cell type and multiplet type. 
+Y-axis logged.
+
+```{r, fig.align="center", fig.width=10, fig.height=8, warning = FALSE, message = FALSE}
+out %>%
+  mutate(type = parse_factor(type, levels = c(
+    "duplicates", "triplicates", "quadruplicates", "quintuplets"
+  ))) %>%
+  ggplot() +
+  geom_boxplot(aes(data, frac, fill = type)) +
+  facet_wrap(~type, scales = "free_x") +
+  scale_y_log10() +
+  scale_fill_manual(values = col40()) +
+  labs(y = "Minimum fraction of contribution", x = "Combination") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+Show the lowest fraction based per multiplet type.
+
+```{r}
+out %>% 
+  group_by(type) %>% 
+  summarize(m = min(frac)) %>%
+  as.data.frame()
+```
+
+The results indicate what we would expect and also, that we could more easily 
+estimate the fraction range. For example, estimate the fraction range in a 
+triplicate, we would just need to estimate the fraction of contributions in a
+triplet with the cell type of least contribution once together with 2 of the 
+cell type with the highest contribution.
+
+Instead of using the average RNA contribution per cell type, we can better 
+estimate the range by selecting the individual cell with the least contribution
+and vice versa.
+
+```{r}
+estimateLowestFraction <- function(singlets, multiplets, cellNumbers = 2:5) {
+  ercc <- estimateCells(singlets, multiplets) %>%
+    filter(sampleType == "Singlet") %>%
+    mutate(RNAcont = 1 / frac.ercc) 
+  
+  min <- pull(ercc, RNAcont)[which(pull(ercc, RNAcont) == min(pull(ercc, RNAcont)))]
+  max <- pull(ercc, RNAcont)[which(pull(ercc, RNAcont) == max(pull(ercc, RNAcont)))]
+  tibble(cellsInMul = cellNumbers) %>%
+    mutate(min = map_dbl(cellsInMul, function(t) {
+      min / sum(c(min, rep(max, t)))
+    })) %>%
+    mutate(max = map_dbl(cellsInMul, function(t) {
+      max / sum(max, rep(min, t))
+    }))
+}
+
+estimateMedianFraction <- function(singlets, multiplets, cellNumbers = 2:5) {
+  medians <- estimateCells(singlets, multiplets) %>%
+    filter(sampleType == "Singlet") %>%
+    mutate(RNAcont = 1 / frac.ercc) %>%
+    full_join(tibble(
+      sampleName = colnames(getData(singlets, "counts")),
+      class = getData(singlets, "classification")
+    )) %>%
+    group_by(class) %>%
+    summarize(median = median(RNAcont))
+  
+  min <- pull(medians, median)[which(pull(medians, median) == min(pull(medians, median)))]
+  max <- pull(medians, median)[which(pull(medians, median) == max(pull(medians, median)))]
+  tibble(cellsInMul = cellNumbers) %>%
+    mutate(min = map_dbl(cellsInMul, function(t) {
+      min / sum(c(min, rep(max, t)))
+    })) %>%
+    mutate(max = map_dbl(cellsInMul, function(t) {
+      max / sum(max, rep(min, t))
+    }))
+}
+
+estimateLowestFraction(cObjSng, cObjMul)
+```
+
+Due to the fact that we know the contents of the multiplets in this dataset, we
+can evaluate edge cutoffs in another way. Below we calculate:
+
+1) n detected edges / n expected edges
+2) false positive rate
+3) accuracy
+
+for multiple edge cutoffs.
+
+```{r, fig.align="center", fig.width=10, fig.height=8, warning = FALSE, message = FALSE}
+cuts <- c(0.001, 0.0025, 0.005, seq(0.01, 0.1, 0.01), 0.15, 0.25)
+known <- sp.scRNAseqTesting::setupPlate(SCM.Meta)
+score <- map_dbl(cuts, function(c) {
+  res <- sp.scRNAseqTesting::checkResults(sObj, known, cObjSng, c)
+  d <- res %>% 
+    mutate(detected = map(data.detected, pull, connections)) %>% 
+    select(detected) %>%
+    unnest() %>%
+    count(detected)
+
+  e <- res %>% 
+    mutate(expected = map(data.expected, pull, connections)) %>% 
+    select(expected) %>%
+    unnest() %>%
+    count(expected)
+  
+  d <- full_join(d, e, by = c("detected" = "expected")) %>% 
+    rename(connection = detected, n.expected.edges = n.y, n.detected.edges = n.x) %>%
+    replace_na(list(n.expected.edges = 0, n.detected.edges = 0)) %>%
+    select(connection, n.expected.edges, n.detected.edges)
+  
+  sum(pull(d, n.detected.edges)) / sum(pull(d, n.expected.edges))
+})
+
+tibble(
+  edge.cutoff = cuts,
+  score = score
+) %>%
+  ggplot() +
+  geom_point(aes(edge.cutoff, score)) +
+  geom_hline(yintercept = 1, lty = 3) +
+  scale_x_log10(breaks = cuts) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(x = "Edge cutoff", y = "n detected edges / n expected edges")
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, warning = FALSE, message = FALSE}
+fpr <- map_dbl(cuts, function(c) {
+  res <- sp.scRNAseqTesting::checkResults(sObj, known, cObjSng, c) %>%
+    mutate(FPR = fp / (fp + tn))
+  fpr <- pull(res, FPR)
+  mean(fpr[!is.nan(fpr)])
+})
+
+tibble(
+  edge.cutoff = cuts,
+  FPR = fpr
+) %>%
+  ggplot() +
+  geom_point(aes(edge.cutoff, FPR)) +
+  scale_x_log10(breaks = cuts) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(x = "Edge cutoff", y = "False positive rate")
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, warning = FALSE, message = FALSE}
+acc <- map_dbl(cuts, function(c) {
+  res <- sp.scRNAseqTesting::checkResults(sObj, known, cObjSng, c)
+  mean(pull(res, ACC))
+})
+
+tibble(
+  edge.cutoff = cuts,
+  acc = acc
+) %>%
+  ggplot() +
+  geom_point(aes(edge.cutoff, acc)) +
+  geom_hline(yintercept = 1, lty = 3) +
+  scale_x_log10(breaks = cuts) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(x = "Edge cutoff", y = "Accuracy")
+```
+
+### Mouse Small Intestine Dataset
+
+In order to get an understanding of the fraction distributions in a more complex
+dataset, below we utilize the mouse small intestine dataset to reperform the 
+above analysis. 
+
+```{r, message = FALSE}
+
+load('../MGA.analysis_SI/data/CIMseqData_181126.rda')
+load('../MGA.analysis_SI/data/sObj_181126.rda')
+
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "SI.TA.Mki67.medium",
+    class == "1" ~ "SI.TA.Mki67.low",
+    class == "2" ~ "SI.Stem",
+    class == "3" ~ "SI.Goblet",
+    class == "4" ~ "SI.TA.enterocyte",
+    class == "5" ~ "SI.TA.Mki67.high.1",
+    class == "6" ~ "SI.Enterocyte",
+    class == "7" ~ "SI.TA.Mki67.high.2",
+    class == "8" ~ "SI.Paneth",
+    class == "9" ~ "SI.Tufft",
+    class == "10" ~ "SI.Chromaffin",
+    class == "11" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+
+counts <- getData(cObjSng, "counts")
+counts.ercc <- getData(cObjSng, "counts.ercc")
+cs.counts <- matrixStats::colSums2(counts)
+cs.counts.ercc <- matrixStats::colSums2(counts.ercc)
+data <- tibble(
+  sample = colnames(counts),
+  frac.ercc = cs.counts.ercc / (cs.counts + cs.counts.ercc),
+  frac.counts = cs.counts / (cs.counts + cs.counts.ercc),
+  bp = (1 / frac.ercc) * ercc.sum
+) %>% 
+  inner_join(tibble(
+    sample = colnames(getData(cObjSng, "counts")),
+    class = getData(cObjSng, "classification")
+  ))
+
+
+data %>%
+  ggplot() +
+  geom_boxplot(aes(class, frac.ercc)) +
+  theme(axis.text.x = element_text(angle = 90))
+
+u.classes <- unique(getData(cObjSng, "classification"))
+dups <- expand.grid(u.classes, u.classes, stringsAsFactors = FALSE)
+trips <- expand.grid(u.classes, u.classes, u.classes, stringsAsFactors = FALSE)
+quads <- expand.grid(u.classes, u.classes, u.classes, u.classes, stringsAsFactors = FALSE)
+
+#remove duplicate multiplets
+dups <- map_dfr(1:nrow(dups), ~data.frame(unname(sort(dups[.x, ]))))
+trips <- map_dfr(1:nrow(trips), ~data.frame(unname(sort(trips[.x, ]))))
+quads <- map_dfr(1:nrow(quads), ~data.frame(unname(sort(quads[.x, ]))))
+
+dups <- dups[!duplicated(dups), ]
+trips <- trips[!duplicated(trips), ]
+quads <- quads[!duplicated(quads), ]
+
+#add additional info and reformat
+dups$id <- 1:nrow(dups)
+trips$id <- 1:nrow(trips)
+quads$id <- 1:nrow(quads)
+
+dups$type <- "duplicates"
+trips$type <- "triplicates"
+quads$type <- "quadruplicates"
+
+dups <- nest(dups, -(id:type))
+trips <- nest(trips, -(id:type))
+quads <- nest(quads, -(id:type))
+combos <- bind_rows(dups, trips, quads)
+pic.vec <- data$bp
+names(pic.vec) <- data$class
+
+#calculate fraction of contribution
+reps <- 100
+out <- combos %>%
+  as_tibble() %>%
+  mutate(frac = map(data, function(c) {
+    idx <- map_dfc(c, ~sample(which(names(pic.vec) == .x), reps, replace = TRUE))
+    map_dbl(1:nrow(idx), function(i) {
+      curr.idxs <- as.numeric(idx[i, ])
+      min(map_dbl(curr.idxs, function(i) pic.vec[i] / sum(pic.vec[curr.idxs])))
+    })
+  })) %>%
+  mutate(data = map_chr(data, ~paste(.x, collapse = "-"))) %>%
+  unnest()
+```
+
+Show the lowest fraction based per multiplet type.
+
+```{r}
+out %>% 
+  group_by(type) %>% 
+  summarize(m = min(frac)) %>%
+  as.data.frame()
+```
+
+Plot the results.
+
+```{r, fig.align="center", fig.width=10, fig.height=8, warning = FALSE, message = FALSE}
+out %>% 
+  mutate(type = parse_factor(type, levels = c(
+    "duplicates", "triplicates", "quadruplicates"
+  ))) %>% 
+  ggplot() + 
+  geom_histogram(aes(frac, stat(ndensity)), binwidth = 0.01) + 
+  facet_wrap(~type) + 
+  scale_x_log10() +
+  labs(y = "Density", x = "Minimum fraction of contribution")
+```

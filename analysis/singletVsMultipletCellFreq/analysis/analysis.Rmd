@@ -1,0 +1,74 @@
+---
+title: "Calculating cell type frequency in singlets vs multiplets"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+#PACKAGES
+packages <- c("CIMseq", "sp.scRNAseqData", "tidyverse")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../../MGA.analysis_SI/data/CIMseqData_181126.rda')
+load('../../MGA.analysis_SI/data/sObj_181126.rda')
+
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "SI.TA.Mki67.medium",
+    class == "1" ~ "SI.TA.Mki67.low",
+    class == "2" ~ "SI.Stem",
+    class == "3" ~ "SI.Goblet",
+    class == "4" ~ "SI.TA.enterocyte",
+    class == "5" ~ "SI.TA.Mki67.high.1",
+    class == "6" ~ "SI.Enterocyte",
+    class == "7" ~ "SI.TA.Mki67.high.2",
+    class == "8" ~ "SI.Paneth",
+    class == "9" ~ "SI.Tufft",
+    class == "10" ~ "SI.Chromaffin",
+    class == "11" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+
+```{r}
+singlets <- c(table(getData(cObjSng, "classification")))
+singlets <- singlets / sum(singlets)
+deconv <- colSums(adjustFractions(cObjSng, cObjMul, sObj))
+deconv <- deconv[match(names(singlets), names(deconv))]
+deconv <- deconv / sum(deconv)
+if(!identical(names(singlets), names(deconv))) stop("name mismatch")
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  class = names(singlets),
+  singlet.freq = singlets,
+  multiplet.freq = deconv
+) %>%
+  ggplot() +
+  geom_point(aes(singlet.freq, multiplet.freq, colour = class), size = 3) +
+  scale_colour_manual(values = col40()) +
+  xlim(min(singlets), max(singlets)) +
+  ylim(min(deconv), max(deconv)) +
+  geom_abline(slope = 1, intercept = 0, lty = 3, colour = "grey") +
+  labs(x = "Singlet relative frequency", y = "Multiplet relative frequency") +
+  guides(colour = guide_legend(title = "Cell Type"))
+```
+

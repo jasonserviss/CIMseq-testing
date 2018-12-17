@@ -1,9 +1,17 @@
 WARNING: ignoring environment value of R_HOME
-### [bt]: This is batchtools v0.9.10.9000
-### [bt]: Starting calculation of 1 jobs
-### [bt]: Setting working directory to '/crex/proj/snic2018-8-151/private/Github/sp.scRNAseqTesting/analysis/MGA.analysis_SI'
+WARNING: ignoring environment value of R_HOME
+### [bt]: This is batchtools v0.9.10.9000### [bt]: This is batchtools v0.9.10.9000
+
+### [bt]: Starting calculation of 1 jobs### [bt]: Starting calculation of 1 jobs
+
+### [bt]: Setting working directory to '/crex/proj/snic2018-8-151/private/Github/sp.scRNAseqTesting/analysis/MGA.analysis_SI.hq'### [bt]: Setting working directory to '/crex/proj/snic2018-8-151/private/Github/sp.scRNAseqTesting/analysis/MGA.analysis_SI.hq'
+
+Loading required package: CIMseq
 Loading required package: CIMseq
 ### [bt]: Memory measurement disabled
+### [bt]: Memory measurement disabled
+### [bt]: Starting job [batchtools job.id=1]
+### [bt]: Setting seed to 1 ...
 ### [bt]: Starting job [batchtools job.id=1]
 ### [bt]: Setting seed to 1 ...
 

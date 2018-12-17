@@ -7,10 +7,7 @@ nohup: ignoring input
 ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 ✖ dplyr::filter() masks stats::filter()
 ✖ dplyr::lag()    masks stats::lag()
-Warning message:
-In tweak.future(function (expr, envir = parent.frame(), substitute = TRUE,  :
-  Ignored 1 unknown arguments: ‘gc’
-[1] "Starting deconvolution at 2018-11-08 10:31:44"
+[1] "Starting deconvolution at 2018-12-03 16:50:25"
 Warning messages:
 1: 'DESCRIPTION' file has an 'Encoding' field and re-encoding is not possible 
 2: In listJobs(reg, args) :
@@ -23,7 +20,9 @@ Warning messages:
   Command 'squeue' timed out. Returning a superset of queued/running jobs
 6: In listJobs(reg, args) :
   Command 'squeue' timed out. Returning a superset of queued/running jobs
-[1] "Finished deconvolution at 2018-11-09 11:25:50"
+7: In listJobs(reg, args) :
+  Command 'squeue' timed out. Returning a superset of queued/running jobs
+[1] "Finished deconvolution at 2018-12-04 05:38:01"
 Warning message:
 'DESCRIPTION' file has an 'Encoding' field and re-encoding is not possible 
 [1] "finished"
