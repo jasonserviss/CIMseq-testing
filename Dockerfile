@@ -17,9 +17,9 @@ RUN  rm -f /var/lib/dpkg/available \
     git
 
 # Install CRAN and Bioconductor packages
-RUN Rscript -e "install.packages(c('devtools','knitr','rmarkdown','shiny','RCurl'), repos = 'https://cran.rstudio.com')"
+RUN Rscript -e "install.packages(c('devtools','knitr','rmarkdown','shiny','RCurl', 'BiocManager'), repos = 'https://cran.rstudio.com')"
 
-##R Package Imports
+##CRAN Package Imports
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('googledrive/0.1.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('openxlsx/4.0.17')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('Rtsne/0.13')"
@@ -38,6 +38,9 @@ RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/m
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('gridBase/0.4-7')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('Seurat/2.3.4')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('RcppArmadillo/0.9.200.5.0')"
+
+#Bioconductor package imports
+RUN Rscript -e "BiocManager::install('S4Vectors')"
 
 # Clone and install EngeMetadata
 RUN mkdir /home/Github
