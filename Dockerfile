@@ -53,4 +53,12 @@ RUN git clone https://github.com/jasonserviss/sp.scRNAseqData.git /home/Github/s
 RUN Rscript -e "source('/home/Github/sp.scRNAseqData/inst/rawData/processRaw.R')"
 RUN Rscript -e "devtools::install('/home/Github/sp.scRNAseqData', dependencies = FALSE)"
 
+# Clone and install CIM-seq
+RUN git clone https://github.com/jasonserviss/CIM-seq.git /home/Github/CIM-seq
+RUN Rscript -e "devtools::install('/home/Github/CIM-seq', dependencies = FALSE)"
+
+# Clone and install CIM-seq-testing
+RUN git clone https://github.com/jasonserviss/CIM-seq-testing.git /home/Github/CIM-seq-testing
+RUN Rscript -e "devtools::install('/home/Github/sp.scRNAseqData', dependencies = FALSE)"
+
 WORKDIR /home/
