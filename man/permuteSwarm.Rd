@@ -3,12 +3,12 @@
 \docType{methods}
 \name{permuteSwarm}
 \alias{permuteSwarm}
-\alias{permuteSwarm,spCounts-method}
+\alias{permuteSwarm,CIMseqMultiplets-method}
 \title{permuteSwarm}
 \usage{
 permuteSwarm(spCountsMul, ...)
 
-\S4method{permuteSwarm}{spCounts}(spCountsMul, spUnsupervised,
+\S4method{permuteSwarm}{CIMseqMultiplets}(spCountsMul, spUnsupervised,
   distFun = sp.scRNAseq:::dtsnCellNum, maxiter = 10, swarmsize = 50,
   cores = 1, norm = TRUE, iter, cellNumbers, e = 0.0025, ...)
 }

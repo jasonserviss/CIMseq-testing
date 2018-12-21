@@ -148,7 +148,7 @@ checkResults <- function(
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom dplyr pull
 #' @importFrom stringr str_split
 #' @importFrom purrr map_dfr
@@ -228,7 +228,7 @@ printResults <- function(
 NULL
 
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom dplyr select full_join
 #' @import ggplot2
 #' @importFrom ggthemes theme_few

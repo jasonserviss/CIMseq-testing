@@ -22,7 +22,7 @@
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 
 experimentalDataTest <- function(outPath = 'data', cores=5, ...) {
     #load test data

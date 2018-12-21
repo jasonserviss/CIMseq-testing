@@ -1,8 +1,8 @@
-Package: CIMseq-testing
-Title: The CIMseq-testing package performs the testing and analysis of the CIMseq package.
+Package: CIMseq.testing
+Title: The CIMseq.testing package performs the testing and analysis of the CIMseq package.
 Version: 0.0.0.9000
 Author: Jason T. Serviss
-Description: The CIMseq-testing package performs testing of the CIMseq package and produces informative plots. This is primarily used to test the CIMseq package using different data types as well as the sensitivity and specificity of the package.
+Description: The CIMseq.testing package performs testing of the CIMseq package and produces informative plots. This is primarily used to test the CIMseq package using different data types as well as the sensitivity and specificity of the package.
 Depends: R (>= 3.4.2), CIMseq
 License: What license is it under?
 Encoding: UTF-8

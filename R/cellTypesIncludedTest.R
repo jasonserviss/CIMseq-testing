@@ -20,7 +20,7 @@
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 
 cellTypesIncludedTest <- function(dataType, ...) {
     
@@ -137,7 +137,7 @@ cellTypesIncludedTest <- function(dataType, ...) {
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @import ggplot2
 #' @importFrom plyr rbind.fill
 #' @importFrom reshape2 melt

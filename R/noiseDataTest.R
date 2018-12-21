@@ -22,7 +22,7 @@
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @import foreach
 #' @import doMC
 
@@ -248,7 +248,7 @@ noiseDataTest <- function(innerCores=1, outerCores=10, outPath='data', n=10, dat
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom plyr rbind.fill ddply
 #' @import ggplot2
 #' @importFrom ggthemes theme_few scale_fill_economist
@@ -285,5 +285,3 @@ noiseDataTestPlot <- function(
         scale_fill_economist()
     
 }
-
-

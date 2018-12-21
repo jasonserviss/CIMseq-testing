@@ -74,11 +74,11 @@ setGeneric("permuteSwarm", function(
 
 #' @rdname permuteSwarm
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom dplyr pull
 #' @importFrom parallel mclapply
 
-setMethod("permuteSwarm", "spCounts", function(
+setMethod("permuteSwarm", "CIMseqMultiplets", function(
   spCountsMul,
   spUnsupervised,
   distFun = sp.scRNAseq:::dtsnCellNum,
@@ -171,7 +171,7 @@ setMethod("permuteSwarm", "spCounts", function(
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom purrr map
 
 spSwarmPermutationData <- function(sObj, permData) {
@@ -227,7 +227,7 @@ spSwarmPermutationData <- function(sObj, permData) {
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom tibble tibble as_tibble
 #' @importFrom dplyr mutate bind_rows rename select group_by full_join
 #' @importFrom purrr map map_dbl simplify_all
@@ -292,7 +292,7 @@ tidyPermutationData <- function(sObj, permData) {
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @import ggplot2
 #' @importFrom ggthemes theme_few
 #' @importFrom dplyr select
@@ -332,7 +332,7 @@ permCostPlot <- function(data, ...) {
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @import ggplot2
 #' @importFrom purrr pmap simplify
 #' @importFrom dplyr if_else pull

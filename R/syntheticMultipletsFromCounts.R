@@ -20,7 +20,7 @@
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 
 syntheticSinglets <- function(
   nGenes, nCells, nCellTypes, seed = 8732, ...
@@ -71,7 +71,7 @@ syntheticSinglets <- function(
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom dplyr "%>%" full_join
 #' @importFrom purrr map map_int reduce
 #' @importFrom tibble as_tibble

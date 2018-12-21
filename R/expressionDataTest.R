@@ -26,7 +26,7 @@
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 
 expressionDataTest <- function(
     outPath = './data',
@@ -198,7 +198,7 @@ expressionDataTest <- function(
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 
 expressionBigTest <- function(
     outPath = './data',
@@ -339,8 +339,3 @@ expressionBigTest <- function(
     dataset <- cbind(dataset, mul)
     return(list(dataset, names))
 }
-
-
-
-
-

@@ -21,7 +21,7 @@
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom plyr ddply
 
 calculateConnections <- function(
@@ -128,4 +128,3 @@ calculateConnections <- function(
     colnames(connections) <- c("from", "to", "multuplet", "connType")
     return(connections)
 }
-

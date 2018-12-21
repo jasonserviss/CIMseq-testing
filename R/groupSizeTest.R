@@ -20,7 +20,7 @@
 #'
 NULL
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 
 groupSizeTest <- function(dataType, ...) {
     

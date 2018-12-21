@@ -56,7 +56,7 @@ generateTestSummary <- function(spSwarms, metadata, ...) {
 NULL
 
 #' @export
-#' @import sp.scRNAseq
+#' @import CIMseq
 #' @importFrom purrr map map2 invoke_map
 #' @importFrom dplyr "%>%"
 
