@@ -3,7 +3,14 @@ Title: The CIMseq.testing package performs the testing and analysis of the CIMse
 Version: 0.0.0.9000
 Author: Jason T. Serviss
 Description: The CIMseq.testing package performs testing of the CIMseq package and produces informative plots. This is primarily used to test the CIMseq package using different data types as well as the sensitivity and specificity of the package.
-Depends: R (>= 3.4.2), CIMseq
+Depends: R (>= 3.5.0), CIMseq
+Imports:
+    dplyr (>= 0.7.6),
+    tibble (>= 1.4.2),
+    purrr (>= 0.2.5),
+    tidyr (>= 0.8.1),
+    stringr (>= 1.3.1),
+    ggplot2 (>= 2.2.1)
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true

@@ -21,10 +21,9 @@ NULL
 #' @export
 #' @import CIMseq
 #' @importFrom tidyr unite nest
-#' @importFrom dplyr full_join mutate
+#' @importFrom dplyr full_join mutate "%>%"
 #' @importFrom purrr map2_int pmap_int
 #' @importFrom tibble as_tibble
-#' @importFrom magrittr "%>%"
 
 checkResults <- function(
   swarm, known, singlets, edge.cutoff, ...
@@ -149,11 +148,10 @@ checkResults <- function(
 NULL
 #' @export
 #' @import CIMseq
-#' @importFrom dplyr pull
+#' @importFrom dplyr pull "%>%"
 #' @importFrom stringr str_split
 #' @importFrom purrr map_dfr
 #' @importFrom tibble add_column column_to_rownames
-#' @importFrom magrittr "%>%"
 
 printResults <- function(
   data,
@@ -229,10 +227,8 @@ NULL
 
 #' @export
 #' @import CIMseq
-#' @importFrom dplyr select full_join
+#' @importFrom dplyr select full_join "%>%"
 #' @import ggplot2
-#' @importFrom ggthemes theme_few
-#' @importFrom magrittr "%>%"
 
 resultsInPlate <- function(
   results,
@@ -250,7 +246,7 @@ resultsInPlate <- function(
   ) +
   geom_tile(aes_string(fill = var)) +
   scale_x_discrete(position = "top") +
-  theme_few() +
+  theme_bw() +
   theme(
     axis.title = element_blank(),
     legend.position = "top"
@@ -285,11 +281,10 @@ NULL
 
 #' @export
 #' @import CIMseq
-#' @importFrom dplyr pull
+#' @importFrom dplyr pull "%>%"
 #' @importFrom stringr str_split
 #' @importFrom purrr map_dfr
 #' @importFrom tibble tibble add_column column_to_rownames
-#' @importFrom magrittr "%>%"
 
 setupPlate <- function(
   plateData,
@@ -346,8 +341,7 @@ setupPlate <- function(
 NULL
 
 #' @export
-#' @importFrom dplyr select
-#' @importFrom magrittr "%>%"
+#' @importFrom dplyr select "%>%"
 #' @importFrom tidyr spread
 
 viewAsPlate <- function(plate) {

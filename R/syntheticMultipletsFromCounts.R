@@ -20,7 +20,6 @@
 #'
 NULL
 #' @export
-#' @import CIMseq
 
 syntheticSinglets <- function(
   nGenes, nCells, nCellTypes, seed = 8732, ...
