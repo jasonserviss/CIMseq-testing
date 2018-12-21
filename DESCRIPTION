@@ -9,16 +9,3 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1
 Suggests: testthat
-Collate: 
-    'cellTypesIncludedTest.R'
-    'experimentalDataTest.R'
-    'expressionDataTest.R'
-    'funToCheckKnownResults.R'
-    'generalFunctions.R'
-    'groupSizeTest.R'
-    'noiseDataTest.R'
-    'complexity171116.R'
-    'permutationFunctions.R'
-    'testingNewConditions.R'
-    'syntheticMultipletsFromCounts.R'
-    'plotting.R'
