@@ -1,7 +1,7 @@
 
 #PACKAGES
 packages <- c(
-  "CIMseq", "CIMseq.testing", "tidyverse", "future", "future.apply", "Seurat"
+  "CIMseq", "CIMseq.data", "tidyverse", "future", "future.apply", "Seurat"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
