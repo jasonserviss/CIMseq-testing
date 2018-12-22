@@ -154,7 +154,7 @@ NULL
 #' @importFrom dplyr pull "%>%" arrange bind_rows group_by summarize rename
 #' @importFrom stringr str_split
 #' @importFrom purrr map_dfr
-#' @importFrom tibble add_column column_to_rownames
+#' @importFrom tibble add_column column_to_rownames rownames_to_column
 #' @importFrom stats setNames
 #' @importFrom tidyr unnest
 

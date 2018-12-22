@@ -1,3 +1,14 @@
+#' plotPDF
+#'
+#' Plotting theme
+#'
+#' @name plotPDF
+#' @rdname plotPDF
+#' @param plot A ggplot
+#' @param strip.text.size Numeric size.
+#' @return A ggplot.
+#' @author Jason T. Serviss
+
 #' @export
 #' @importFrom ggthemes scale_fill_ptol scale_colour_ptol
 
@@ -30,6 +41,17 @@ plotPDF <- function(plot, strip.text.size = 3.25) {
     )
     return(p)
 }
+
+#' plotRmarkdown
+#'
+#' Plotting theme
+#'
+#' @name plotRmarkdown
+#' @rdname plotRmarkdown
+#' @param plot A ggplot
+#' @param strip.text.size Numeric size.
+#' @return A ggplot.
+#' @author Jason T. Serviss
 
 #' @export
 #' @importFrom ggthemes scale_fill_ptol scale_colour_ptol
