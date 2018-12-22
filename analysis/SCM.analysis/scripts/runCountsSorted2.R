@@ -107,6 +107,8 @@ colnames(dim.red) <- NULL
 cObjSng <- CIMseqSinglets(sng, sngERCC, dim.red, classes)
 cObjMul <- CIMseqMultiplets(mul, mulERCC, select)
 
+#save
+if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
 save(cObjSng, cObjMul, file = file.path(currPath, "data/CIMseqData.rda"))
 
 ##spSwarm
