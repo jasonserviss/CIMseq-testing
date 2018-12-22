@@ -281,9 +281,9 @@ NULL
 
 #' @export
 #' @import CIMseq
-#' @importFrom dplyr pull "%>%"
+#' @importFrom dplyr pull "%>%" filter mutate
 #' @importFrom stringr str_split
-#' @importFrom purrr map_dfr
+#' @importFrom purrr map_dfr map
 #' @importFrom tibble tibble add_column column_to_rownames
 
 setupPlate <- function(
