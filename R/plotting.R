@@ -1,7 +1,9 @@
 #' @export
+#' @importFrom ggthemes scale_fill_ptol scale_colour_ptol
+
 plotPDF <- function(plot, strip.text.size = 3.25) {
   p <- plot +
-    theme_few() +
+    theme_bw() +
     scale_fill_ptol() +
     scale_colour_ptol() +
     theme(
@@ -30,9 +32,11 @@ plotPDF <- function(plot, strip.text.size = 3.25) {
 }
 
 #' @export
+#' @importFrom ggthemes scale_fill_ptol scale_colour_ptol
+
 plotRmarkdown <- function(plot) {
   p <-  plot +
-    theme_few() +
+    theme_bw() +
     scale_colour_ptol() +
     scale_fill_ptol() +
     theme(

@@ -13,8 +13,8 @@ editor_options:
 ```{r, message = FALSE}
 #PACKAGES
 packages <- c(
-  "CIMseq", "CIMseq.data", "printr", "ggthemes", "dplyr", "ggplot2", "tidyr",
-  "purrr", "stringr"
+  "CIMseq", "CIMseq.data", "CIMseq.testing", "printr", "ggthemes", "dplyr", 
+  "ggplot2", "tidyr", "purrr", "stringr"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
@@ -42,9 +42,8 @@ sObj@fractions <- fractions
 ### Show number of expected edges vs number of observed edges
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-known <- sp.scRNAseqTesting::setupPlate(SCM.Meta)
-res <- sp.scRNAseqTesting::checkResults(sObj, known, 0.01)
-
+known <- setupPlate(SCM.Meta)
+res <- checkResults(sObj, known, 0.01)
 
 d <- res %>% 
   mutate(detected = map(data.detected, pull, connections)) %>% 

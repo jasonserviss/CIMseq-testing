@@ -20,6 +20,7 @@
 #'
 NULL
 #' @export
+#' @importFrom stats rnbinom runif
 
 syntheticSinglets <- function(
   nGenes, nCells, nCellTypes, seed = 8732, ...

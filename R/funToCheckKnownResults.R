@@ -21,14 +21,16 @@ NULL
 #' @export
 #' @import CIMseq
 #' @importFrom tidyr unite nest
-#' @importFrom dplyr full_join mutate "%>%"
+#' @importFrom dplyr full_join mutate "%>%" distinct rename
 #' @importFrom purrr map2_int pmap_int
 #' @importFrom tibble as_tibble
+#' @importFrom utils combn
 
 checkResults <- function(
   swarm, known, singlets, multiplets, ...
 ){
-
+  connections <- from <- to <- sObj <- tp <- fn <- tn <- fp <- data.x <- NULL
+  data.y <- NULL
   detected <- CIMseq::getEdgesForMultiplet(
     swarm, singlets, multiplets, rownames(getData(swarm, "fractions"))
   ) %>%
@@ -101,6 +103,7 @@ checkResults <- function(
 #Calculates all possible connections with all cell types
 #Helper for .tn
 .possibleCombs <- function(sObj, known) {
+  connections <- V1 <- V2 <- NULL
   ctKnown <- colnames(getData(known, "fractions"))
   ctDetected <- colnames(getData(sObj, "fractions"))
 
@@ -148,17 +151,18 @@ checkResults <- function(
 NULL
 #' @export
 #' @import CIMseq
-#' @importFrom dplyr pull "%>%"
+#' @importFrom dplyr pull "%>%" arrange bind_rows group_by summarize rename
 #' @importFrom stringr str_split
 #' @importFrom purrr map_dfr
 #' @importFrom tibble add_column column_to_rownames
+#' @importFrom stats setNames
+#' @importFrom tidyr unnest
 
 printResults <- function(
-  data,
-  addFractions = TRUE,
-  spSwarm = NULL,
-  ...
+  data, addFractions = TRUE, spSwarm = NULL, ...
 ){
+  multiplet <- connections.x <- connections.y <- costFunction <- NULL
+  cellsInWell <- tp <- ACC <- NULL
   #expand connections
   data.detected <- select(data, multiplet, data.detected) %>%
   .expandNested()
@@ -182,6 +186,7 @@ printResults <- function(
 }
 
 .expandNested <- function(contracted) {
+  multiplet <- connections <- NULL
   contracted %>%
   unnest() %>%
   bind_rows() %>%
@@ -190,6 +195,7 @@ printResults <- function(
 }
 
 .addFractions <- function(expanded, spSwarm) {
+  fractions <- multiplet <- cellsInWell <- data.expected <- ACC <- NULL
   fracs <- getData(spSwarm, "spSwarm")
   names <- paste(colnames(fracs), collapse = ", ")
   formated <- paste("frac (", names, ")", sep = "")
@@ -227,7 +233,7 @@ NULL
 
 #' @export
 #' @import CIMseq
-#' @importFrom dplyr select full_join "%>%"
+#' @importFrom dplyr select full_join "%>%" rename
 #' @import ggplot2
 
 resultsInPlate <- function(
@@ -236,7 +242,7 @@ resultsInPlate <- function(
   var,
   ...
 ){
-
+  multiplet <- column <- NULL
   results %>%
   select(multiplet, var) %>%
   full_join(plate, by = c("multiplet" = "multipletName")) %>%
@@ -285,12 +291,14 @@ NULL
 #' @importFrom stringr str_split
 #' @importFrom purrr map_dfr map
 #' @importFrom tibble tibble add_column column_to_rownames
+#' @importFrom utils combn
+#' @importFrom methods new
 
 setupPlate <- function(
   plateData,
   ...
 ){
-
+  cellNumber <- cellTypes <- NULL
   #make spSwarm slot for spSwarm object
   spSwarm <- plateData %>%
     filter(cellNumber == "Multiplet") %>%
@@ -318,6 +326,7 @@ setupPlate <- function(
 }
 
 .getCellTypes <- function(plateData) {
+  cellTypes <- NULL
   plateData %>%
     pull(cellTypes) %>%
     str_split("-") %>%
@@ -345,6 +354,7 @@ NULL
 #' @importFrom tidyr spread
 
 viewAsPlate <- function(plate) {
+  column <- multipletComposition <- NULL
   plate %>%
   select(row, column, multipletComposition) %>%
   spread(column, multipletComposition)
