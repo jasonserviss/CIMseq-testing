@@ -1,7 +1,7 @@
 
 #PACKAGES
 packages <- c(
-  "CIMseq", "sp.scRNAseqData", "tidyverse", "future", "future.apply", "Seurat"
+  "CIMseq", "CIMseq.testing", "tidyverse", "future", "future.apply", "Seurat"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
@@ -12,7 +12,7 @@ currPath <- getwd()
 algoV <- sessionInfo()$otherPkgs$CIMseq$Version
 last3 <- paste(strsplit(algoV, "\\.")[[1]][2:4], collapse = "")
 if(!as.numeric(last3) >= 100) {
-  stop("sp.scRNAseq package version too low. Must be >= 0.2.0.0")
+  stop("CIMseq package version too low. Must be >= 0.2.0.0")
 }
 
 currPath <- getwd()

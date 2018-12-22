@@ -26,7 +26,6 @@ RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/m
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('pso/1.0.3')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('matrixStats/0.53.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('ggthemes/3.5.0')"
-#RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('igraph/1.2.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('viridis/0.5.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('ggraph/1.0.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('tidygraph/1.1.0')"
@@ -38,6 +37,7 @@ RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/m
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('gridBase/0.4-7')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('Seurat/2.3.4')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('RcppArmadillo/0.9.200.5.0')"
+RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('rmarkdown/1.11')"
 
 #Bioconductor package imports
 RUN Rscript -e "BiocManager::install('S4Vectors')"
@@ -48,17 +48,22 @@ RUN mkdir /home/Github
 RUN git clone https://github.com/EngeLab/EngeMetadata.git /home/Github/EngeMetadata
 RUN Rscript -e "devtools::install('/home/Github/EngeMetadata', dependencies = FALSE)"
 
-# Clone and install sp.scRNAseqData
-RUN git clone https://github.com/jasonserviss/sp.scRNAseqData.git /home/Github/sp.scRNAseqData
-RUN Rscript -e "source('/home/Github/sp.scRNAseqData/inst/rawData/processRaw.R')"
-RUN Rscript -e "devtools::install('/home/Github/sp.scRNAseqData', dependencies = FALSE)"
+# Clone and install CIMseq-data
+RUN git clone https://github.com/jasonserviss/CIMseq.data.git /home/Github/CIMseq.data
+RUN Rscript -e "devtools::install('/home/Github/CIMseq.data', dependencies = FALSE)"
+RUN cd /home/Github/CIMseq.data && Rscript -e "source('/home/Github/CIMseq.data/inst/rawData/processRaw.R'); processRaw(ignore = ignore, upload = FALSE, save = TRUE)"
+RUN Rscript -e "devtools::install('/home/Github/CIMseq.data', dependencies = FALSE)"
 
-# Clone and install CIM-seq
-RUN git clone https://github.com/jasonserviss/CIM-seq.git /home/Github/CIM-seq
-RUN Rscript -e "devtools::install('/home/Github/CIM-seq', dependencies = FALSE)"
+# Clone and install CIMseq
+RUN git clone https://github.com/jasonserviss/CIMseq.git --branch devel /home/Github/CIMseq
+RUN Rscript -e "devtools::install('/home/Github/CIMseq', dependencies = FALSE)"
 
-# Clone and install CIM-seq-testing
-RUN git clone https://github.com/jasonserviss/CIM-seq-testing.git /home/Github/CIM-seq-testing
-RUN Rscript -e "devtools::install('/home/Github/sp.scRNAseqData', dependencies = FALSE)"
+# Clone and install CIMseq-testing
+RUN git clone https://github.com/jasonserviss/CIMseq.testing.git /home/Github/CIMseq.testing
+RUN Rscript -e "devtools::install('/home/Github/CIMseq.testing', dependencies = FALSE)"
 
-WORKDIR /home/
+WORKDIR /home/Github/CIMseq.testing
+
+#SCM.analysis
+RUN Rscript -e "setwd('/home/Github/CIMseq.testing'); source('./analysis/SCM.analysis/scripts/runCountsSorted2.R')"
+RUN Rscript -e "rmarkdown::render('./analysis/SCM.analysis/analysis/analysis.Rmd')"
