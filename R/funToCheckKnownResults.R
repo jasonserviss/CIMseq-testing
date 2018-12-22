@@ -26,22 +26,22 @@ NULL
 #' @importFrom tibble as_tibble
 
 checkResults <- function(
-  swarm, known, singlets, edge.cutoff, ...
+  swarm, known, singlets, multiplets, ...
 ){
 
   detected <- CIMseq::getEdgesForMultiplet(
-    swarm, singlets, edge.cutoff, rownames(getData(swarm, "fractions"))
+    swarm, singlets, multiplets, rownames(getData(swarm, "fractions"))
   ) %>%
     unite(connections, from, to, sep = "-") %>%
     distinct() %>%
-    nest(-multiplet)
+    nest(-sample)
 
   expected <- CIMseq::getEdgesForMultiplet(
-    known, singlets, edge.cutoff, rownames(getData(swarm, "fractions"))
+    known, singlets, multiplets, rownames(getData(swarm, "fractions"))
   ) %>%
     unite(connections, from, to, sep = "-") %>%
     distinct() %>%
-    nest(-multiplet)
+    nest(-sample)
 
   full_join(detected, expected, by = "multiplet") %>%
     mutate(
@@ -295,7 +295,7 @@ setupPlate <- function(
   spSwarm <- plateData %>%
     filter(cellNumber == "Multiplet") %>%
     mutate(connections = str_split(cellTypes, "-")) %>%
-    mutate(connections = {map(.$connections, combn, 2)}) %>%
+    mutate(connections = map(.$connections, combn, 2)) %>%
     {map_dfr(.$connections, function(x) {
       cellTypes <- .getCellTypes(plateData)
       vec <- vector(mode = "numeric", length = length(cellTypes))

@@ -1,5 +1,5 @@
-
-#context("funToCheckKnownResults")
+library(tidyverse)
+context("funToCheckKnownResults")
 
 ##run test .tp
 test_that("check that .tp outputs the expected result", {
@@ -105,46 +105,29 @@ test_that("check that .tn outputs the expected result", {
   
   ###TEST1####
   #prepare normal input data
-  .process <- function(data) {
-    data %>%
-    getEdgesForMultiplet(., 0.2, rownames(getData(., "spSwarm"))) %>%
+  detected <- CIMseq::getEdgesForMultiplet(
+    CIMseqSwarm_test, CIMseqSinglets_test, CIMseqMultiplets_test, 
+    rownames(getData(CIMseqSwarm_test, "fractions"))
+  ) %>%
     unite(connections, from, to, sep = "-") %>%
-    nest(-multiplet)
-  }
+    distinct() %>%
+    nest(-sample)
   
-  detected <- new("spSwarm",
-    spSwarm = data.frame(
-      A = c(0),
-      B = c(0.5),
-      C = c(0.5),
-      row.names = c("A1")
-    ),
-    costs = vector(mode = "numeric"),
-    convergence = vector(mode = "character"),
-    stats = list(),
-    arguments = list()
-  )
+  known <- CIMseq::getEdgesForMultiplet(
+    CIMseqSwarm_test, CIMseqSinglets_test, CIMseqMultiplets_test, 
+    rownames(getData(CIMseqSwarm_test, "fractions"))
+  ) %>%
+    unite(connections, from, to, sep = "-") %>%
+    distinct() %>%
+    nest(-sample)
   
-  known <- new("spSwarm",
-    spSwarm = data.frame(
-      A = c(0),
-      B = c(0.5),
-      C = c(0.5),
-      row.names = c("A1")
-    ),
-    costs = vector(mode = "numeric"),
-    convergence = vector(mode = "character"),
-    stats = list(),
-    arguments = list()
-  )
-  
-  data <- full_join(.process(detected), .process(known), by = "multiplet")
+  data <- full_join(detected, known, by = "sample")
   
   #setup expected data
-  expected <- c(2)
+  expected <- rep(2, 3)
   
   #run function
-  output <- .tn(data, detected, known)
+  output <- .tn(data, CIMseqSwarm_test, CIMseqSwarm_test)
   
   #test
   expect_equivalent(expected, output)
@@ -155,7 +138,7 @@ test_that("check that .getCellTypes outputs the expected result", {
   
   ###TEST1####
   #prepare normal input data
-  data <- tibble(multipletComposition = c("A1-B1", "A1-C1-D1", "A1-S1-F1-V1"))
+  data <- tibble(cellTypes = c("A1-B1", "A1-C1-D1", "A1-S1-F1-V1"))
   
   #setup expected data
   expected <- c("A1", "B1", "C1", "D1", "F1", "S1", "V1")
@@ -175,16 +158,16 @@ test_that("check that setupPlate outputs the expected result", {
   data <- tibble(
     row = "A",
     column = 1,
-    multipletName = "test1",
-    multipletComposition = "A1-B1",
-    connections = list(combn(c("A1", "B1"), 2)),
+    cellNumber = "Multiplet",
+    sample = "test1",
+    cellTypes = "A1-B1"
   )
   
   #setup expected data
-  expected <- data.frame(A1 = 0.5, B1 = 0.5, row.names = "test1")
+  expected <- as.matrix(data.frame(A1 = 0.5, B1 = 0.5, row.names = "test1"))
   
   #run function
-  output <- getData(setupPlate(data), "spSwarm")
+  output <- getData(setupPlate(data), "fractions")
   
   #test
   expect_equivalent(expected, output)
