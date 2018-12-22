@@ -1,4 +1,4 @@
 library(testthat)
-library(sp.scRNAseqTesting)
+library(CIMseq.testing)
 
-test_check("sp.scRNAseqTesting")
+test_check("CIMseq.testing")
