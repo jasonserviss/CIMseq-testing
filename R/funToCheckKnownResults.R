@@ -10,7 +10,7 @@
 #' @param known A CIMseqSwarm object of the known result. The results should be
 #' represented in the fractions slot according to the edge.cutoff provided.
 #' @param singlets CIMseqSinglets; A CIMseqSinglets object.
-#' @param edge.cutoff Standard definition.
+#' @param multiplets CIMseqMultiplets; A CIMseqMultiplets object.
 #' @param ... additional arguments to pass on
 #' @return data.frame
 #' @author Jason T. Serviss
@@ -45,7 +45,7 @@ checkResults <- function(
     distinct() %>%
     nest(-sample)
 
-  full_join(detected, expected, by = "multiplet") %>%
+  full_join(detected, expected, by = "sample") %>%
     mutate(
       tp = .tp(.),
       fp = .fp(.),

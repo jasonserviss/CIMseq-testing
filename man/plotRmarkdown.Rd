@@ -8,8 +8,6 @@ plotRmarkdown(plot)
 }
 \arguments{
 \item{plot}{A ggplot}
-
-\item{strip.text.size}{Numeric size.}
 }
 \value{
 A ggplot.

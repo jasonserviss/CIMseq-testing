@@ -49,7 +49,6 @@ plotPDF <- function(plot, strip.text.size = 3.25) {
 #' @name plotRmarkdown
 #' @rdname plotRmarkdown
 #' @param plot A ggplot
-#' @param strip.text.size Numeric size.
 #' @return A ggplot.
 #' @author Jason T. Serviss
 

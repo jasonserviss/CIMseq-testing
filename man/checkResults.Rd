@@ -11,7 +11,7 @@ represented in the fractions slot according to the edge.cutoff provided.}
 
 \item{singlets}{CIMseqSinglets; A CIMseqSinglets object.}
 
-\item{edge.cutoff}{Standard definition.}
+\item{multiplets}{CIMseqMultiplets; A CIMseqMultiplets object.}
 
 \item{...}{additional arguments to pass on}
 }
