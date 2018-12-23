@@ -29,7 +29,7 @@ NULL
 checkResults <- function(
   swarm, known, singlets, multiplets, ...
 ){
-  connections <- from <- to <- sObj <- tp <- fn <- tn <- fp <- data.x <- NULL
+  connections <- from <- to <- tp <- fn <- tn <- fp <- data.x <- NULL
   data.y <- NULL
   detected <- CIMseq::getEdgesForMultiplet(
     swarm, singlets, multiplets, rownames(getData(swarm, "fractions"))
@@ -85,8 +85,8 @@ checkResults <- function(
 #calculates the true negatives
 #in order to know which comdinations are possible and which are missing from
 # both expected and detected, the .possibleCombs function is used.
-.tn <- function(data, sObj, known) {
-  possibleCombs <- .possibleCombs(sObj, known)
+.tn <- function(data, swarm, known) {
+  possibleCombs <- .possibleCombs(swarm, known)
 
   data %>%
   add_column(possibleCombs = list(possibleCombs)) %>%
@@ -102,10 +102,10 @@ checkResults <- function(
 
 #Calculates all possible connections with all cell types
 #Helper for .tn
-.possibleCombs <- function(sObj, known) {
+.possibleCombs <- function(swarm, known) {
   connections <- V1 <- V2 <- NULL
   ctKnown <- colnames(getData(known, "fractions"))
-  ctDetected <- colnames(getData(sObj, "fractions"))
+  ctDetected <- colnames(getData(swarm, "fractions"))
 
   c(ctKnown, ctDetected) %>%
     unique() %>%
