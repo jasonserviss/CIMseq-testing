@@ -20,8 +20,9 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-load("../data/CIMseqData.rda")
-load("../data/sObj.rda")
+opts_knit$set(root.dir = '~/Github/CIMseq.testing/analysis/')
+load("SCM.analysis/data/CIMseqData.rda")
+load("SCM.analysis/data/sObj.rda")
 
 #rename classes
 renameClasses <- function(class) {
