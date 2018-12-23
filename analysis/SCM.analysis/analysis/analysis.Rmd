@@ -20,7 +20,7 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-opts_knit$set(root.dir = '~/Github/CIMseq.testing/')
+knitr::opts_knit$set(root.dir = '~/Github/CIMseq.testing/')
 load("analysis/SCM.analysis/data/CIMseqData.rda")
 load("analysis/SCM.analysis/data/sObj.rda")
 
