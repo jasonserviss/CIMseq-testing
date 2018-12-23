@@ -50,7 +50,7 @@ checkResults <- function(
       tp = .tp(.),
       fp = .fp(.),
       fn = .fn(.),
-      tn = .tn(., sObj, known),
+      tn = .tn(., swarm, known),
       TPR = .TPR(tp, fn),
       TNR = .TNR(tn, fp),
       ACC = .ACC(tp, tn, fp, fn)
