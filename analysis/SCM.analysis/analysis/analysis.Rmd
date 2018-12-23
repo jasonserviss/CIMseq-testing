@@ -42,7 +42,7 @@ sObj@fractions <- fractions
 ### Show number of expected edges vs number of observed edges
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-known <- setupPlate(SCM.Meta)
+known <- setupPlate(filter(SCM.Meta, !filtered))
 res <- checkResults(sObj, known, cObjSng, cObjMul)
 
 d <- res %>% 

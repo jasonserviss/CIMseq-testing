@@ -18,18 +18,16 @@ if(!as.numeric(last3) >= 100) {
 currPath <- getwd()
 
 ##spCounts
-s <- str_detect(colnames(SCM.Counts), "^s")
-sng <- SCM.Counts[, s]
-sngERCC <- SCM.CountsERCC[, s]
-mul <- SCM.Counts[, !s]
-mulERCC <- SCM.CountsERCC[, !s]
-meta <- filter(SCM.Meta, sample %in% colnames(sng))
+sng.samples <- filter(SCM.Meta, cellNumber == "Singlet" & !filtered)$sample
+sng <- SCM.Counts[, sng.samples]
+sngERCC <- SCM.CountsERCC[, sng.samples]
+mul.samples <- filter(SCM.Meta, cellNumber == "Multiplet" & !filtered)$sample
+mul <- SCM.Counts[, mul.samples]
+mulERCC <- SCM.CountsERCC[, mul.samples]
 
 #Dimensionality reduction and classification
 print(paste0("Starting dim.red and classification analysis at ", Sys.time()))
-mca <- CreateSeuratObject(
-  raw.data = sng, meta.data = meta, project = "Enge_only"
-)
+mca <- CreateSeuratObject(raw.data = sng)
 mca <- NormalizeData(
   object = mca, normalization.method = "LogNormalize", scale.factor = 1e6
 )

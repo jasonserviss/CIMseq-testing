@@ -108,11 +108,11 @@ checkResults <- function(
   ctDetected <- colnames(getData(sObj, "fractions"))
 
   c(ctKnown, ctDetected) %>%
-  unique() %>%
-  combn(., 2) %>%
-  t() %>%
-  as_tibble() %>%
-  unite(connections, V1, V2, sep = "-")
+    unique() %>%
+    combn(., 2) %>%
+    t() %>%
+    as_tibble() %>%
+    unite(connections, V1, V2, sep = "-")
 }
 
 #Calculates the true positive rate (sensitivity)
@@ -287,7 +287,7 @@ NULL
 
 #' @export
 #' @import CIMseq
-#' @importFrom dplyr pull "%>%" filter mutate
+#' @importFrom dplyr pull "%>%" filter mutate select
 #' @importFrom stringr str_split
 #' @importFrom purrr map_dfr map
 #' @importFrom tibble tibble add_column column_to_rownames
@@ -301,6 +301,7 @@ setupPlate <- function(
   cellNumber <- cellTypes <- NULL
   #make spSwarm slot for spSwarm object
   spSwarm <- plateData %>%
+    select(cellNumber, cellTypes) %>%
     filter(cellNumber == "Multiplet") %>%
     mutate(connections = str_split(cellTypes, "-")) %>%
     mutate(connections = map(.$connections, combn, 2)) %>%
