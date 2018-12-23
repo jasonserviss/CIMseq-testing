@@ -14,7 +14,13 @@ RUN  rm -f /var/lib/dpkg/available \
     libudunits2-dev \
     libhdf5-dev \
     emacs \
-    git
+    git \
+    python-dev \
+    python-pip
+
+# Install app dependencies
+RUN pip install --upgrade pip
+RUN pip install "umap-learn==0.2.3"
 
 # Install CRAN and Bioconductor packages
 RUN Rscript -e "install.packages(c('devtools','knitr','rmarkdown','shiny','RCurl', 'BiocManager'), repos = 'https://cran.rstudio.com')"
@@ -38,32 +44,33 @@ RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/m
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('Seurat/2.3.4')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('RcppArmadillo/0.9.200.5.0')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('rmarkdown/1.11')"
+RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('printr/0.1')"
+RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('knitr/1.20')"
 
 #Bioconductor package imports
 RUN Rscript -e "BiocManager::install('S4Vectors')"
 
 # Clone and install EngeMetadata
-RUN mkdir /home/Github
-
-RUN git clone https://github.com/EngeLab/EngeMetadata.git /home/Github/EngeMetadata
-RUN Rscript -e "devtools::install('/home/Github/EngeMetadata', dependencies = FALSE)"
+RUN mkdir ~/Github
+RUN git clone https://github.com/EngeLab/EngeMetadata.git ~/Github/EngeMetadata
+RUN Rscript -e "devtools::install('~/Github/EngeMetadata', dependencies = FALSE)"
 
 # Clone and install CIMseq-data
-RUN git clone https://github.com/jasonserviss/CIMseq.data.git /home/Github/CIMseq.data
-RUN Rscript -e "devtools::install('/home/Github/CIMseq.data', dependencies = FALSE)"
-RUN cd /home/Github/CIMseq.data && Rscript -e "source('/home/Github/CIMseq.data/inst/rawData/processRaw.R'); processRaw(ignore = ignore, upload = FALSE, save = TRUE)"
-RUN Rscript -e "devtools::install('/home/Github/CIMseq.data', dependencies = FALSE)"
+RUN git clone https://github.com/jasonserviss/CIMseq.data.git ~/Github/CIMseq.data
+RUN Rscript -e "devtools::install('~/Github/CIMseq.data', dependencies = FALSE)"
+RUN cd ~/Github/CIMseq.data && Rscript -e "source('~/Github/CIMseq.data/inst/rawData/processRaw.R'); processRaw(ignore = ignore, upload = FALSE, save = TRUE)"
+RUN Rscript -e "devtools::install('~/Github/CIMseq.data', dependencies = FALSE)"
 
 # Clone and install CIMseq
-RUN git clone https://github.com/jasonserviss/CIMseq.git --branch devel /home/Github/CIMseq
-RUN Rscript -e "devtools::install('/home/Github/CIMseq', dependencies = FALSE)"
+RUN git clone https://github.com/jasonserviss/CIMseq.git --branch devel ~/Github/CIMseq
+RUN Rscript -e "devtools::install('~/Github/CIMseq', dependencies = FALSE)"
 
 # Clone and install CIMseq-testing
-RUN git clone https://github.com/jasonserviss/CIMseq.testing.git /home/Github/CIMseq.testing
-RUN Rscript -e "devtools::install('/home/Github/CIMseq.testing', dependencies = FALSE)"
+RUN touch /tmp3.txt
+RUN git clone https://github.com/jasonserviss/CIMseq.testing.git ~/Github/CIMseq.testing
+RUN Rscript -e "devtools::install('~/Github/CIMseq.testing', dependencies = FALSE)"
 
-WORKDIR /home/Github/CIMseq.testing
-
-#SCM.analysis
-RUN Rscript -e "setwd('/home/Github/CIMseq.testing'); source('./analysis/SCM.analysis/scripts/runCountsSorted2.R')"
-RUN Rscript -e "rmarkdown::render('./analysis/SCM.analysis/analysis/analysis.Rmd')"
+#run analyses
+RUN Rscript -e "source('~/Github/CIMseq.testing/analysis/runAnalysis.R')"
+#RUN Rscript -e "setwd('/home/Github/CIMseq.testing/analysis/SCM.analysis'); source('scripts/runCountsSorted2.R')"
+#RUN Rscript -e "setwd('/home/Github/CIMseq.testing/analysis/SCM.analysis'); rmarkdown::render('analysis/analysis.Rmd')"
