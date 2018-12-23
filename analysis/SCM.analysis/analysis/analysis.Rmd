@@ -46,13 +46,19 @@ known <- setupPlate(filter(SCM.Meta, !filtered))
 res <- checkResults(sObj, known, cObjSng, cObjMul)
 
 d <- res %>% 
-  mutate(detected = map(data.detected, pull, connections)) %>% 
+  mutate(detected = map(data.detected, function(t){
+    ifelse(is.null(t), NA, pull(t, connections))
+  })) %>% 
+  filter(!is.na(detected)) %>%
   select(detected) %>%
   unnest() %>%
   count(detected)
 
 e <- res %>% 
-  mutate(expected = map(data.expected, pull, connections)) %>% 
+  mutate(expected = map(data.expected, function(t){
+    ifelse(is.null(t), NA, pull(t, connections))
+  })) %>% 
+  filter(!is.na(expected)) %>%
   select(expected) %>%
   unnest() %>%
   count(expected)
@@ -67,7 +73,7 @@ full_join(d, e, by = c("detected" = "expected")) %>%
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 res %>%
-  inner_join(SCM.Meta, by = c("multiplet" = "sample")) %>%
+  inner_join(SCM.Meta, by = "sample") %>%
   mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
   group_by(cellsInMultiplet) %>%
   summarize(
@@ -81,7 +87,7 @@ res %>%
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 res %>%
-  inner_join(SCM.Meta, by = c("multiplet" = "sample")) %>%
+  inner_join(SCM.Meta, by = "sample") %>%
   mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
   group_by(cellTypes) %>%
   summarize(
@@ -95,17 +101,23 @@ res %>%
 
 ```{r}
 print <- res %>% 
-  mutate(connections.detected = map_chr(data.detected, function(x) paste(unlist(x), collapse = ", "))) %>%
-  mutate(connections.expected = map_chr(data.expected, function(x) paste(unlist(x), collapse = ", "))) %>%
+  mutate(connections.detected = map_chr(data.detected, ~paste(unlist(.x), collapse = ", "))) %>%
+  mutate(connections.expected = map_chr(data.expected, ~paste(unlist(.x), collapse = ", "))) %>%
   select(-(data.detected:data.expected)) %>%
-  inner_join(SCM.Meta, by = c("multiplet" = "sample")) %>%
-  #select(-(plate:cellNumber)) %>%
+  inner_join(SCM.Meta, by = "sample") %>%
   rename(cellsSorted = cellTypes) %>%
-  inner_join(matrix_to_tibble(getData(sObj, "fractions"), "multiplet"), by = "multiplet") %>%
-  mutate(HOS = round(HOS, digits = 5), HCT116 = round(HCT116, digits = 5), A375 = round(A375, digits = 5)) %>%
+  inner_join(matrix_to_tibble(getData(sObj, "fractions"), "sample"), by = "sample") %>%
+  mutate(
+    HOS = round(HOS, digits = 5), 
+    HCT116 = round(HCT116, digits = 5), 
+    A375 = round(A375, digits = 5)
+  ) %>%
   unite(fractions, HOS, HCT116, A375, sep = ", ") %>%
   rename("fractions (HOS, HCT116, A375)" = fractions) %>%
-  select(multiplet, cellsSorted, connections.expected, connections.detected, `fractions (HOS, HCT116, A375)`, tp:ACC)
+  select(
+    sample, cellsSorted, connections.expected, connections.detected, 
+    `fractions (HOS, HCT116, A375)`, tp:ACC
+  )
 
 as.data.frame(print)
 ```
