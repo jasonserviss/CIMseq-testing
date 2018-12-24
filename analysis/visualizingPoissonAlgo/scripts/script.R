@@ -1,6 +1,6 @@
 packages <- c(
-  "CIMseq","sp.scRNAseqData", "sp.scRNAseqTesting", "printr",
-  "ggthemes", "tidyverse", "future"
+  "CIMseq","CIMseq.data", "CIMseq.testing", "printr",
+  "ggthemes", "purrr", "matrixStats", "future", "tibble", "tidyr"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
@@ -43,16 +43,22 @@ generateSyntheticMultiplets <- function(
 ############
 
 ##RUN ALGO
-load('../SCM.analysis/data/CIMseqData.rda')
+load('~/Github/CIMseq.testing/analysis/SCM.analysis/data/CIMseqData.rda')
+load('~/Github/CIMseq.testing/analysis/SCM.analysis/data/sObj.rda')
 
-#rename classes
-midx <- match(rownames(getData(cObjSng, "dim.red")), SCM.Meta$sample)
-getData(cObjSng, "classification") <- SCM.Meta$cellTypes[midx]
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "A375",
+    class == "1" ~ "HCT116",
+    class == "2" ~ "HOS",
+    TRUE ~ "error"
+  )
+}
 
-plan(multiprocess)
-sObj <- CIMseqSwarm(cObjSng, cObjMul)
-
-save(cObjSng, cObjMul, sObj, file = "data/algoOut.rda")
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
 
 ##GENERATE SYNTHETIC MULTIPLETS
 #generate synthetic multiplets
