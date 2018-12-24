@@ -69,8 +69,3 @@ RUN Rscript -e "devtools::install('~/Github/CIMseq', dependencies = FALSE)"
 RUN touch /tmp3.txt
 RUN git clone https://github.com/jasonserviss/CIMseq.testing.git ~/Github/CIMseq.testing
 RUN Rscript -e "devtools::install('~/Github/CIMseq.testing', dependencies = FALSE)"
-
-#run analyses
-RUN Rscript -e "source('~/Github/CIMseq.testing/analysis/runAnalysis.R')"
-#RUN Rscript -e "setwd('/home/Github/CIMseq.testing/analysis/SCM.analysis'); source('scripts/runCountsSorted2.R')"
-#RUN Rscript -e "setwd('/home/Github/CIMseq.testing/analysis/SCM.analysis'); rmarkdown::render('analysis/analysis.Rmd')"
