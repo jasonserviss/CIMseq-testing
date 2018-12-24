@@ -1,47 +1,39 @@
-R version 3.5.0 (2018-04-23)
+R version 3.5.1 (2018-07-02)
 Platform: x86_64-apple-darwin15.6.0 (64-bit)
-Running under: macOS High Sierra 10.13.5
+Running under: macOS  10.14.1
 
 Matrix products: default
-BLAS: /Library/Frameworks/R.framework/Versions/3.5/Resources/lib/libRblas.0.dylib
+BLAS: /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
 LAPACK: /Library/Frameworks/R.framework/Versions/3.5/Resources/lib/libRlapack.dylib
 
 locale:
-[1] C/UTF-8/C/C/C/C
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 
 attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] bindrcpp_0.2.2          future_1.8.1            forcats_0.3.0          
- [4] stringr_1.3.1           dplyr_0.7.5             purrr_0.2.5            
- [7] readr_1.1.1             tidyr_0.8.1             tibble_1.4.2           
-[10] ggplot2_2.2.1.9000      tidyverse_1.2.1         ggthemes_3.5.0         
-[13] printr_0.1              seqTools_0.0.0.9000     sp.scRNAseq_0.0.3.4    
-[16] sp.scRNAseqData_0.0.1.0
+ [1] patchwork_0.0.1           future_1.10.0             bindrcpp_0.2.2           
+ [4] ggthemes_4.0.1            printr_0.1                CIMseq.testing_0.0.0.9000
+ [7] CIMseq.data_0.0.1.2       CIMseq_0.2.0.2            forcats_0.3.0            
+[10] stringr_1.3.1             dplyr_0.7.8               purrr_0.2.5              
+[13] readr_1.2.1               tidyr_0.8.2               tibble_1.4.2             
+[16] ggplot2_3.1.0             tidyverse_1.2.1          
 
 loaded via a namespace (and not attached):
- [1] nlme_3.1-137        matrixStats_0.53.1  lubridate_1.7.4    
- [4] httr_1.3.1          tools_3.5.0         R6_2.2.2           
- [7] lazyeval_0.2.1      BiocGenerics_0.26.0 colorspace_1.3-2   
-[10] withr_2.1.2         tidyselect_0.2.4    gridExtra_2.3      
-[13] mnormt_1.5-5        compiler_3.5.0      cli_1.0.0          
-[16] rvest_0.3.2         xml2_1.2.0          labeling_0.3       
-[19] scales_0.5.0        psych_1.8.4         digest_0.6.15      
-[22] foreign_0.8-70      pkgconfig_2.0.1     rlang_0.2.1        
-[25] readxl_1.1.0        rstudioapi_0.7      bindr_0.1.1        
-[28] farver_1.0          jsonlite_1.5        mclust_5.4         
-[31] zip_1.0.0           magrittr_1.5        Rcpp_0.12.17       
-[34] munsell_0.4.3       S4Vectors_0.18.2    viridis_0.5.1      
-[37] stringi_1.2.3       ggraph_1.0.1        MASS_7.3-50        
-[40] Rtsne_0.13          plyr_1.8.4          grid_3.5.0         
-[43] parallel_3.5.0      listenv_0.7.0       ggrepel_0.8.0      
-[46] crayon_1.3.4        lattice_0.20-35     haven_1.1.1        
-[49] hms_0.4.2           knitr_1.20          pillar_1.2.3       
-[52] igraph_1.2.1        pso_1.0.3           future.apply_1.0.0 
-[55] reshape2_1.4.3      codetools_0.2-15    stats4_3.5.0       
-[58] glue_1.2.0          modelr_0.1.2        tweenr_0.1.5.9999  
-[61] cellranger_1.1.0    gtable_0.2.0        assertthat_0.2.0   
-[64] ggforce_0.1.2       openxlsx_4.1.0      broom_0.4.4        
-[67] tidygraph_1.1.0     e1071_1.6-8         class_7.3-14       
-[70] viridisLite_0.3.0   units_0.6-0         globals_0.12.1     
+ [1] nlme_3.1-137        matrixStats_0.54.0  lubridate_1.7.4     gmodels_2.18.1      httr_1.3.1         
+ [6] tools_3.5.1         backports_1.1.2     utf8_1.1.4          R6_2.3.0            lazyeval_0.2.1     
+[11] BiocGenerics_0.28.0 colorspace_1.3-2    withr_2.1.2         tidyselect_0.2.5    gridExtra_2.3      
+[16] compiler_3.5.1      cli_1.0.1           rvest_0.3.2         xml2_1.2.0          scales_1.0.0       
+[21] digest_0.6.18       rmarkdown_1.11      htmltools_0.3.6     pkgconfig_2.0.2     rlang_0.3.0.1      
+[26] GlobalOptions_0.1.0 readxl_1.1.0        rstudioapi_0.8      shape_1.4.4         bindr_0.1.1        
+[31] farver_1.1.0        jsonlite_1.5        gtools_3.8.1        magrittr_1.5        fansi_0.4.0        
+[36] Rcpp_1.0.0          munsell_0.5.0       S4Vectors_0.20.1    viridis_0.5.1       stringi_1.2.4      
+[41] EngeMetadata_0.1.2  yaml_2.2.0          ggraph_1.0.2        MASS_7.3-51.1       Rtsne_0.15         
+[46] plyr_1.8.4          grid_3.5.1          parallel_3.5.1      gdata_2.18.0        listenv_0.7.0      
+[51] ggrepel_0.8.0       crayon_1.3.4        lattice_0.20-38     haven_1.1.2         circlize_0.4.4     
+[56] hms_0.4.2           knitr_1.20          pillar_1.3.0        igraph_1.2.2        pso_1.0.3          
+[61] future.apply_1.0.1  codetools_0.2-15    stats4_3.5.1        glue_1.3.0          evaluate_0.12      
+[66] modelr_0.1.2        tweenr_1.0.0        cellranger_1.1.0    gtable_0.2.0        RANN_2.6           
+[71] assertthat_0.2.0    gridBase_0.4-7      ggforce_0.1.3       broom_0.5.0         tidygraph_1.1.1    
+[76] googledrive_0.1.2   viridisLite_0.3.0   units_0.6-1         globals_0.12.4     
