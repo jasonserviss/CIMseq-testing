@@ -20,9 +20,9 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-load('~/Github/CIMseq.testing/analysis/SCM.analysis/data/CIMseqData.rda')
-load('~/Github/CIMseq.testing/analysis/SCM.analysis/data/sObj.rda')
-load('~/Github/CIMseq.testing/analysis/visualizingPoissonAlgo/data/syntheticMultiplets.rda')
+load('../../SCM.analysis/data/CIMseqData.rda')
+load('../../SCM.analysis/data/sObj.rda')
+load('../data/syntheticMultiplets.rda')
 
 renameClasses <- function(class) {
   case_when(

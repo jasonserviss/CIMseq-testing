@@ -43,8 +43,8 @@ generateSyntheticMultiplets <- function(
 ############
 
 ##RUN ALGO
-load('~/Github/CIMseq.testing/analysis/SCM.analysis/data/CIMseqData.rda')
-load('~/Github/CIMseq.testing/analysis/SCM.analysis/data/sObj.rda')
+load('~/Github/CIMseq.testing/inst/analysis/SCM.analysis/data/CIMseqData.rda')
+load('~/Github/CIMseq.testing/inst/analysis/SCM.analysis/data/sObj.rda')
 
 renameClasses <- function(class) {
   case_when(
