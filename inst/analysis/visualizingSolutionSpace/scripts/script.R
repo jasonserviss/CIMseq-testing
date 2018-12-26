@@ -5,7 +5,8 @@ packages <- c(
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
-currentDir <- getwd()
+currPath <- getwd()
+print(paste("Running analysis in ", currPath))
 
 load('~/Github/CIMseq.testing/inst/analysis/SCM.analysis/data/CIMseqData.rda')
 keep <- c("m.NJB00204.G04", "m.NJB00204.D07", "m.NJB00204.F12")
@@ -26,7 +27,7 @@ colnames(ss) <- c("HOS", "HCT116", "A375")
 sObj@fractions <- ss
 
 if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
-save(cObjSng, cObjMul, sObj, file = file.path(currentDir, 'data/algoOutput.rda'))
+save(cObjSng, cObjMul, sObj, file = file.path(currPath, 'data/algoOutput.rda'))
 
 renameClasses <- function(class) {
   case_when(
@@ -37,6 +38,6 @@ renameClasses <- function(class) {
 report <- unnest(getData(sObj, "stats"))
 colnames(report)[6:8] <- renameClasses(colnames(report)[6:8])
 
-save(report, file = file.path(currentDir, "data/report.rda"))
-writeLines(capture.output(sessionInfo()), "logs/sessionInfo.txt")
+save(report, file = file.path(currPath, "data/report.rda"))
+writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo.txt"))
 
