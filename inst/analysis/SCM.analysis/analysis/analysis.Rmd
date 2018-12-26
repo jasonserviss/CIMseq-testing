@@ -20,9 +20,9 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-print(paste("Running analysis in ", getwd()))
-load("~/Github/CIMseq.testing/analysis/SCM.analysis/data/CIMseqData.rda")
-load("~/Github/CIMseq.testing/analysis/SCM.analysis/data/sObj.rda")
+warning(paste("Running analysis in ", getwd()))
+load("../data/CIMseqData.rda")
+load("../data/sObj.rda")
 
 #rename classes
 renameClasses <- function(class) {
