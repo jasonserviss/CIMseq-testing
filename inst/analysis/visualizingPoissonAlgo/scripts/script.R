@@ -116,5 +116,6 @@ synthetic.mul <- bind_rows(synthetic.mul.right, synthetic.mul.wrong) %>%
     TRUE ~ "error"
   ))
 
+if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
 save(synthetic.mul, file = "data/syntheticMultiplets.rda")
 writeLines(capture.output(sessionInfo()), "logs/sessionInfo.txt")
