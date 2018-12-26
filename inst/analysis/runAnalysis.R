@@ -1,4 +1,4 @@
-library(here)
+
 baseDir <- 'analysis'
 analysisDirs <- c(
   "SCM.analysis", "visualizingPoissonAlgo", "visualizingSolutionSpace",
