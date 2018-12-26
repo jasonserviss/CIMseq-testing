@@ -25,6 +25,7 @@ ss <- getData(sObj, "fractions")
 colnames(ss) <- c("HOS", "HCT116", "A375")
 sObj@fractions <- ss
 
+if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
 save(cObjSng, cObjMul, sObj, file = file.path(currentDir, 'data/algoOutput.rda'))
 
 renameClasses <- function(class) {
