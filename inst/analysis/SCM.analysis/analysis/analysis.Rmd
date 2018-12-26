@@ -20,6 +20,7 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
+print(paste("Running analysis in ", getwd()))
 load("~/Github/CIMseq.testing/analysis/SCM.analysis/data/CIMseqData.rda")
 load("~/Github/CIMseq.testing/analysis/SCM.analysis/data/sObj.rda")
 
