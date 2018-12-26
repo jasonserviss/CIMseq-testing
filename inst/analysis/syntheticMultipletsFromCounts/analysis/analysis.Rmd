@@ -109,6 +109,7 @@ synth <- map(1:length(fractions), function(i) {
   }) %>%
   do.call("cbind", .) %>%
   matrix_to_tibble("gene") %>%
+  mutate(gene = rownames(SCM.Counts)) %>%
   setNames(c(
     "gene",
     paste(names(fractions), rep(1:n, each = length(fractions) / n), sep = ".")

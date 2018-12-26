@@ -1,5 +1,5 @@
 packages <- c(
-  "CIMseq","CIMseq.data", "CIMseq.testing", "printr",
+  "CIMseq","CIMseq.data", "CIMseq.testing", "printr", "dplyr",
   "ggthemes", "purrr", "matrixStats", "future", "tibble", "tidyr"
 )
 purrr::walk(packages, library, character.only = TRUE)
