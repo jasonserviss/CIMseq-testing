@@ -7,6 +7,7 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 currPath <- getwd()
+print(paste("Running analysis in ", currPath))
 
 #check package version
 algoV <- sessionInfo()$otherPkgs$CIMseq$Version
