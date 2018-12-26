@@ -5,6 +5,9 @@ packages <- c(
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
+currPath <- getwd()
+print(paste("Running analysis in ", currPath))
+
 #############
 #FUNCTIONS
 ############
@@ -117,5 +120,5 @@ synthetic.mul <- bind_rows(synthetic.mul.right, synthetic.mul.wrong) %>%
   ))
 
 if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
-save(synthetic.mul, file = "data/syntheticMultiplets.rda")
-writeLines(capture.output(sessionInfo()), "logs/sessionInfo.txt")
+save(synthetic.mul, file = file.path(currPath, "data/syntheticMultiplets.rda"))
+writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo.txt"))
