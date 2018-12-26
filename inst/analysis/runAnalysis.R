@@ -1,10 +1,10 @@
-baseDirs <- '~/Github/CIMseq.testing/inst/analysis'
+baseDirs <- './inst/analysis'
 analysisDirs <- c(
   "SCM.analysis", "visualizingPoissonAlgo", "visualizingSolutionSpace",
   "syntheticMultipletsFromCounts"
 )
-fullPaths <- file.path(baseDirs, analysisDirs)
-for(i in 1:length(analysisDirs)) {
+directories <- file.path(baseDirs, analysisDirs)
+for(i in 1:length(directories)) {
   setwd(analysisDirs[i])
   source('./scripts/script.R')
   rmarkdown::render('./analysis/analysis.Rmd')
