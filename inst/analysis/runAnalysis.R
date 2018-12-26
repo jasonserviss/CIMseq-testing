@@ -9,6 +9,7 @@ directories <- file.path(baseDir, analysisDirs)
 for(i in 1:length(directories)) {
   setwd(directories[i])
   source(file.path(directories[i], 'scripts/script.R'))
+  list.files(directories[i])
   rmarkdown::render(file.path(directories[i], 'analysis/analysis.Rmd'))
   setwd('~/Github/CIMseq.testing')
 }
