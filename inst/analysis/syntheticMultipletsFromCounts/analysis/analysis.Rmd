@@ -14,7 +14,7 @@ editor_options:
 #PACKAGES
 packages <- c(
   "CIMseq","CIMseq.data", "CIMseq.testing", "printr", "ggthemes", "tibble",
-  "stringr", "dplyr", "purrr", "tidyr", "ggplot2", "matrixStats"
+  "stringr", "dplyr", "purrr", "tidyr", "ggplot2", "matrixStats", "readr"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
