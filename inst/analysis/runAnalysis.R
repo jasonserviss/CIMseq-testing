@@ -1,5 +1,5 @@
 
-directories <- file.path(baseDir, c(
+directories <- file.path('~/Github/CIMseq.testing/inst/analysis', c(
   "SCM.analysis", "visualizingPoissonAlgo", "visualizingSolutionSpace",
   "syntheticMultipletsFromCounts"
 ))
