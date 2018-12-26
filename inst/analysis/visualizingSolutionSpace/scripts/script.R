@@ -7,7 +7,7 @@ rm(packages)
 
 currentDir <- getwd()
 
-load('~/Github/CIMseq.testing/analysis/SCM.analysis/data/CIMseqData.rda')
+load('~/Github/CIMseq.testing/inst/analysis/SCM.analysis/data/CIMseqData.rda')
 keep <- c("m.NJB00204.G04", "m.NJB00204.D07", "m.NJB00204.F12")
 cObjMul <- CIMseqMultiplets(
   getData(cObjMul, "counts")[, keep],
