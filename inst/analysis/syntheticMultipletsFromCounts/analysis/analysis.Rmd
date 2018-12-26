@@ -242,6 +242,7 @@ fractions <- tibble(
 synth <- fractions %>%
   mutate(sm = map2(fractions, seed, function(f, s) {
     syntheticMultipletsFromCounts(norm(sng), classes, f, seed = s) %>%
+      mutate(gene = rownames(SCM.Counts)) %>% ##HERE
       matrix_to_tibble("gene")
   })) %>% 
   select(cellType, adjustment, ns, sm) %>%
