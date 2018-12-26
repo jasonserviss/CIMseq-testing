@@ -5,7 +5,7 @@ analysisDirs <- c(
 )
 directories <- file.path(baseDirs, analysisDirs)
 for(i in 1:length(directories)) {
-  setwd(analysisDirs[i])
+  setwd(directories[i])
   source('./scripts/script.R')
   rmarkdown::render('./analysis/analysis.Rmd')
 }
