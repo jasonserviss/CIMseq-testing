@@ -1,5 +1,7 @@
-analysisDirs <- list.dirs(
-  '~/Github/CIMseq.testing/inst/analysis', recursive = FALSE
+
+analysisDirs <- c(
+  "SCM.analysis", "visualizingPoissonAlgo", "visualizingSolutionSpace",
+  "syntheticMultipletsFromCounts"
 )
 
 for(i in 1:length(analysisDirs)) {

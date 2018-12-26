@@ -13,14 +13,14 @@ editor_options:
 ```{r, message = FALSE}
 #PACKAGES
 packages <- c(
-  "sp.scRNAseq","sp.scRNAseqData", "sp.scRNAseqTesting",
-  "seqTools", "printr", "ggthemes", "tidyverse"
+  "CIMseq","CIMseq.data", "CIMseq.testing", "printr", "ggthemes", "tibble",
+  "stringr", "dplyr", "purrr", "tidyr", "ggplot2", "matrixStats"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 #FUNCTIONS
-#cpm normalization withoit adding 1 that works on both matrices and tibbles with
+#cpm normalization without adding 1 that works on both matrices and tibbles with
 #genes as rows and cells as columns
 norm <- function(counts) {
   if(all(class(counts) == c("tbl_df", "tbl", "data.frame"))) {
@@ -34,6 +34,21 @@ norm <- function(counts) {
   } else if(class(counts) == "matrix") {
     t(t(counts) / colSums(counts) * 10^6)
   }
+}
+
+foldChangePerClass <- function(counts, classes) {
+  uGroups <- unique(classes$class)
+  
+  res <- sapply(1:length(uGroups), function(x) {
+    samplesA <- filter(classes, class == uGroups[x])$sample
+    samplesB <- filter(classes, class != uGroups[x])$sample
+    a <- rowMeans2(counts[, colnames(counts) %in% samplesA])
+    b <- rowMeans2(counts[, colnames(counts) %in% samplesB])
+    a / b
+  })
+  colnames(res) <- uGroups
+  rownames(res) <- rownames(counts)
+  return(res)
 }
 ```
 
@@ -64,10 +79,11 @@ Here we continue to examine the ability of the synthesized multiplets to
 accuratley reflect the real multiplets by generating 10 multiplets per 
 combination. It is hoped that this will show that the synthesized multiplets as
 a whole, accuratley capture the diversity of the real multiplets.
+
 ```{r}
-s <- str_detect(colnames(countsSorted2), "^s")
-sng <- countsSorted2[, s]
-classes <- slice(countsSortedMeta2, match(colnames(sng), countsSortedMeta2$sample))$cellTypes
+s <- str_detect(colnames(SCM.Counts), "^s")
+sng <- SCM.Counts[, s]
+classes <- slice(SCM.Meta, match(colnames(sng), SCM.Meta$sample))$cellTypes
 n <- 10
 
 fractions <- unique(classes) %>%
@@ -100,11 +116,11 @@ synth <- map(1:length(fractions), function(i) {
   gather(cellTypes, `Synthetic counts`, -gene) %>%
   separate(cellTypes, into = c("cellTypes", "syntheticMultipletID"), sep = "\\.")
 
-mul <- countsSorted2[, !s] %>%
+mul <- SCM.Counts[, !s] %>%
   norm() %>%
   matrix_to_tibble("gene") %>%
   gather(sample, `Counts`, -gene) %>%
-  left_join(countsSortedMeta2, by = "sample") %>%
+  left_join(SCM.Meta, by = "sample") %>%
   select(gene, `Counts`, cellTypes, sample)
 ```
 
@@ -150,13 +166,14 @@ multiplets and corresponding singlets.
 Show genes used in figure.
 ```{r}
 #find overexpressed genes in each cell type
-genes <- countsSortedMeta2 %>%
+genes <- SCM.Meta %>%
   filter(cellNumber == "Singlet") %>%
   rename(class = cellTypes) %>%
-  foldChangePerClass(cpm(sng), .) %>%
+  foldChangePerClass(CIMseq:::.norm.counts(sng), .) %>%
   matrix_to_tibble("gene") %>%
   select(gene, A375, HCT116, HOS) %>%
   gather(geneType, fold, -gene) %>%
+  filter(!is.na(fold) & !is.infinite(fold)) %>%
   group_by(geneType) %>%
   top_n(25, fold) %>%
   ungroup()
@@ -170,23 +187,22 @@ Plot figure.
 ###FUNCTIONS
 #function to calculate the mean gene expression for a specific cell type. 
 typeMeans <- function(type) {
-  countsSortedMeta2 %>%
-  filter(cellTypes == type) %>% 
-  pull(sample) %>%
-  {countsSorted2[, colnames(countsSorted2) %in% .]} %>%
-  norm() %>%
-  rowMeans() %>%
-  matrix_to_tibble("gene") %>%
-  setNames(c("gene", "counts")) %>%
-  mutate(cellType = type)
+  SCM.Meta %>%
+    filter(cellTypes == type) %>% 
+    pull(sample) %>%
+    {SCM.Counts[, colnames(SCM.Counts) %in% .]} %>%
+    norm() %>%
+    rowMeans2() %>%
+    tibble(gene = rownames(SCM.Counts), counts = .) %>%
+    mutate(cellType = type)
 }
 ###
 
 #Synthesize 25 multiplets with varying levels of adjusted HOS input
 #Calculate the mean gene expression in the 25 multiplets for each condition
-s <- str_detect(colnames(countsSorted2), "^s")
-sng <- countsSorted2[, s]
-classes <- slice(countsSortedMeta2, match(colnames(sng), countsSortedMeta2$sample))$cellTypes
+s <- str_detect(colnames(SCM.Counts), "^s")
+sng <- SCM.Counts[, s]
+classes <- slice(SCM.Meta, match(colnames(sng), SCM.Meta$sample))$cellTypes
 
 #setup fractions
 .assignFractions <- function(ct, adj) {
