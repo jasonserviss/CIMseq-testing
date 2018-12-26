@@ -7,6 +7,7 @@ analysisDirs <- c(
 directories <- file.path(baseDir, analysisDirs)
 
 for(i in 1:length(directories)) {
+  print(paste0("Processing ", basename(directories[i])))
   setwd(directories[i])
   source(file.path(directories[i], 'scripts/script.R'))
   print(list.files(directories[i]))
