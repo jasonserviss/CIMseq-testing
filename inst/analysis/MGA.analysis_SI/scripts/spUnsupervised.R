@@ -1,4 +1,4 @@
-packages <- c("CIMseq", "sp.scRNAseqData", "Seurat", "tidyverse")
+packages <- c("CIMseq", "CIMseq.data", "Seurat", "stringr", "dplyr")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
