@@ -12,7 +12,7 @@ editor_options:
 #PACKAGES
 packages <- c(
   "CIMseq.data", "CIMseq", "printr", "ggthemes", "tidyr", "broom", "dplyr",
-  "tibble"
+  "tibble", "ggplot2", "readr"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
@@ -71,7 +71,7 @@ p
 
 ggsave(
   plot = p,
-  filename = '../figures/figure2.pdf',
+  filename = '~/Github/CIMseq.testing/analysis/visualizingSolutionSpace/figures/figure2.pdf',
   device = cairo_pdf,
   height = 240,
   width = 240,
