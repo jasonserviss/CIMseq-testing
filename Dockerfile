@@ -13,6 +13,7 @@ RUN  rm -f /var/lib/dpkg/available \
     libxml2-dev \
     libudunits2-dev \
     libhdf5-dev \
+    libcairo2-dev \
     emacs \
     git \
     python-dev \
@@ -46,6 +47,8 @@ RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/m
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('rmarkdown/1.11')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('printr/0.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('knitr/1.20')"
+RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('remotes/2.0.2')"
+RUN Rscript -e "remotes::install_github('thomasp85/patchwork@fd7958bae3e7a1e30237c751952e412a0a1d1242')"
 
 #Bioconductor package imports
 RUN Rscript -e "BiocManager::install('S4Vectors')"
@@ -66,6 +69,6 @@ RUN git clone https://github.com/jasonserviss/CIMseq.git --branch devel ~/Github
 RUN Rscript -e "devtools::install('~/Github/CIMseq', dependencies = FALSE)"
 
 # Clone and install CIMseq-testing
-RUN touch /tmp3.txt
+RUN touch /tmp33.txt
 RUN git clone https://github.com/jasonserviss/CIMseq.testing.git ~/Github/CIMseq.testing
 RUN Rscript -e "devtools::install('~/Github/CIMseq.testing', dependencies = FALSE)"

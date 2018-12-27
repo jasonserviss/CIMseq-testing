@@ -1,6 +1,6 @@
 Package: CIMseq.testing
 Title: The CIMseq.testing package performs the testing and analysis of the CIMseq package.
-Version: 0.0.0.9000
+Version: 0.0.1
 Authors@R: c(
     person("Jason T.", "Serviss", email = "Jason.serviss@ki.se", role = c("aut", "cre"), comment = c(ORCID = 0000-0002-5778-7014)),
     person("Martin", "Enge", email = "Martin.Enge@ki.se", role = c("aut"))
