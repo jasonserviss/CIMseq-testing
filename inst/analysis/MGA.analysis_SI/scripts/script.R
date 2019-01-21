@@ -137,6 +137,7 @@ cObjSng <- CIMseqSinglets(singlets, singletERCC, dim.red, classes)
 cObjMul <- CIMseqMultiplets(multiplets, multipletERCC, select)
 
 #save
+if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
 save(cObjSng, cObjMul, file = file.path(currPath, "data/CIMseqData.rda"))
 
 #write logs

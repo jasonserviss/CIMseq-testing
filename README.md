@@ -1,1 +1,1 @@
-# sp.scRNAseqTesting
+# CIMseq.testing
