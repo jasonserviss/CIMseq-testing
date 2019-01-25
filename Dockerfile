@@ -17,7 +17,9 @@ RUN  rm -f /var/lib/dpkg/available \
     emacs \
     git \
     python-dev \
-    python-pip
+    python-pip \
+    xorg \
+    openbox ≈ç
 
 # Install app dependencies
 RUN pip install --upgrade pip
