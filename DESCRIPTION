@@ -9,7 +9,7 @@ Author: Jason T. Serviss [aut, cre],
   Martin Enge [aut]
 Maintainer: Jason T Serviss <jason.serviss@ki.se>
 Description: The CIMseq.testing package performs testing of the CIMseq package and produces informative plots. This is primarily used to test the CIMseq package using different data types as well as the sensitivity and specificity of the package.
-Depends: R (>= 3.5.0), CIMseq
+Depends: R (>= 3.5.2), CIMseq
 Imports:
     dplyr (>= 0.7.6),
     tibble (>= 1.4.2),
