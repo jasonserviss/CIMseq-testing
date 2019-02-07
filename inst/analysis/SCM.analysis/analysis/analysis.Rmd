@@ -20,7 +20,6 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-warning(paste("Running analysis in ", getwd()))
 load("../data/CIMseqData.rda")
 load("../data/sObj.rda")
 
@@ -64,24 +63,36 @@ e <- res %>%
   unnest() %>%
   count(expected)
 
-full_join(d, e, by = c("detected" = "expected")) %>% 
-  rename(connection = detected, n.expected.edges = n.y, n.detected.edges = n.x) %>%
-  replace_na(list(n.expected.edges = 0, n.detected.edges = 0)) %>%
-  select(connection, n.expected.edges, n.detected.edges)
+data <- full_join(d, e, by = c("detected" = "expected")) %>% 
+  rename(Connection = detected, `Expected (n)` = n.y, `Detected (n)` = n.x) %>%
+  replace_na(list(`Expected (n)` = 0, `Detected (n)` = 0)) %>%
+  select(Connection, `Expected (n)`, `Detected (n)`)
+
+data
+
+pdf('../figures/figure1.pdf')
+gridExtra::grid.table(data, rows = rep("", nrow(data)))
+invisible(dev.off())
 ```
 
 ### Show average stats for multiplets dependant on the number of cell in the multiplet.
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-res %>%
+data <- res %>%
   inner_join(SCM.Meta, by = "sample") %>%
-  mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
-  group_by(cellsInMultiplet) %>%
+  mutate(`Cells (n)` = str_count(cellTypes, "-") + 1) %>%
+  group_by(`Cells (n)`) %>%
   summarize(
-    meanTPR = mean(TPR, na.rm = TRUE),
-    meanTNR = mean(TNR, na.rm = TRUE),
-    meanACC = mean(ACC, na.rm = TRUE)
+    `TPR (mean)` = round(mean(TPR, na.rm = TRUE), digits = 2),
+    `TNR (mean)` = round(mean(TNR, na.rm = TRUE), digits = 2),
+    `ACC (mean)` = round(mean(ACC, na.rm = TRUE), digits = 2)
   )
+
+data
+
+pdf('../figures/figure2.pdf')
+gridExtra::grid.table(data, rows = rep("", nrow(data)))
+invisible(dev.off())
 ```
 
 ### Show average stats for multiplets dependant on the combination of cells in the multiplet.
@@ -98,9 +109,14 @@ res %>%
   )
 ```
 
+<br></br>
+
 ### Print all stats.
 
+Cell number per class
 ```{r}
+select(cellNumberPerClass(cObjSng, cObjMul), class, medianCellNumber)
+
 print <- res %>% 
   mutate(connections.detected = map_chr(data.detected, ~paste(unlist(.x), collapse = ", "))) %>%
   mutate(connections.expected = map_chr(data.expected, ~paste(unlist(.x), collapse = ", "))) %>%
@@ -115,9 +131,12 @@ print <- res %>%
   ) %>%
   unite(fractions, HOS, HCT116, A375, sep = ", ") %>%
   rename("fractions (HOS, HCT116, A375)" = fractions) %>%
+  inner_join(matrix_to_tibble(adjustFractions(cObjSng, cObjMul, sObj, binary = FALSE), "sample"), by = "sample") %>%
+  unite(`adj. fractions`, HOS, HCT116, A375, sep = ", ") %>%
+  inner_join(select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), by = "sample") %>%
   select(
     sample, cellsSorted, connections.expected, connections.detected, 
-    `fractions (HOS, HCT116, A375)`, tp:ACC
+    `fractions (HOS, HCT116, A375)`, `adj. fractions`, estimatedCellNumber, tp:ACC
   )
 
 as.data.frame(print)

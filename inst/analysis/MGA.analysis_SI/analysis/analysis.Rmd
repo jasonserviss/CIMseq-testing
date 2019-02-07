@@ -11,7 +11,7 @@ editor_options:
 ---
 
 ```{r, message = FALSE}
-packages <- c("CIMseq", "sp.scRNAseqData", "tidyverse")
+packages <- c("CIMseq", "CIMseq.data", "tidyverse")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
@@ -89,7 +89,7 @@ cut1 <- apply(fractions, 1, function(r) {
 })
 
 tibble(nConnections = cut1, cost = getData(sObj, "costs")) %>%
-  mutate(nConnections = parse_factor(nConnections, levels = sort(unique(nConnections)))) %>%
+  mutate(nConnections = parse_factor(as.character(nConnections), levels = sort(unique(nConnections)))) %>%
   ggplot() + 
   geom_boxplot(aes(nConnections, cost))
 ```
@@ -98,14 +98,17 @@ Show ERCC fraction vs. detected connections
 
 ```{r}
 ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
-nConnections <- cut1[match(ercc$sampleName, names(cut1))]
+nConnections <- cut1[match(ercc$sample, names(cut1))]
 tibble(
-  cellNumber = ercc$cellNumberMedian,
+  cellNumber = ercc$estimatedCellNumber,
   nConnections = nConnections
 ) %>%
   ggplot() +
-  geom_boxplot(aes(nConnections, ercc, group = nConnections)) +
-  labs(x = "n Connections", y = "ERCC fraction")
+  geom_boxplot(aes(nConnections, cellNumber, group = nConnections)) +
+  labs(x = "Connections (n)", y = "Estimated cell number") +
+  scale_x_continuous(breaks = 1:max(nConnections)) +
+  scale_y_continuous(breaks = 1:max(ercc$estimatedCellNumber)) +
+  theme_bw()
 ```
 
 ```{r, eval = FALSE}

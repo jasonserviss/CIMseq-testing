@@ -1,5 +1,5 @@
 #PACKAGES
-packages <- c("CIMseq", "sp.scRNAseqData", "tidyverse", "future")
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "future")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 

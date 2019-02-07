@@ -1,8 +1,6 @@
-packages <- c("CIMseq", "sp.scRNAseqData", "tidyverse", "Seurat")
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "Seurat")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
-
-currPath <- getwd()
 
 #check package version
 algoV <- sessionInfo()$otherPkgs$CIMseq$Version
@@ -15,24 +13,19 @@ currPath <- getwd()
 
 #setup spCounts
 keep.plates.colon <- c(
-  "NJA01303", "NJA01401", "NJA01205", "NJA01203", "NJA00609", "NJA01503",
-  "NJA01504", "NJA01602", "NJA01701", "NJA0801"
+  "NJA01203", "NJA01205","NJA01303", "NJA01401", "NJA01503", "NJA01504",
+  "NJA01801", "NJA01803"
 )
 
 s <- str_detect(colnames(MGA.Counts), "^s")
-#samples <- filter(MGA.Meta, !filtered & unique_key %in% keep.plates.colon)$sample
-samples <- filter(MGA.Meta,
-  !filtered &
-  sub_tissue == "colon" &
-  subject_strain == "C57BL/6J"
-)$sample
+samples <- filter(MGA.Meta, !filtered & unique_key %in% keep.plates.colon)$sample
 e <- colnames(MGA.Counts) %in% samples
 boolSng <- s & e
 boolMul <- !s & e
 singlets <- MGA.Counts[, boolSng]
 singletERCC <- MGA.CountsERCC[, boolSng]
-multiplets <- MGA.Counts[, boolMul]
-multipletERCC <- MGA.CountsERCC[, boolMul]
+multiplets <- MGA.Counts[, boolMul] ####multiplets from MGAS need to be included!!!!!
+multipletERCC <- MGA.CountsERCC[, boolMul] ####multiplets from MGAS need to be included!!!!!
 
 #Dimensionality reduction and classification
 print(paste0("Starting all cells analysis at ", Sys.time()))
@@ -53,17 +46,98 @@ mca <- RunPCA(
   object = mca, pc.genes = mca@var.genes, pcs.compute = 100, do.print = FALSE,
   seed.use = 983209
 )
-mca <- JackStraw(object = mca, num.replicate = 100, display.progress = TRUE, num.pc = 50)
-mca <- JackStrawPlot(object = mca, PCs = 1:50)
-PCp <- mca@dr$pca@jackstraw@overall.p.values
-pcs <- PCp[PCp[, 2] < 10^-9, 1]
+# mca <- JackStraw(object = mca, num.replicate = 100, display.progress = TRUE, num.pc = 50)
+# mca <- JackStrawPlot(object = mca, PCs = 1:50)
+# PCp <- mca@dr$pca@jackstraw@overall.p.values
+# pcs <- PCp[PCp[, 2] < 10^-9, 1]
+pcs <- 1:19
+
+# var <- mca@dr$pca@sdev^2
+# var.percent <- var / sum(var) * 100
+# barplot(
+#   var.percent, xlab = "PC", ylab = "Percent Variance", 
+#   names.arg = 1:length(var.percent), las = 1, ylim = c(0, max(var.percent) + 2),
+#   col = "gray"
+# )
+# 
+# pcGeneCorr <- function(PCs, gene, cpm) {
+#   c <- cor(PCs, cpm[gene, ])
+#   plot(c)
+#   abline(h = 0, col = "red", lty = 2)
+#   imax <- which(c[, 1] == max(c[, 1]))
+#   print(paste0(rownames(c)[imax], " highest correlation at ", c[imax, ]))
+# }
+# pcGeneCorr(mca@dr$pca@cell.embeddings, "Hoxb13", singlets)
 print(paste0("Using ", max(pcs), " principal components."))
 
+#umap representation at: mca@dr$umap@cell.embeddings
+# library(uwot)
+# 
+# dim.code <- GetDimReduction(object = mca, reduction.type = "pca", slot = "key")
+# dim.codes <- paste0(dim.code, pcs[1:10])
+# data.use <- GetDimReduction(object = mca, reduction.type = "pca", slot = "cell.embeddings")
+# data.use <- data.use[, dim.codes, drop = FALSE]
+# #23823
+# set.seed(87856)
+# u <- umap(
+#   data.use, n_neighbors = 15, metric = "euclidean", n_epochs = 500, 
+#   spread = 1.65, min_dist = 0.1
+# )
+# rownames(u) <- rownames(data.use)
+# colnames(u) <- c("UMAP1", "UMAP2")
+# 
+# #add classes and plot
+# matrix_to_tibble(u, "sample") %>%
+#   full_join(tibble(sample = names(mca@ident), class = as.character(mca@ident))) %>%
+#   ggplot() +
+#   geom_point(aes(UMAP1, UMAP2, colour = class)) +
+#   scale_colour_manual(values = col40())
+# 
+# genes <- c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1", "Mki67", "Hoxb13")
+# genes <- c("Lgr5", "Slc26a3", "Mki67", "Hoxb13")
+# 
+# matrix_to_tibble(t(CIMseq:::.norm.log.counts(singlets)[genes, ]), "sample") %>%
+#   full_join(matrix_to_tibble(u, "sample")) %>%
+#   gather(gene, value, -sample, -UMAP1, -UMAP2) %>%
+#   ggplot() +
+#   geom_point(aes(UMAP1, UMAP2, colour = value), size = 1) +
+#   facet_wrap(~gene) +
+#   scale_colour_viridis_c()
+# 
+# matrix_to_tibble(u, "sample") %>%
+#   inner_join(MGA.Meta) %>%
+#   ggplot() +
+#   geom_point(aes(V1, V2, colour = unique_key)) +
+#   scale_colour_manual(values = c(col40(), "black")) +
+#   theme(legend.position = "top")
+# 
+#reticulate::use_python('/Users/jason/miniconda3/bin/python')
+#reticulate::py_config()
+# 
+# mca <- RunUMAP(
+#   object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.5,
+#   n_neighbors = 10, seed.use = 984323
+# )
+# 
+# #984324
+# #984327
+# 
+# mca <- RunUMAP(
+#   object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.4,
+#   n_neighbors = 10, seed.use = 984323
+# )
+# mca <- RunUMAP(
+#   object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.4,
+#   n_neighbors = 10, seed.use = 984328
+# )
+
 mca <- RunUMAP(
-  object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.5,
-  n_neighbors = 10, seed.use = 3489
+  object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.25,
+  n_neighbors = 10, seed.use = 984338
 )
-mca <- RunTSNE(mca, dims.use = pcs, seed.use = 2387, perplexity = 15)
+#mca@dr$umap@cell.embeddings <- u
+# 
+#mca <- RunTSNE(mca, dims.use = pcs, seed.use = 2387, perplexity = 30)
 
 mca <- FindClusters(
   object = mca, reduction.type = "pca", dims.use = pcs, resolution = 0.6,
@@ -72,50 +146,45 @@ mca <- FindClusters(
   force.recalc = TRUE, random.seed = 93820
 )
 
-VlnPlot(object = mca, features.plot = c("nGene", "nUMI"), nCol = 2)
-
-DimPlot(
-  object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
-  vector.friendly = FALSE, pt.size = 1
-) + scale_colour_manual(values = col40())
-
-
-FeaturePlot(
-  mca,
-  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1", "Mki67", "Hoxb13"),
-  reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
-  vector.friendly = FALSE
-)
-FeaturePlot(
-  mca,
-  c("Lgr5", "Slc26a3", "Mki67", "Hoxb13"),
-  reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
-  vector.friendly = FALSE
-)
-
-mca@dr$umap@cell.embeddings %>%
-  matrix_to_tibble("sample") %>%
-  inner_join(MGA.Meta) %>%
-  ggplot() +
-  geom_point(aes(UMAP1, UMAP2, colour = unique_key)) +
-  scale_colour_manual(values = col40())
-
-mca@dr$tsne@cell.embeddings %>%
-  matrix_to_tibble("sample") %>%
-  inner_join(MGA.Meta) %>%
-  ggplot() +
-  geom_point(aes(tSNE_1, tSNE_2, colour = unique_key))
-
-umap <- uwot::umap(
-  mca@dr$pca@cell.embeddings[, pcs], n_neighbors = 15, n_epochs = 500, spread = 1,
-  min_dist = 0.1, local_connectivity = 1, bandwidth = 1, nn_method = "fnn"
-)
-rownames(umap) <- rownames(mca@dr$pca@cell.embeddings)
-matrix_to_tibble(umap, "sample") %>%
-  full_join(rownames_to_column(FetchData(mca, "ident"), "sample")) %>%
-  ggplot() +
-  geom_point(aes(V1, V2, colour = ident)) +
-  scale_colour_manual(values = col40())
+# mca <- FindClusters(
+#   object = mca, reduction.type = "pca", dims.use = pcs[1:7], resolution = 0.8,
+#   n.start = 100, n.iter = 1000, nn.eps = 0, k.param = 20, prune.SNN = 1/10,
+#   algorithm = 1, save.SNN = TRUE, print.output = FALSE, plot.SNN = FALSE,
+#   force.recalc = TRUE, random.seed = 93820
+# )
+# 
+# mca <- FindClusters(
+#   object = mca, reduction.type = "pca", dims.use = 1:7, resolution = 1,
+#   n.start = 100, n.iter = 1000, nn.eps = 0, k.param = 20, prune.SNN = 1/15,
+#   algorithm = 1, save.SNN = TRUE, print.output = FALSE, plot.SNN = FALSE,
+#   force.recalc = TRUE, random.seed = 93820
+# )
+# 
+#VlnPlot(object = mca, features.plot = c("nGene", "nUMI"), nCol = 2)
+# 
+# DimPlot(
+#   object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
+#   vector.friendly = FALSE, pt.size = 1
+# ) + scale_colour_manual(values = col40())
+# 
+# FeaturePlot(
+#   mca,
+#   c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1", "Mki67", "Hoxb13"),
+#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+#   vector.friendly = FALSE
+# )
+# FeaturePlot(
+#   mca,
+#   c("Lgr5", "Slc26a3", "Mki67", "Hoxb13"),
+#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+#   vector.friendly = FALSE
+# )
+# 
+# matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
+#   inner_join(MGA.Meta, by = "sample") %>%
+#   ggplot() +
+#   geom_point(aes(UMAP1, UMAP2, colour = unique_key)) +
+#   scale_colour_manual(values = c(col40(), "black"))
 
 #manually merge clusters 1 and 2. They have few DE genes
 # old <- mca@ident

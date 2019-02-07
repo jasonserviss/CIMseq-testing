@@ -55,32 +55,52 @@ mca <- RunPCA(
 pcs <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20)
 print(paste0("Using ", max(pcs), " principal components."))
 
+#79356
+#52442
+#1897
+#51234
+#89236
+#89237
+#89239
+#234550
+#234552
+#234553
 mca <- RunUMAP(
   object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.5,
-  n_neighbors = 10, seed.use = 79356
+  n_neighbors = 10, seed.use = 234535
 )
 
+#resolution = 0.6
+#resolution = 0.35
 mca <- FindClusters(
-  object = mca, reduction.type = "pca", dims.use = pcs, resolution = 0.6,
+  object = mca, reduction.type = "pca", dims.use = pcs, resolution = 1,
   n.start = 100, n.iter = 1000, nn.eps = 0, k.param = 20, prune.SNN = 1/15,
   algorithm = 1, save.SNN = TRUE, print.output = FALSE, plot.SNN = FALSE,
   force.recalc = TRUE, random.seed = 93820
 )
 
 # VlnPlot(object = mca, features.plot = c("nGene", "nUMI"), nCol = 2)
-#
-DimPlot(
+
+p <- DimPlot(
   object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
   vector.friendly = FALSE, pt.size = 1
 ) + scale_colour_manual(values = col40())
-#
-#
-# FeaturePlot(
-#   mca,
-#   c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Atoh1", "Lyz1", "Mki67"),
-#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
-#   vector.friendly = FALSE
-# )
+ggsave(p, filename = "~/dimplot.pdf")
+
+p <- FeaturePlot(
+  mca,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Atoh1", "Lyz1", "Mki67"),
+  reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+  vector.friendly = FALSE, do.return = TRUE
+)
+p <- cowplot::plot_grid(p[[1]], p[[2]], p[[3]], p[[4]], p[[5]], p[[6]], p[[7]], p[[8]])
+ggsave(p, filename = "~/featurePlot.pdf")
+
+matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
+  inner_join(MGA.Meta) %>%
+  ggplot() +
+  geom_point(aes(UMAP1, UMAP2, colour = unique_key)) +
+  scale_colour_manual(values = col40())
 
 #find differentially expressed genes
 markers <- FindAllMarkers(
@@ -88,10 +108,11 @@ markers <- FindAllMarkers(
   test.use = "roc"
 )
 # table(markers$cluster)
-# DoHeatmap(
-#   object = mca, genes.use = unique(markers$gene), slim.col.label = TRUE,
-#   remove.key = TRUE, group.label.rot = TRUE
-# )
+p <- DoHeatmap(
+  object = mca, genes.use = unique(markers$gene), slim.col.label = TRUE,
+  remove.key = TRUE, group.label.rot = TRUE
+)
+ggsave(p, filename = "~/markers.pdf")
 
 # < 5 markers for class 1. Merge with nearest cluster.
 
@@ -138,6 +159,7 @@ cObjMul <- CIMseqMultiplets(multiplets, multipletERCC, select)
 
 #save
 if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
+print(paste0("saving data to ", currPath, "."))
 save(cObjSng, cObjMul, file = file.path(currPath, "data/CIMseqData.rda"))
 
 #write logs
