@@ -20,10 +20,10 @@
 NULL
 #' @export
 #' @import CIMseq
-#' @importFrom tidyr unite nest
-#' @importFrom dplyr full_join mutate "%>%" distinct rename
-#' @importFrom purrr map2_int pmap_int
-#' @importFrom tibble as_tibble
+#' @importFrom tidyr unite
+#' @importFrom dplyr group_by summarize "%>%" mutate rename everything select
+#' @importFrom purrr map2_int pmap_int map_chr
+#' @importFrom tibble add_column as_tibble
 #' @importFrom utils combn
 
 checkResults <- function(
@@ -31,20 +31,19 @@ checkResults <- function(
 ){
   connections <- from <- to <- tp <- fn <- tn <- fp <- data.x <- NULL
   data.y <- NULL
-  detected <- CIMseq::getEdgesForMultiplet(
-    swarm, singlets, multiplets, rownames(getData(swarm, "fractions"))
+  
+  detected <- CIMseq::getCellsForMultiplet(
+    swarm, singlets, multiplets
   ) %>%
-    unite(connections, from, to, sep = "-") %>%
-    distinct() %>%
-    nest(-sample)
-
-  expected <- CIMseq::getEdgesForMultiplet(
-    known, singlets, multiplets, rownames(getData(swarm, "fractions"))
+    group_by(sample) %>%
+    summarize(data = list(cells))
+  
+  expected <- CIMseq::getCellsForMultiplet(
+    known, singlets, multiplets
   ) %>%
-    unite(connections, from, to, sep = "-") %>%
-    distinct() %>%
-    nest(-sample)
-
+    group_by(sample) %>%
+    summarize(data = list(cells))
+  
   full_join(detected, expected, by = "sample") %>%
     mutate(
       tp = .tp(.),
@@ -55,7 +54,10 @@ checkResults <- function(
       TNR = .TNR(tn, fp),
       ACC = .ACC(tp, tn, fp, fn)
     ) %>%
-    rename(data.detected = data.x, data.expected = data.y)
+    rename(data.detected = data.x, data.expected = data.y) %>%
+    mutate(data.detected = map_chr(data.detected, ~paste(.x, collapse = ", "))) %>%
+    mutate(data.expected = map_chr(data.expected, ~paste(.x, collapse = ", "))) %>%
+    select(sample, data.expected, data.detected, everything())
 }
 
 #calculates the true positives
@@ -299,21 +301,30 @@ setupPlate <- function(
   ...
 ){
   cellNumber <- cellTypes <- NULL
-  #make spSwarm slot for spSwarm object
+  #make CIMseqSwarm slot for CIMseqSwarm object
+  u.classes <- pull(plateData, cellTypes) %>%
+    str_split(., "-") %>%
+    unlist() %>%
+    unique() %>%
+    sort()
+  
   spSwarm <- plateData %>%
-    select(cellNumber, cellTypes) %>%
+    select(sample, cellNumber, cellTypes) %>%
     filter(cellNumber == "Multiplet") %>%
     mutate(connections = str_split(cellTypes, "-")) %>%
-    mutate(connections = map(.$connections, combn, 2)) %>%
-    {map_dfr(.$connections, function(x) {
-      cellTypes <- .getCellTypes(plateData)
-      vec <- vector(mode = "numeric", length = length(cellTypes))
-      names(vec) <- cellTypes
-      vec[names(vec) %in% unique(as.character(x))] <- 1 / length(unique(as.character(x)))
-      as.data.frame(t(as.data.frame(vec)))
-    })} %>%
-    add_column(rowname = filter(plateData, cellNumber == "Multiplet")$sample) %>%
-    column_to_rownames()
+    mutate(fractions = map2(connections, sample, function(c, s) {
+      l <- length(unique(c))
+      frac <- rep(0, length(u.classes))
+      names(frac) <- u.classes
+      frac[c] <- 1/l
+      m <- matrix(frac, ncol = length(frac), dimnames= list(NULL, names(frac)))
+      data.frame(sample = s, m, stringsAsFactors = FALSE)
+    })) %>%
+    select(fractions) %>%
+    unnest() %>%
+    as.data.frame() %>%
+    column_to_rownames("sample") %>%
+    as.matrix()
 
   #create spSwarm object
   new("CIMseqSwarm",
