@@ -71,6 +71,6 @@ RUN git clone https://github.com/jasonserviss/CIMseq.git --branch devel ~/Github
 RUN Rscript -e "devtools::install('~/Github/CIMseq', dependencies = FALSE)"
 
 # Clone and install CIMseq-testing
-RUN touch /tmp33.txt
+RUN touch /tmp34.txt
 RUN git clone https://github.com/jasonserviss/CIMseq.testing.git ~/Github/CIMseq.testing
 RUN Rscript -e "devtools::install('~/Github/CIMseq.testing', dependencies = FALSE)"

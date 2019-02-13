@@ -86,6 +86,7 @@ invisible(dev.off())
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 data <- res %>%
   inner_join(SCM.Meta, by = "sample") %>%
+  mutate(cellTypes = str_replace_all(cellTypes, "-", ", ")) %>%
   rename(`Cells in multiplet` = cellTypes) %>%
   group_by(`Cells in multiplet`) %>%
   summarize(
@@ -120,7 +121,7 @@ print <- res %>%
   ) %>%
   unite(fractions, HOS, HCT116, A375, sep = ", ") %>%
   rename("fractions (HOS, HCT116, A375)" = fractions) %>%
-  inner_join(matrix_to_tibble(adjustFractions(cObjSng, cObjMul, sObj, binary = FALSE), "sample"), by = "sample") %>%
+  inner_join(matrix_to_tibble(adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE), "sample"), by = "sample") %>%
   unite(`adj. fractions`, HOS, HCT116, A375, sep = ", ") %>%
   inner_join(select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), by = "sample") %>%
   select(

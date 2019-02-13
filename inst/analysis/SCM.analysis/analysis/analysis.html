@@ -319,15 +319,15 @@ data</code></pre>
 </tr>
 <tr class="even">
 <td align="right">3</td>
-<td align="right">0.94</td>
+<td align="right">0.95</td>
 <td align="right">1</td>
-<td align="right">0.96</td>
+<td align="right">0.98</td>
 </tr>
 <tr class="odd">
 <td align="right">4</td>
-<td align="right">0.89</td>
+<td align="right">0.95</td>
 <td align="right">1</td>
-<td align="right">0.89</td>
+<td align="right">0.97</td>
 </tr>
 </tbody>
 </table>
@@ -339,6 +339,7 @@ invisible(dev.off())</code></pre>
 <h3>Show average stats for multiplets dependant on the combination of cells in the multiplet.</h3>
 <pre class="r"><code>data &lt;- res %&gt;%
   inner_join(SCM.Meta, by = &quot;sample&quot;) %&gt;%
+  mutate(cellTypes = str_replace_all(cellTypes, &quot;-&quot;, &quot;, &quot;)) %&gt;%
   rename(`Cells in multiplet` = cellTypes) %&gt;%
   group_by(`Cells in multiplet`) %&gt;%
   summarize(
@@ -359,55 +360,55 @@ data</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">A375-A375-HCT116-HCT116</td>
+<td align="left">A375, A375, HCT116, HCT116</td>
 <td align="right">1.00</td>
 <td align="right">1</td>
 <td align="right">1.00</td>
 </tr>
 <tr class="even">
-<td align="left">A375-A375-HCT116-HOS</td>
-<td align="right">0.67</td>
-<td align="right">NaN</td>
-<td align="right">0.67</td>
+<td align="left">A375, A375, HCT116, HOS</td>
+<td align="right">0.83</td>
+<td align="right">1</td>
+<td align="right">0.92</td>
 </tr>
 <tr class="odd">
-<td align="left">A375-HCT116</td>
+<td align="left">A375, HCT116</td>
 <td align="right">1.00</td>
 <td align="right">1</td>
 <td align="right">1.00</td>
 </tr>
 <tr class="even">
-<td align="left">A375-HCT116-HOS</td>
-<td align="right">0.93</td>
-<td align="right">NaN</td>
-<td align="right">0.93</td>
+<td align="left">A375, HCT116, HOS</td>
+<td align="right">0.97</td>
+<td align="right">1</td>
+<td align="right">0.98</td>
 </tr>
 <tr class="odd">
-<td align="left">A375-HOS</td>
+<td align="left">A375, HOS</td>
 <td align="right">1.00</td>
 <td align="right">1</td>
 <td align="right">1.00</td>
 </tr>
 <tr class="even">
-<td align="left">A375-HOS-HOS</td>
+<td align="left">A375, HOS, HOS</td>
 <td align="right">1.00</td>
 <td align="right">1</td>
 <td align="right">1.00</td>
 </tr>
 <tr class="odd">
-<td align="left">A375-HOS-HOS-HOS</td>
+<td align="left">A375, HOS, HOS, HOS</td>
 <td align="right">1.00</td>
 <td align="right">1</td>
 <td align="right">1.00</td>
 </tr>
 <tr class="even">
-<td align="left">HCT116-HCT116-HOS</td>
+<td align="left">HCT116, HCT116, HOS</td>
 <td align="right">0.88</td>
 <td align="right">1</td>
-<td align="right">0.94</td>
+<td align="right">0.95</td>
 </tr>
 <tr class="odd">
-<td align="left">HCT116-HOS</td>
+<td align="left">HCT116, HOS</td>
 <td align="right">1.00</td>
 <td align="right">1</td>
 <td align="right">1.00</td>
@@ -456,7 +457,7 @@ invisible(dev.off())</code></pre>
   ) %&gt;%
   unite(fractions, HOS, HCT116, A375, sep = &quot;, &quot;) %&gt;%
   rename(&quot;fractions (HOS, HCT116, A375)&quot; = fractions) %&gt;%
-  inner_join(matrix_to_tibble(adjustFractions(cObjSng, cObjMul, sObj, binary = FALSE), &quot;sample&quot;), by = &quot;sample&quot;) %&gt;%
+  inner_join(matrix_to_tibble(adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE), &quot;sample&quot;), by = &quot;sample&quot;) %&gt;%
   unite(`adj. fractions`, HOS, HCT116, A375, sep = &quot;, &quot;) %&gt;%
   inner_join(select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), by = &quot;sample&quot;) %&gt;%
   select(
@@ -491,7 +492,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -505,7 +506,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -519,7 +520,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -530,12 +531,12 @@ as.data.frame(print)</code></pre>
 <td align="left">0.34177, 0.28181, 0.37642</td>
 <td align="left">1, 1, 1</td>
 <td align="right">3.370660</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -544,12 +545,12 @@ as.data.frame(print)</code></pre>
 <td align="left">0.29156, 0.19184, 0.5166</td>
 <td align="left">1, 1, 1</td>
 <td align="right">2.539304</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
@@ -558,12 +559,12 @@ as.data.frame(print)</code></pre>
 <td align="left">0.30992, 0.22438, 0.4657</td>
 <td align="left">1, 1, 1</td>
 <td align="right">3.188036</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -572,24 +573,24 @@ as.data.frame(print)</code></pre>
 <td align="left">0.32172, 0.24319, 0.43509</td>
 <td align="left">1, 1, 1</td>
 <td align="right">3.232072</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.A09</td>
 <td align="left">A375, HOS, HOS, HOS</td>
 <td align="left">0.58384, 0.00383, 0.41233</td>
-<td align="left">2, 0, 2</td>
+<td align="left">1, 0, 1</td>
 <td align="right">4.552602</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -598,12 +599,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.A10</td>
 <td align="left">A375, HOS, HOS, HOS</td>
 <td align="left">0.6802, 0.00688, 0.31292</td>
-<td align="left">2, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">3.893234</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -612,12 +613,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.A11</td>
 <td align="left">A375, HOS, HOS, HOS</td>
 <td align="left">0.61948, 0.00215, 0.37836</td>
-<td align="left">2, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">3.604931</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -626,12 +627,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.A12</td>
 <td align="left">A375, HOS, HOS, HOS</td>
 <td align="left">0.61221, 0, 0.38779</td>
-<td align="left">2, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">3.891256</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -640,12 +641,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.B01</td>
 <td align="left">A375, HCT116</td>
 <td align="left">0.00319, 0.21817, 0.77864</td>
-<td align="left">0, 1, 2</td>
+<td align="left">0, 1, 1</td>
 <td align="right">2.340875</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -654,12 +655,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.B02</td>
 <td align="left">A375, HCT116</td>
 <td align="left">0.00365, 0.38321, 0.61315</td>
-<td align="left">0, 1, 2</td>
+<td align="left">0, 1, 1</td>
 <td align="right">2.744444</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -673,7 +674,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -687,7 +688,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -698,12 +699,12 @@ as.data.frame(print)</code></pre>
 <td align="left">0.42294, 0.28514, 0.29192</td>
 <td align="left">1, 1, 1</td>
 <td align="right">2.701036</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -714,11 +715,11 @@ as.data.frame(print)</code></pre>
 <td align="right">1.726584</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">4</td>
-<td align="right">0</td>
-<td align="right">0.3333333</td>
-<td align="right">NaN</td>
-<td align="right">0.3333333</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">0.6666667</td>
+<td align="right">1</td>
+<td align="right">0.8333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.B07</td>
@@ -726,12 +727,12 @@ as.data.frame(print)</code></pre>
 <td align="left">0.33439, 0.30283, 0.36277</td>
 <td align="left">1, 1, 1</td>
 <td align="right">2.328032</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -740,24 +741,24 @@ as.data.frame(print)</code></pre>
 <td align="left">0.38052, 0.34846, 0.27101</td>
 <td align="left">1, 1, 1</td>
 <td align="right">3.401873</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.B09</td>
 <td align="left">A375, HOS, HOS, HOS</td>
 <td align="left">0.63166, 0.00552, 0.36282</td>
-<td align="left">2, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">3.713706</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -766,12 +767,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.B10</td>
 <td align="left">A375, HOS, HOS, HOS</td>
 <td align="left">0.54889, 0, 0.45111</td>
-<td align="left">2, 0, 2</td>
+<td align="left">1, 0, 1</td>
 <td align="right">4.438126</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -780,12 +781,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.B11</td>
 <td align="left">A375, HOS, HOS, HOS</td>
 <td align="left">0.57191, 0, 0.42809</td>
-<td align="left">2, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">2.965073</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -794,12 +795,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.B12</td>
 <td align="left">A375, HOS, HOS, HOS</td>
 <td align="left">0.72046, 0, 0.27954</td>
-<td align="left">2, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">2.976597</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -813,7 +814,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -827,7 +828,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -841,7 +842,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -855,7 +856,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -866,38 +867,38 @@ as.data.frame(print)</code></pre>
 <td align="left">0.51056, 0.21647, 0.27297</td>
 <td align="left">1, 1, 1</td>
 <td align="right">2.975468</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.C06</td>
 <td align="left">A375, HCT116, HOS</td>
 <td align="left">0.27196, 0.26577, 0.46227</td>
-<td align="left">1, 2, 2</td>
+<td align="left">1, 1, 1</td>
 <td align="right">4.664090</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.C07</td>
 <td align="left">HCT116, HCT116, HOS</td>
 <td align="left">0.38137, 0.60972, 0.00892</td>
-<td align="left">1, 2, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">2.892872</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -906,12 +907,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.C08</td>
 <td align="left">HCT116, HCT116, HOS</td>
 <td align="left">0.39777, 0.60223, 0</td>
-<td align="left">1, 2, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">2.871578</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -920,12 +921,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.C09</td>
 <td align="left">A375, HOS, HOS, HOS</td>
 <td align="left">0.64597, 0.01619, 0.33784</td>
-<td align="left">3, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">4.544038</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -934,12 +935,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.C11</td>
 <td align="left">A375, A375, HCT116, HCT116</td>
 <td align="left">0, 0.46921, 0.53079</td>
-<td align="left">0, 2, 2</td>
+<td align="left">0, 1, 1</td>
 <td align="right">4.309389</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -948,12 +949,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.C12</td>
 <td align="left">A375, A375, HCT116, HCT116</td>
 <td align="left">0.00437, 0.43031, 0.56532</td>
-<td align="left">0, 2, 2</td>
+<td align="left">0, 1, 1</td>
 <td align="right">4.185424</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -967,7 +968,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -976,12 +977,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.D02</td>
 <td align="left">HCT116, HOS</td>
 <td align="left">0.5149, 0.47632, 0.00879</td>
-<td align="left">2, 2, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">3.294843</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -995,7 +996,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1004,12 +1005,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.D04</td>
 <td align="left">HCT116, HOS</td>
 <td align="left">0.72667, 0.27131, 0.00201</td>
-<td align="left">2, 1, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">3.439825</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1018,12 +1019,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.D05</td>
 <td align="left">HCT116, HCT116, HOS</td>
 <td align="left">0.42979, 0.56809, 0.00211</td>
-<td align="left">1, 2, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">2.350922</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1032,12 +1033,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.D06</td>
 <td align="left">HCT116, HCT116, HOS</td>
 <td align="left">0.34706, 0.64297, 0.00998</td>
-<td align="left">1, 2, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">2.158841</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1051,7 +1052,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1060,12 +1061,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.D08</td>
 <td align="left">HCT116, HCT116, HOS</td>
 <td align="left">0.33246, 0.66754, 0</td>
-<td align="left">2, 4, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">4.991817</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1079,7 +1080,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1093,7 +1094,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1107,7 +1108,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1121,7 +1122,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1130,12 +1131,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.E02</td>
 <td align="left">HCT116, HOS</td>
 <td align="left">0.53606, 0.46394, 0</td>
-<td align="left">2, 2, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">3.065827</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1144,12 +1145,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.E03</td>
 <td align="left">HCT116, HOS</td>
 <td align="left">0.6019, 0.39415, 0.00394</td>
-<td align="left">2, 1, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">2.889551</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1158,12 +1159,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.E04</td>
 <td align="left">HCT116, HOS</td>
 <td align="left">0.67111, 0.3255, 0.00339</td>
-<td align="left">2, 1, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">2.452987</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1172,12 +1173,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.E07</td>
 <td align="left">HCT116, HCT116, HOS</td>
 <td align="left">0.41101, 0.58797, 0.00103</td>
-<td align="left">1, 3, 0</td>
+<td align="left">1, 1, 0</td>
 <td align="right">3.622568</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1186,12 +1187,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.E09</td>
 <td align="left">A375, A375, HCT116, HCT116</td>
 <td align="left">0.00576, 0.46663, 0.5276</td>
-<td align="left">0, 2, 2</td>
+<td align="left">0, 1, 1</td>
 <td align="right">3.963769</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1200,12 +1201,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.E11</td>
 <td align="left">A375, A375, HCT116, HCT116</td>
 <td align="left">0.00269, 0.43797, 0.55934</td>
-<td align="left">0, 2, 2</td>
+<td align="left">0, 1, 1</td>
 <td align="right">3.288433</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1214,12 +1215,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.E12</td>
 <td align="left">A375, A375, HCT116, HCT116</td>
 <td align="left">0, 0.32967, 0.67033</td>
-<td align="left">0, 2, 2</td>
+<td align="left">0, 1, 1</td>
 <td align="right">3.892385</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1233,7 +1234,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1247,7 +1248,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1261,7 +1262,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1275,7 +1276,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1284,12 +1285,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.F05</td>
 <td align="left">A375, HOS, HOS</td>
 <td align="left">0.61021, 0.00376, 0.38602</td>
-<td align="left">2, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">2.974855</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1298,12 +1299,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.F06</td>
 <td align="left">A375, HOS, HOS</td>
 <td align="left">0.7563, 0.00585, 0.23785</td>
-<td align="left">3, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">3.709638</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1312,12 +1313,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.F07</td>
 <td align="left">A375, HOS, HOS</td>
 <td align="left">0.55402, 0, 0.44598</td>
-<td align="left">3, 0, 2</td>
+<td align="left">1, 0, 1</td>
 <td align="right">5.294747</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1326,14 +1327,14 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.F09</td>
 <td align="left">A375, A375, HCT116, HOS</td>
 <td align="left">0.26399, 0.38677, 0.34925</td>
-<td align="left">1, 2, 1</td>
+<td align="left">1, 1, 1</td>
 <td align="right">3.620576</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
@@ -1342,12 +1343,12 @@ as.data.frame(print)</code></pre>
 <td align="left">0.29089, 0.32021, 0.38889</td>
 <td align="left">1, 1, 1</td>
 <td align="right">2.371731</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="odd">
@@ -1356,27 +1357,27 @@ as.data.frame(print)</code></pre>
 <td align="left">0.34081, 0.27477, 0.38441</td>
 <td align="left">1, 1, 1</td>
 <td align="right">3.792720</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.F12</td>
 <td align="left">A375, A375, HCT116, HOS</td>
 <td align="left">0.40121, 0.07731, 0.52148</td>
-<td align="left">1, 0, 2</td>
+<td align="left">1, 0, 1</td>
 <td align="right">3.349400</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">4</td>
-<td align="right">0</td>
-<td align="right">0.3333333</td>
-<td align="right">NaN</td>
-<td align="right">0.3333333</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">0.6666667</td>
+<td align="right">1</td>
+<td align="right">0.8333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.G02</td>
@@ -1387,7 +1388,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1401,7 +1402,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1415,7 +1416,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1424,12 +1425,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.G05</td>
 <td align="left">A375, HOS, HOS</td>
 <td align="left">0.39382, 0.00222, 0.60396</td>
-<td align="left">1, 0, 2</td>
+<td align="left">1, 0, 1</td>
 <td align="right">3.863070</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1443,7 +1444,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1452,12 +1453,12 @@ as.data.frame(print)</code></pre>
 <td align="left">m.NJB00204.G07</td>
 <td align="left">A375, HOS, HOS</td>
 <td align="left">0.65706, 0.00557, 0.33737</td>
-<td align="left">2, 0, 1</td>
+<td align="left">1, 0, 1</td>
 <td align="right">2.999788</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1471,7 +1472,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1484,24 +1485,24 @@ as.data.frame(print)</code></pre>
 <td align="right">2.608685</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">4</td>
-<td align="right">0</td>
-<td align="right">0.3333333</td>
-<td align="right">NaN</td>
-<td align="right">0.3333333</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">0.6666667</td>
+<td align="right">1</td>
+<td align="right">0.8333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.G11</td>
 <td align="left">A375, A375, HCT116, HOS</td>
 <td align="left">0.27304, 0.24215, 0.48481</td>
-<td align="left">1, 1, 2</td>
+<td align="left">1, 1, 1</td>
 <td align="right">4.660384</td>
-<td align="right">6</td>
+<td align="right">3</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">0</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
-<td align="right">NaN</td>
+<td align="right">1</td>
 <td align="right">1.0000000</td>
 </tr>
 <tr class="even">
@@ -1513,7 +1514,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1527,7 +1528,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1541,7 +1542,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1555,7 +1556,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1569,7 +1570,7 @@ as.data.frame(print)</code></pre>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">0</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">1.0000000</td>
 <td align="right">1</td>
 <td align="right">1.0000000</td>
@@ -1582,11 +1583,11 @@ as.data.frame(print)</code></pre>
 <td align="right">2.006376</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">4</td>
-<td align="right">0</td>
-<td align="right">0.3333333</td>
-<td align="right">NaN</td>
-<td align="right">0.3333333</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">0.6666667</td>
+<td align="right">1</td>
+<td align="right">0.8333333</td>
 </tr>
 <tr class="even">
 <td align="left">m.NJB00204.H11</td>
@@ -1596,25 +1597,25 @@ as.data.frame(print)</code></pre>
 <td align="right">2.038752</td>
 <td align="right">2</td>
 <td align="right">0</td>
-<td align="right">4</td>
-<td align="right">0</td>
-<td align="right">0.3333333</td>
-<td align="right">NaN</td>
-<td align="right">0.3333333</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">0.6666667</td>
+<td align="right">1</td>
+<td align="right">0.8333333</td>
 </tr>
 <tr class="odd">
 <td align="left">m.NJB00204.E05</td>
 <td align="left">HCT116, HCT116, HOS</td>
 <td align="left">0.98824, 0.01176, 0</td>
-<td align="left">2, 0, 0</td>
+<td align="left">1, 0, 0</td>
 <td align="right">2.073508</td>
 <td align="right">0</td>
 <td align="right">0</td>
 <td align="right">2</td>
-<td align="right">2</td>
+<td align="right">3</td>
 <td align="right">0.0000000</td>
 <td align="right">1</td>
-<td align="right">0.5000000</td>
+<td align="right">0.6000000</td>
 </tr>
 </tbody>
 </table>
