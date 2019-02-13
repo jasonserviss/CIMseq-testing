@@ -14,7 +14,7 @@ currPath <- getwd()
 #setup spCounts
 keep.plates.colon <- c(
   "NJA01203", "NJA01205","NJA01303", "NJA01401", "NJA01503", "NJA01504",
-  "NJA01801", "NJA01803"
+  "NJA01801", "NJA01803", "NJD00101", "NJD00102", "NJD00103", "NJD00104"
 )
 
 s <- str_detect(colnames(MGA.Counts), "^s")
@@ -24,8 +24,8 @@ boolSng <- s & e
 boolMul <- !s & e
 singlets <- MGA.Counts[, boolSng]
 singletERCC <- MGA.CountsERCC[, boolSng]
-multiplets <- MGA.Counts[, boolMul] ####multiplets from MGAS need to be included!!!!!
-multipletERCC <- MGA.CountsERCC[, boolMul] ####multiplets from MGAS need to be included!!!!!
+multiplets <- MGA.Counts[, boolMul] 
+multipletERCC <- MGA.CountsERCC[, boolMul]
 
 #Dimensionality reduction and classification
 print(paste0("Starting all cells analysis at ", Sys.time()))
@@ -49,8 +49,8 @@ mca <- RunPCA(
 # mca <- JackStraw(object = mca, num.replicate = 100, display.progress = TRUE, num.pc = 50)
 # mca <- JackStrawPlot(object = mca, PCs = 1:50)
 # PCp <- mca@dr$pca@jackstraw@overall.p.values
-# pcs <- PCp[PCp[, 2] < 10^-9, 1]
-pcs <- 1:19
+# pcs <- PCp[PCp[, 2] < 10^-6, 1]
+pcs <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 21, 22)
 
 # var <- mca@dr$pca@sdev^2
 # var.percent <- var / sum(var) * 100
@@ -113,27 +113,10 @@ print(paste0("Using ", max(pcs), " principal components."))
 # 
 #reticulate::use_python('/Users/jason/miniconda3/bin/python')
 #reticulate::py_config()
-# 
-# mca <- RunUMAP(
-#   object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.5,
-#   n_neighbors = 10, seed.use = 984323
-# )
-# 
-# #984324
-# #984327
-# 
-# mca <- RunUMAP(
-#   object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.4,
-#   n_neighbors = 10, seed.use = 984323
-# )
-# mca <- RunUMAP(
-#   object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.4,
-#   n_neighbors = 10, seed.use = 984328
-# )
 
 mca <- RunUMAP(
-  object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.25,
-  n_neighbors = 10, seed.use = 984338
+  object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.6,
+  n_neighbors = 30, seed.use = 7937393
 )
 #mca@dr$umap@cell.embeddings <- u
 # 
@@ -173,6 +156,7 @@ mca <- FindClusters(
 #   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
 #   vector.friendly = FALSE
 # )
+# 
 # FeaturePlot(
 #   mca,
 #   c("Lgr5", "Slc26a3", "Mki67", "Hoxb13"),
@@ -185,18 +169,6 @@ mca <- FindClusters(
 #   ggplot() +
 #   geom_point(aes(UMAP1, UMAP2, colour = unique_key)) +
 #   scale_colour_manual(values = c(col40(), "black"))
-
-#manually merge clusters 1 and 2. They have few DE genes
-# old <- mca@ident
-# n <- names(old)
-# old <- as.character(old)
-# new <- case_when(
-#   old %in% c("1", "2") ~ "1",
-#   old == "0" ~ "0",
-#   TRUE ~ as.character(as.numeric(old) - 1)
-# )
-# names(new) <- n
-# mca@ident <- as.factor(new)
 
 #find differentially expressed genes
 markers <- FindAllMarkers(
@@ -225,7 +197,6 @@ colnames(dim.red) <- NULL
 #setup CIMseqData objects
 cObjSng <- CIMseqSinglets(singlets, singletERCC, dim.red, classes)
 cObjMul <- CIMseqMultiplets(multiplets, multipletERCC, select)
-
 
 #save
 save(cObjSng, cObjMul, file = file.path(currPath, "data/CIMseqData.rda"))

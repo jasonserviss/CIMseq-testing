@@ -117,7 +117,6 @@ print(paste0("Starting deconvolution at ", Sys.time()))
 sObj <- CIMseqSwarm(
   cObjSng, cObjMul, maxiter = 10, swarmsize = 150, nSyntheticMultiplets = 400
 )
-
 print(paste0("Finished deconvolution at ", Sys.time()))
 
 save(sObj, file = file.path(currPath, "data/sObj.rda"))

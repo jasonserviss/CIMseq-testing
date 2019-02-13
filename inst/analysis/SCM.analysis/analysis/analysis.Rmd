@@ -45,28 +45,14 @@ sObj@fractions <- fractions
 known <- setupPlate(filter(SCM.Meta, !filtered))
 res <- checkResults(sObj, known, cObjSng, cObjMul)
 
-d <- res %>% 
-  mutate(detected = map(data.detected, function(t){
-    ifelse(is.null(t), NA, pull(t, connections))
-  })) %>% 
-  filter(!is.na(detected)) %>%
-  select(detected) %>%
-  unnest() %>%
-  count(detected)
+d <- getCellsForMultiplet(sObj, cObjSng, cObjMul) %>%
+  count(cells)
 
-e <- res %>% 
-  mutate(expected = map(data.expected, function(t){
-    ifelse(is.null(t), NA, pull(t, connections))
-  })) %>% 
-  filter(!is.na(expected)) %>%
-  select(expected) %>%
-  unnest() %>%
-  count(expected)
+e <- getCellsForMultiplet(known, cObjSng, cObjMul) %>%
+  count(cells)
 
-data <- full_join(d, e, by = c("detected" = "expected")) %>% 
-  rename(Connection = detected, `Expected (n)` = n.y, `Detected (n)` = n.x) %>%
-  replace_na(list(`Expected (n)` = 0, `Detected (n)` = 0)) %>%
-  select(Connection, `Expected (n)`, `Detected (n)`)
+data <- full_join(e, d, by = "cells") %>% 
+  rename(`Cell type` = cells, `Expected (n)` = n.x, `Detected (n)` = n.y)
 
 data
 
@@ -98,15 +84,21 @@ invisible(dev.off())
 ### Show average stats for multiplets dependant on the combination of cells in the multiplet.
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-res %>%
+data <- res %>%
   inner_join(SCM.Meta, by = "sample") %>%
-  mutate(cellsInMultiplet = str_count(cellTypes, "-") + 1) %>%
-  group_by(cellTypes) %>%
+  rename(`Cells in multiplet` = cellTypes) %>%
+  group_by(`Cells in multiplet`) %>%
   summarize(
-    meanTPR = mean(TPR, na.rm = TRUE),
-    meanTNR = mean(TNR, na.rm = TRUE),
-    meanACC = mean(ACC, na.rm = TRUE)
+    `TPR (mean)` = round(mean(TPR, na.rm = TRUE), digits = 2),
+    `TNR (mean)` = round(mean(TNR, na.rm = TRUE), digits = 2),
+    `ACC (mean)` = round(mean(ACC, na.rm = TRUE), digits = 2)
   )
+
+data
+
+pdf('../figures/figure3.pdf')
+gridExtra::grid.table(data, rows = rep("", nrow(data)))
+invisible(dev.off())
 ```
 
 <br></br>
@@ -117,12 +109,9 @@ Cell number per class
 ```{r}
 select(cellNumberPerClass(cObjSng, cObjMul), class, medianCellNumber)
 
-print <- res %>% 
-  mutate(connections.detected = map_chr(data.detected, ~paste(unlist(.x), collapse = ", "))) %>%
-  mutate(connections.expected = map_chr(data.expected, ~paste(unlist(.x), collapse = ", "))) %>%
-  select(-(data.detected:data.expected)) %>%
-  inner_join(SCM.Meta, by = "sample") %>%
-  rename(cellsSorted = cellTypes) %>%
+print <- res %>%
+  inner_join(select(SCM.Meta, sample, cellTypes), by = "sample") %>%
+  mutate(`Cells sorted` = map_chr(cellTypes, ~paste(str_split(.x, "-")[[1]], collapse = ", "))) %>%
   inner_join(matrix_to_tibble(getData(sObj, "fractions"), "sample"), by = "sample") %>%
   mutate(
     HOS = round(HOS, digits = 5), 
@@ -135,8 +124,7 @@ print <- res %>%
   unite(`adj. fractions`, HOS, HCT116, A375, sep = ", ") %>%
   inner_join(select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), by = "sample") %>%
   select(
-    sample, cellsSorted, connections.expected, connections.detected, 
-    `fractions (HOS, HCT116, A375)`, `adj. fractions`, estimatedCellNumber, tp:ACC
+    sample, `Cells sorted`, `fractions (HOS, HCT116, A375)`, `adj. fractions`, estimatedCellNumber, tp:ACC
   )
 
 as.data.frame(print)

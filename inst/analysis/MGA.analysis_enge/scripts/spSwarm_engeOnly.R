@@ -1,5 +1,5 @@
 #PACKAGES
-packages <- c("CIMseq", "sp.scRNAseqData", "tidyverse", "future")
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "future")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
@@ -10,6 +10,13 @@ if(file.exists(file.path(currPath, 'data/CIMseqData.rda'))) {
   load(file.path(currPath, 'data/CIMseqData.rda'))
 }
 
+# Testing
+# cObjMul <- CIMseqMultiplets(
+#   getData(cObjMul, "counts")[, 1:2],
+#   getData(cObjMul, "counts.ercc")[, 1:2],
+#   getData(cObjMul, "features")
+# )
+
 #future::plan(multiprocess)
 options(future.wait.interval = 10000.0)
 options(future.wait.timeout = 1e9)
@@ -18,8 +25,8 @@ future::plan(
   template = "/crex/proj/snic2018-8-151/private/batchtools.slurm.tmpl",
   resources = list(
     account = "snic2018-8-151", partition = "core", ntasks = 1L,
-    time = "24:00:00", jobname = "testingPoissonSorted",
-    modules = "R_packages/3.5.0", R = "R/3.5.0", log.file = file.path(currPath, "logs/slurm.txt")
+    time = "24:00:00", jobname = "MGA_enge",
+    modules = "R_packages/3.5.2", R = "R/3.5.2", log.file = file.path(currPath, "logs/slurm.txt")
    ),
   workers = 100
 )

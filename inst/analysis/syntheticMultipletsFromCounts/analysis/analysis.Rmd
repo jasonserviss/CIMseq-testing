@@ -52,33 +52,26 @@ foldChangePerClass <- function(counts, classes) {
 }
 ```
 
+he sum of 
+counts is calculated for each gene
+
 The synthetic multiplets are based on the mixing of real synthetic singlets. The 
-algorithm for generating the synthetic multiplets works as follows: The sum of 
-counts is calculated for each gene in two randomly selected singlets from 
-each cell type contributing to the multiplet. The fraction of input into the 
-multiplet can be adjusted so that, e.g. cell type A only contributes half of 
-what cell type B contributes to the multiplet. A vector is then generated where 
-each gene name is represented one time for each of the total counts (e.g. if 
-gene "A" has a sum of counts from all singlets from the cell types 
-contributing to the multiplet of 10, "A" will be repreated 10 times in the 
-vector). This vector is then sampled without replacment. It is sampled x times, 
-where x is equal to the sum of all the counts in all singlets contributing to 
-the multiplet divided by the total number of singlets contributing to the 
-multiplet. Gene names are then counted which provides the raw counts for the 
-newly synthesized multiplet.
+algorithm for generating the synthetic multiplets works as follows: Two singlets from 
+each cell type contributing to the multiplet are randomly selected. The fraction of 
+input into the multiplet can be adjusted so that, e.g. cell type A only contributes 
+half of what cell type B contributes to the multiplet, by multiplying the singlet 
+counts per million values with the desired fraction of input (fractions must sum to
+1). The sum of counts per million is subsequently calculated for each gene providing
+the counts per million of the synthesized multiplet.
 
 Here we utilize the sorted cell line dataset to generate multiplets from the 
 singlets. The synthesized multiplets are then compared to the real multiplets
-to acertain the quality of the _in silico_ synthesis. We begin by synthesizing 
-one multiplet per cell line combination, i.e. a A375-HCT116, A375-HOS, and 
-HCT116-HOS multiplet.
+to acertain the quality of the _in silico_ synthesis.
 
 ### Synthesize 10 multiplets per combination.
 
-Here we continue to examine the ability of the synthesized multiplets to 
-accuratley reflect the real multiplets by generating 10 multiplets per 
-combination. It is hoped that this will show that the synthesized multiplets as
-a whole, accuratley capture the diversity of the real multiplets.
+We begin by synthesizing ten multiplet per cell line combination, i.e. a 
+A375-HCT116, A375-HOS, and HCT116-HOS multiplet.
 
 ```{r}
 s <- str_detect(colnames(SCM.Counts), "^s")
@@ -131,13 +124,15 @@ Plot results.
 p1 <- synth %>%
   inner_join(mul, by = c("gene", "cellTypes")) %>%
   gather(type, value, -(gene:syntheticMultipletID), -sample) %>%
+  filter(cellTypes != "A375-HCT116-HOS") %>%
+  mutate(type = if_else(type == "Counts", "Real multiplet CPM", "Synthetic multiplet CPM")) %>%
   ggplot() +
   geom_histogram(
     aes(log2(value + 1), stat(ndensity), fill = type),
     alpha = 0.5, binwidth = 0.25, position = "identity"
   ) +
   facet_wrap(~cellTypes) +
-  labs(x = "log2(Cpm)", y = "Density") +
+  labs(x = "log2(cpm + 1)", y = "Density") +
   theme_bw() +
   ggthemes::scale_fill_ptol() +
   guides(fill = guide_legend(title = "")) +
@@ -154,6 +149,33 @@ ggsave(
   units = "mm"
 )
 ```
+
+  
+  synth %>%
+    inner_join(mul, by = c("gene", "cellTypes")) %>%
+    gather(type, value, -(gene:syntheticMultipletID), -sample) %>%
+    filter(cellTypes != "A375-HCT116-HOS") %>%
+    mutate(type = if_else(type == "Counts", "Real multiplet", "Synthetic multiplet")) %>%
+    rename(cpm = value) %>%
+    ggplot() +
+    geom_violin(
+      data = . %>% filter(cpm != 0),
+      aes(cellTypes, log2(cpm + 1), fill = type), alpha = 0.5, position = position_identity()
+    ) +
+    geom_text(
+      data = . %>%
+      group_by(cellTypes, type) %>%
+      summarize(do = paste0(round(length(which(cpm == 0)) / n(), digits = 2) * 100, "%")),
+      aes(cellTypes, 0.05, label = do, group = type, colour = type), 
+      size = 5, position = position_dodge(width = 0.9)
+    ) +
+    scale_colour_ptol() +
+    scale_fill_ptol() +
+    labs(x = "Multiplet composition") +
+    theme(legend.position = "top", legend.justification = "center") +
+    guides(fill = guide_legend(title = ""), colour = FALSE)
+
+
 
 <br></br>
 

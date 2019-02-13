@@ -3,7 +3,7 @@ runAnalysis <- function(rootPath) {
   directories <- file.path(rootPath, 'inst/analysis', c(
     "SCM.analysis", "visualizingPoissonAlgo", "visualizingSolutionSpace",
     "syntheticMultipletsFromCounts", "MGA.analysis_SI", "poissonCostStability",
-    "singletVsMultipletCellFreq"
+    "singletVsMultipletCellFreq", "deconvoluteSingletsMouse"
   ))
   
   for(i in 1:length(directories)) {
@@ -16,7 +16,10 @@ runAnalysis <- function(rootPath) {
       print(paste0("Running ", scripts[y]))
       source(scripts[y])
     }
-    rmarkdown::render(file.path(directories[i], 'analysis/analysis.Rmd'))
+    analysis <- list.files('analysis', full.names = TRUE, pattern = ".Rmd")
+    for(j in 1:length(analysis)) {
+      rmarkdown::render(analysis[i])
+    }
   }
 }
 

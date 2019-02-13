@@ -11,15 +11,15 @@ if(!as.numeric(last3) >= 100) {
 
 currPath <- getwd()
 
-#setup spCounts
-keep.plates.SI <- c(
- "NJA01201", "NJA01202", "NJA01301", "NJA01302", "NJA01501"
-)
+#setup CIMseqData
 s <- str_detect(colnames(MGA.Counts), "^s")
-samples <- filter(MGA.Meta,
-  !filtered &
-  unique_key %in% keep.plates.SI
-)$sample
+keep.plates <- c(
+  "NJA01203", "NJA01205","NJA01303", "NJA01401", "NJA01503", "NJA01504",
+  "NJA01801", "NJA01803", "NJD00101", "NJD00102", "NJD00103", "NJD00104",
+  "NJA01201", "NJA01202", "NJA01301", "NJA01302", "NJA01501"
+)
+samples <- filter(MGA.Meta, !filtered & unique_key %in% keep.plates)$sample
+
 e <- colnames(MGA.Counts) %in% samples
 boolSng <- s & e
 boolMul <- !s & e
@@ -50,27 +50,44 @@ mca <- RunPCA(
 # mca <- JackStrawPlot(object = mca, PCs = 1:50)
 # PCp <- mca@dr$pca@jackstraw@overall.p.values
 # pcs <- PCp[PCp[, 2] < 10^-6, 1]
-pcs <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 24)
-print(paste0("Using ", max(pcs), " principal components."))
-
-# mca <- RunUMAP(
-#   object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.5,
-#   n_neighbors = 15, seed.use = 79356
-# )
-mca <- RunUMAP(
-  object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.8,
-  n_neighbors = 30, seed.use = 7937390
+pcs <- c(
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 
+  16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29
 )
 
+# var <- mca@dr$pca@sdev^2
+# var.percent <- var / sum(var) * 100
+# barplot(
+#   var.percent, xlab = "PC", ylab = "Percent Variance", 
+#   names.arg = 1:length(var.percent), las = 1, ylim = c(0, max(var.percent) + 2),
+#   col = "gray"
+# )
+print(paste0("Using ", max(pcs), " principal components."))
+
+#984370
+#984375
+#984385
+#984395
+mca <- RunUMAP(
+  object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.45,
+  n_neighbors = 10, seed.use = 984335
+)
+
+# mca <- RunTSNE(mca, dims.use = pcs, seed.use = 2387, perplexity = 30)
+
+# mca <- FindClusters(
+#   object = mca, reduction.type = "pca", dims.use = pcs, resolution = 1.5,
+#   n.start = 100, n.iter = 1000, nn.eps = 0, k.param = 20, prune.SNN = 1/15,
+#   algorithm = 1, save.SNN = TRUE, print.output = FALSE, plot.SNN = FALSE,
+#   force.recalc = TRUE, random.seed = 93820
+# )
 mca <- FindClusters(
-  object = mca, reduction.type = "pca", dims.use = pcs, resolution = 1,
+  object = mca, reduction.type = "pca", dims.use = pcs[1:17], resolution = 1.8,
   n.start = 100, n.iter = 1000, nn.eps = 0, k.param = 20, prune.SNN = 1/15,
   algorithm = 1, save.SNN = TRUE, print.output = FALSE, plot.SNN = FALSE,
   force.recalc = TRUE, random.seed = 93820
 )
 
-# VlnPlot(object = mca, features.plot = c("nGene", "nUMI"), nCol = 2)
-# 
 # DimPlot(
 #   object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
 #   vector.friendly = FALSE, pt.size = 1
@@ -78,16 +95,22 @@ mca <- FindClusters(
 # 
 # FeaturePlot(
 #   mca,
-#   c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Atoh1", "Lyz1", "Mki67"),
+#   c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1", "Mki67", "Hoxb13"),
 #   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
-#   vector.friendly = FALSE, do.return = FALSE
+#   vector.friendly = FALSE
+# )
+# FeaturePlot(
+#   mca,
+#   c("Lgr5", "Slc26a3", "Alpi", "Mki67", "Hoxb13"),
+#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+#   vector.friendly = FALSE
 # )
 # 
 # matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
-#   inner_join(MGA.Meta) %>%
+#   inner_join(MGA.Meta, by = "sample") %>%
 #   ggplot() +
 #   geom_point(aes(UMAP1, UMAP2, colour = unique_key)) +
-#   scale_colour_manual(values = col40())
+#   scale_colour_manual(values = c(col40(), "black"))
 
 #find differentially expressed genes
 markers <- FindAllMarkers(
@@ -99,31 +122,6 @@ markers <- FindAllMarkers(
 #   object = mca, genes.use = unique(markers$gene), slim.col.label = TRUE,
 #   remove.key = TRUE, group.label.rot = TRUE
 # )
-# 
-# < 5 markers for class 1. Merge with nearest cluster.
-#calculate centroids
-# s.data <- RNAseqFunctions::cpm(singlets)
-# ident <- as.character(FetchData(mca, "ident")$ident)
-# centroids <- sapply(unique(ident), function(i) {
-#   matrixStats::rowSums2(s.data[, ident == i])
-# })
-# #calculate distances between all centroids
-# dists <- as.matrix(dist(t(centroids), diag = TRUE, upper = TRUE))
-# class1.dists <- dists[, "1"]
-# class1.dists <- class1.dists[names(class1.dists) != "1"]
-# mergeInto <- names(class1.dists)[class1.dists == min(class1.dists)]
-#
-# #manually merge clusters 1 and 2. They have few DE genes
-# old <- mca@ident
-# n <- names(old)
-# old <- as.character(old)
-# new <- case_when(
-#   old %in% c("1", mergeInto) ~ "1",
-#   old == "0" ~ "0",
-#   TRUE ~ as.character(as.numeric(old) - 1)
-# )
-# names(new) <- n
-# mca@ident <- as.factor(new)
 
 print(paste0("Done all cells analysis at ", Sys.time()))
 
