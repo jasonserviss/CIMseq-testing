@@ -34,7 +34,7 @@ RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/m
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('Rtsne/0.13')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('pso/1.0.3')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('matrixStats/0.53.1')"
-RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('ggthemes/3.5.0')"
+RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('ggthemes/4.0.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('viridis/0.5.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('ggraph/1.0.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('tidygraph/1.1.0')"
@@ -61,12 +61,14 @@ RUN git clone https://github.com/EngeLab/EngeMetadata.git ~/Github/EngeMetadata
 RUN Rscript -e "devtools::install('~/Github/EngeMetadata', dependencies = FALSE)"
 
 # Clone and install CIMseq-data
+RUN touch /tmp1.txt
 RUN git clone https://github.com/jasonserviss/CIMseq.data.git ~/Github/CIMseq.data
 RUN Rscript -e "devtools::install('~/Github/CIMseq.data', dependencies = FALSE)"
 RUN cd ~/Github/CIMseq.data && Rscript -e "source('~/Github/CIMseq.data/inst/rawData/processRaw.R'); processRaw(ignore = ignore, upload = FALSE, save = TRUE)"
 RUN Rscript -e "devtools::install('~/Github/CIMseq.data', dependencies = FALSE)"
 
 # Clone and install CIMseq
+RUN touch /tmp35.txt
 RUN git clone https://github.com/jasonserviss/CIMseq.git --branch devel ~/Github/CIMseq
 RUN Rscript -e "devtools::install('~/Github/CIMseq', dependencies = FALSE)"
 

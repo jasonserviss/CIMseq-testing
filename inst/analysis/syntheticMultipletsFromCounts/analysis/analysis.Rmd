@@ -120,7 +120,7 @@ mul <- SCM.Counts[, !s] %>%
 
 Plot results.
 
-```{r, fig.align="center", fig.width=10, fig.height=8, message = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, message = FALSE, eval = FALSE}
 p1 <- synth %>%
   inner_join(mul, by = c("gene", "cellTypes")) %>%
   gather(type, value, -(gene:syntheticMultipletID), -sample) %>%
@@ -150,8 +150,8 @@ ggsave(
 )
 ```
 
-  
-  synth %>%
+```{r, fig.align="center", fig.width=10, fig.height=8, message = FALSE}
+p1 <- synth %>%
     inner_join(mul, by = c("gene", "cellTypes")) %>%
     gather(type, value, -(gene:syntheticMultipletID), -sample) %>%
     filter(cellTypes != "A375-HCT116-HOS") %>%
@@ -172,10 +172,53 @@ ggsave(
     scale_colour_ptol() +
     scale_fill_ptol() +
     labs(x = "Multiplet composition") +
+    theme_few() +
     theme(legend.position = "top", legend.justification = "center") +
     guides(fill = guide_legend(title = ""), colour = FALSE)
 
+p1
 
+p2 <- synth %>%
+    inner_join(mul, by = c("gene", "cellTypes")) %>%
+    gather(type, value, -(gene:syntheticMultipletID), -sample) %>%
+    filter(cellTypes != "A375-HCT116-HOS") %>%
+    mutate(type = if_else(type == "Counts", "Real multiplet", "Synthetic multiplet")) %>%
+    rename(cpm = value) %>%
+    ggplot() +
+    geom_violin(
+      data = . %>% filter(cpm != 0),
+      aes("x", log2(cpm + 1), fill = type), alpha = 0.5, position = position_identity()
+    ) +
+    geom_text(
+      data = . %>%
+      group_by(type) %>%
+      summarize(do = paste0(round(length(which(cpm == 0)) / n(), digits = 2) * 100, "%")),
+      aes("x", 0.05, label = do, group = type, colour = type), 
+      size = 5, position = position_dodge(width = 0.9)
+    ) +
+    scale_colour_ptol() +
+    scale_fill_ptol() +
+    theme_few() +
+    theme(
+      legend.position = "top", 
+      legend.justification = "center",
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.title.x = element_blank()
+    ) +
+    guides(fill = guide_legend(title = "", nrow = 2), colour = FALSE)
+
+p2
+
+ggsave(
+  plot = p2,
+  filename = '../figures/figure1.pdf',
+  device = cairo_pdf,
+  height = 180,
+  width = 50,
+  units = "mm"
+)
+```
 
 <br></br>
 
@@ -219,7 +262,6 @@ typeMeans <- function(type) {
     tibble(gene = rownames(SCM.Counts), counts = .) %>%
     mutate(cellType = type)
 }
-###
 
 #Synthesize 25 multiplets with varying levels of adjusted HOS input
 #Calculate the mean gene expression in the 25 multiplets for each condition
@@ -250,7 +292,7 @@ combos <- unique(classes) %>%
   as.data.frame(stringsAsFactors = FALSE) %>% 
   {paste(.[1, ], .[2, ], sep = "-")}
 
-set.seed(192)
+set.seed(195)
 fractions <- tibble(
   cellType = rep(combos, each = length(adj) * n),
   adjustment = rep(adj, length(combos) * n),
@@ -304,12 +346,15 @@ plotData <- realData %>%
   inner_join(synth, by = c("gene", "cellType")) %>%
   gather(cpmType, cpm, -gene, -geneType, -cellType, -cellType1, -cellType2) %>%
   mutate(cpmType = case_when(
-    cpmType == "counts_cellType1" ~ cellType1,
-    cpmType == "counts_cellType2" ~ cellType2,
+    cpmType == "counts_cellType1" ~ paste0(cellType1, " singlets"),
+    cpmType == "counts_cellType2" ~ paste0(cellType2, " singlets"),
+    cpmType == "Multiplet" ~ paste0(cellType, " multiplets"),
     TRUE ~ cpmType
   )) %>%
   mutate(cpmType = parse_factor(cpmType, levels = c(
-      "Multiplet", "HOS reduced 0%", "HOS reduced 25%", "HOS reduced 50%", "HOS reduced 75%", "HOS reduced 99%", "A375", "HCT116", "HOS"
+      "A375-HOS multiplets", "HCT116-HOS multiplets", "A375-HCT116 multiplets", 
+      "HOS reduced 0%", "HOS reduced 25%", "HOS reduced 50%", "HOS reduced 75%", 
+      "HOS reduced 99%", "A375 singlets", "HCT116 singlets", "HOS singlets"
   ))) %>%
   mutate(plotGene = paste0(gene, " (", geneType, ")")) %>%
   mutate(plotGene = parse_factor(plotGene, levels = unique(plotGene))) %>%
@@ -317,10 +362,45 @@ plotData <- realData %>%
 ```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8, message = FALSE}
-p2 <- plotData %>%
+p3 <- plotData %>%
   ggplot() +
   geom_line(aes(cpmType, log2(cpm + 1), group = gene, colour = geneType)) +
   geom_point(aes(cpmType, log2(cpm + 1), colour = geneType), size = 0.75) +
+  facet_wrap(~cellType, scales = "free") +
+  theme_few() +
+  ggthemes::scale_colour_ptol() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(angle = 90),
+    legend.position = "top"
+  ) +
+  guides(colour = guide_legend(
+    title = "Gene's cell type specificity",
+    title.position = "top", 
+    title.hjust = 0.5)
+  )
+
+p3
+
+ggsave(
+  plot = p3,
+  filename = '../figures/figure2.pdf',
+  device = cairo_pdf,
+  height = 180,
+  width = 240,
+  units = "mm"
+)
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, message = FALSE, eval = FALSE}
+
+
+p3 <- plotData %>%
+  group_by(cpmType, cellType, geneType) %>%
+  summarize(m = mean(cpm)) %>%
+  ggplot() +
+  geom_line(aes(cpmType, log2(m + 1), group = geneType, colour = geneType)) +
+  geom_point(aes(cpmType, log2(m + 1), colour = geneType), size = 0.75) +
   facet_wrap(~cellType, scales = "free") +
   theme_bw() +
   ggthemes::scale_colour_ptol() +
@@ -335,10 +415,10 @@ p2 <- plotData %>%
     title.hjust = 0.5)
   )
 
-p2
+p3
 
 ggsave(
-  plot = p2,
+  plot = p3,
   filename = '../figures/figure2.pdf',
   device = cairo_pdf,
   height = 180,

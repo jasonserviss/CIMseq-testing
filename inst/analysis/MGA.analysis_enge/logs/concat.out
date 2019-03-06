@@ -1,0 +1,4 @@
+Error in c(sObj_master, sObj) : 
+  singletIdx slot not identical for all objects. Cannot concatenate.
+Calls: c -> c
+Execution halted

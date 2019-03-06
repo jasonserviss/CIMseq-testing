@@ -12,33 +12,32 @@ editor_options:
 
 ```{r, message = FALSE}
 #PACKAGES
-packages <- c("CIMseq", "CIMseq.data", "tidyverse")
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "ggthemes")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-load('../../MGA.analysis_SI/data/CIMseqData_181126.rda')
-load('../../MGA.analysis_SI/data/sObj_181126.rda')
+load('../../MGA.analysis_SI/data/CIMseqData.rda')
+load('../../MGA.analysis_SI/data/sObj.rda')
 
 #rename classes
 renameClasses <- function(class) {
   case_when(
-    class == "0" ~ "SI.TA.Mki67.medium",
-    class == "1" ~ "SI.TA.Mki67.low",
-    class == "2" ~ "SI.Stem",
-    class == "3" ~ "SI.Goblet",
-    class == "4" ~ "SI.TA.enterocyte",
-    class == "5" ~ "SI.TA.Mki67.high.1",
-    class == "6" ~ "SI.Enterocyte",
-    class == "7" ~ "SI.TA.Mki67.high.2",
-    class == "8" ~ "SI.Paneth",
-    class == "9" ~ "SI.Tufft",
-    class == "10" ~ "SI.Chromaffin",
+    class == "0" ~ "LGR5+.Mki67high",
+    class == "1" ~ "LGR5+.Mki67low",
+    class == "2" ~ "Goblet",
+    class == "3" ~ "TA.late",
+    class == "4" ~ "Stem",
+    class == "5" ~ "LGR5-.Mki67low",
+    class == "6" ~ "Enterocyte",
+    class == "7" ~ "TA.early",
+    class == "8" ~ "Paneth",
+    class == "9" ~ "Tufft",
+    class == "10" ~ "Chromaffin",
     class == "11" ~ "Blood",
     TRUE ~ "error"
   )
 }
-
 
 getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
 fractions <- getData(sObj, "fractions")
@@ -57,7 +56,7 @@ if(!identical(names(singlets), names(deconv))) stop("name mismatch")
 ```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-tibble(
+p <- tibble(
   class = names(singlets),
   singlet.freq = singlets,
   multiplet.freq = deconv
@@ -65,10 +64,23 @@ tibble(
   ggplot() +
   geom_point(aes(singlet.freq, multiplet.freq, colour = class), size = 3) +
   scale_colour_manual(values = col40()) +
-  xlim(min(singlets), max(singlets)) +
-  ylim(min(deconv), max(deconv)) +
+  xlim(min(c(deconv, singlets)), max(c(deconv, singlets))) +
+  ylim(min(c(deconv, singlets)), max(c(deconv, singlets))) +
   geom_abline(slope = 1, intercept = 0, lty = 3, colour = "grey") +
   labs(x = "Singlet relative frequency", y = "Multiplet relative frequency") +
-  guides(colour = guide_legend(title = "Cell Type"))
+  guides(colour = guide_legend(title = "Cell Type")) +
+  theme_few()
+
+p 
+
+ggsave(
+  plot = p,
+  filename = '../figures/figure1.pdf',
+  device = cairo_pdf,
+  height = 160,
+  width = 180,
+  units = "mm"
+)
+
 ```
 

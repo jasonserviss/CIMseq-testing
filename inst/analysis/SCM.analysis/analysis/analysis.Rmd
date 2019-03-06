@@ -39,6 +39,93 @@ colnames(fractions) <- renameClasses(colnames(fractions))
 sObj@fractions <- fractions
 ```
 
+```{r, fig.align="center", fig.width=10, fig.height=8}
+#ERCC
+plotCountsERCC(cObjSng, cObjMul)
+p <- plotCountsData(cObjSng, cObjMul) %>%
+  ggplot(aes(x = `Sample type`, y = `Estimated cell number`)) +
+  geom_jitter(height = 0, width = 0.25, size = 0.5, alpha = 0.75, shape = 16) +
+  labs(y = "Estimated cell number") +
+  scale_y_continuous(
+    name = "Estimated cell number",
+    expand = c(0, 0),
+    sec.axis = sec_axis(
+      trans = ~ convertToERCC(., cObjSng, cObjMul),
+      name = "% ERCC"
+    )
+  ) +
+  theme_few() +
+  theme(axis.title.x = element_blank())
+
+ggsave(
+  plot = p,
+  filename = '../figures/SCM.ercc.pdf',
+  device = cairo_pdf,
+  height = 60,
+  width = 60,
+  units = "mm"
+)
+
+##Counts markers
+markers <- c("CD74", "ACTG2")
+plotCountsMarkers(cObjSng, cObjMul, markers) +
+  guides(colour = guide_legend(title = "Sample type"))
+
+p <- plotCountsData(cObjSng, cObjMul, markers) %>%
+  ggplot(aes(CD74, ACTG2, colour = `Sample type`)) +
+  geom_point(alpha = 0.75, shape = 16, size = 0.5) +
+  scale_colour_manual(values = c("#1c54a8", "#f63b32")) +
+  theme_few() +
+  theme(legend.position = "top", legend.title = element_blank()) +
+  guides(colour = guide_legend(override.aes = list(size = 1), title = NULL))
+
+#genes values are log2 + 1 scaled to [0, 1]
+ggsave(
+  plot = p,
+  filename = '../figures/SCM.counts.markers.pdf',
+  device = cairo_pdf,
+  height = 60,
+  width = 60,
+  units = "mm"
+)
+
+#Classification
+plotUnsupervisedClass(cObjSng, cObjMul)
+p <- plotCountsData(cObjSng, cObjMul) %>%
+  filter(`Sample type` == "Singlet") %>%
+  ggplot(aes_string(x = '`dim.red dim 1`', y = '`dim.red dim 2`')) +
+  geom_point(aes_string(colour = 'Classification'), alpha = 0.75, shape = 16, size = 0.5) +
+  scale_colour_manual(values = col40()) +
+  theme_few() +
+  theme(legend.position = "top") +
+  guides(colour = guide_legend(override.aes = list(size = 1), title = NULL)) +
+  labs(x = "UMAP dim 1", y = "UMAP dim 2")
+
+ggsave(
+  plot = p,
+  filename = '../figures/SCM.classes.pdf',
+  device = cairo_pdf,
+  height = 60,
+  width = 60,
+  units = "mm"
+)
+
+# p <- plotUnsupervisedMarkers(cObjSng, cObjMul, c("CD74", "ANXA3", "ACTG2"))
+# p
+# p <- p + 
+#   guides(colour = guide_legend(title.position = "top", title.hjust = 0.5)) +
+#   labs(x = "UMAP dim 1", y = "UMAP dim 2")
+# 
+# ggsave(
+#   plot = p,
+#   filename = '../figures/SCM.markers.pdf',
+#   device = cairo_pdf,
+#   height = 80,
+#   width = 80,
+#   units = "mm"
+# )
+```
+
 ### Show number of expected edges vs number of observed edges
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
@@ -57,7 +144,9 @@ data <- full_join(e, d, by = "cells") %>%
 data
 
 pdf('../figures/figure1.pdf')
-gridExtra::grid.table(data, rows = rep("", nrow(data)))
+data %>%
+  rename(Expected = `Expected (n)`, Detected = `Detected (n)`) %>%
+  gridExtra::grid.table(., rows = rep("", nrow(data)))
 invisible(dev.off())
 ```
 
@@ -69,15 +158,18 @@ data <- res %>%
   mutate(`Cells (n)` = str_count(cellTypes, "-") + 1) %>%
   group_by(`Cells (n)`) %>%
   summarize(
+    n = n(),
     `TPR (mean)` = round(mean(TPR, na.rm = TRUE), digits = 2),
     `TNR (mean)` = round(mean(TNR, na.rm = TRUE), digits = 2),
-    `ACC (mean)` = round(mean(ACC, na.rm = TRUE), digits = 2)
+    `MCR (mean)` = 1 - round(mean(ACC, na.rm = TRUE), digits = 2)
   )
 
 data
 
 pdf('../figures/figure2.pdf')
-gridExtra::grid.table(data, rows = rep("", nrow(data)))
+data %>%
+  rename(TPR = `TPR (mean)`, TNR = `TNR (mean)`, MCR = `MCR (mean)`) %>%
+  gridExtra::grid.table(., rows = rep("", nrow(data)))
 invisible(dev.off())
 ```
 
@@ -90,15 +182,18 @@ data <- res %>%
   rename(`Cells in multiplet` = cellTypes) %>%
   group_by(`Cells in multiplet`) %>%
   summarize(
+    n = n(),
     `TPR (mean)` = round(mean(TPR, na.rm = TRUE), digits = 2),
     `TNR (mean)` = round(mean(TNR, na.rm = TRUE), digits = 2),
-    `ACC (mean)` = round(mean(ACC, na.rm = TRUE), digits = 2)
+    `MCR (mean)` = 1 - round(mean(ACC, na.rm = TRUE), digits = 2)
   )
 
 data
 
 pdf('../figures/figure3.pdf')
-gridExtra::grid.table(data, rows = rep("", nrow(data)))
+data %>%
+  rename(TPR = `TPR (mean)`, TNR = `TNR (mean)`, MCR = `MCR (mean)`) %>%
+  gridExtra::grid.table(., rows = rep("", nrow(data)))
 invisible(dev.off())
 ```
 

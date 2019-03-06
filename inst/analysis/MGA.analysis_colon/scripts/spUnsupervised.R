@@ -14,7 +14,8 @@ currPath <- getwd()
 #setup spCounts
 keep.plates.colon <- c(
   "NJA01203", "NJA01205","NJA01303", "NJA01401", "NJA01503", "NJA01504",
-  "NJA01801", "NJA01803", "NJD00101", "NJD00102", "NJD00103", "NJD00104"
+  "NJA01801", "NJA01803", "NJD00101", "NJD00102", "NJD00103", "NJD00104",
+  "NJA01901", "NJA02001"
 )
 
 s <- str_detect(colnames(MGA.Counts), "^s")
@@ -30,28 +31,32 @@ multipletERCC <- MGA.CountsERCC[, boolMul]
 #Dimensionality reduction and classification
 print(paste0("Starting all cells analysis at ", Sys.time()))
 mca <- CreateSeuratObject(raw.data = singlets)
+mca@meta.data <- column_to_rownames(merge(mca@meta.data, column_to_rownames(MGA.Meta, "sample"), by = 0), "Row.names")
 mca <- NormalizeData(
   object = mca, normalization.method = "LogNormalize", scale.factor = 1e6
 )
-
 mca <- FindVariableGenes(
   object = mca, mean.function = ExpMean, dispersion.function = LogVMR,
-  do.plot = FALSE, x.low.cutoff = 1
+  do.plot = FALSE, x.low.cutoff = 0.5, x.high.cutoff = Inf
 )
 mca <- ScaleData(
   object = mca, genes.use = mca@var.genes, display.progress = FALSE, do.par = TRUE,
   num.cores = 4
 )
 mca <- RunPCA(
-  object = mca, pc.genes = mca@var.genes, pcs.compute = 100, do.print = FALSE,
+  object = mca, pc.genes = mca@var.genes, pcs.compute = 50, do.print = FALSE,
   seed.use = 983209
 )
+
+# PCAPlot(object = mca, dim.1 = 1, dim.2 = 2) +
+#   scale_colour_manual(values = col40())
 # mca <- JackStraw(object = mca, num.replicate = 100, display.progress = TRUE, num.pc = 50)
 # mca <- JackStrawPlot(object = mca, PCs = 1:50)
 # PCp <- mca@dr$pca@jackstraw@overall.p.values
 # pcs <- PCp[PCp[, 2] < 10^-6, 1]
-pcs <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 21, 22)
-
+pcs <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 
+         18, 19, 20, 21, 22, 30)
+# VizPCA(object = mca, pcs.use = pcs[1:10])
 # var <- mca@dr$pca@sdev^2
 # var.percent <- var / sum(var) * 100
 # barplot(
@@ -129,6 +134,7 @@ mca <- FindClusters(
   force.recalc = TRUE, random.seed = 93820
 )
 
+# heatmap(as.matrix(mca@snn), scale = "none")
 # mca <- FindClusters(
 #   object = mca, reduction.type = "pca", dims.use = pcs[1:7], resolution = 0.8,
 #   n.start = 100, n.iter = 1000, nn.eps = 0, k.param = 20, prune.SNN = 1/10,
@@ -145,30 +151,30 @@ mca <- FindClusters(
 # 
 #VlnPlot(object = mca, features.plot = c("nGene", "nUMI"), nCol = 2)
 # 
-# DimPlot(
-#   object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
-#   vector.friendly = FALSE, pt.size = 1
-# ) + scale_colour_manual(values = col40())
-# 
-# FeaturePlot(
-#   mca,
-#   c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1", "Mki67", "Hoxb13"),
-#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
-#   vector.friendly = FALSE
-# )
-# 
-# FeaturePlot(
-#   mca,
-#   c("Lgr5", "Slc26a3", "Mki67", "Hoxb13"),
-#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
-#   vector.friendly = FALSE
-# )
-# 
-# matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
-#   inner_join(MGA.Meta, by = "sample") %>%
-#   ggplot() +
-#   geom_point(aes(UMAP1, UMAP2, colour = unique_key)) +
-#   scale_colour_manual(values = c(col40(), "black"))
+DimPlot(
+  object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
+  vector.friendly = FALSE, pt.size = 1
+) + scale_colour_manual(values = col40())
+
+FeaturePlot(
+  mca,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1", "Mki67", "Hoxb13"),
+  reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+  vector.friendly = FALSE
+)
+
+FeaturePlot(
+  mca,
+  c("Lgr5", "Slc26a3", "Mki67", "Hoxb13"),
+  reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+  vector.friendly = FALSE
+)
+
+matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
+  inner_join(MGA.Meta, by = "sample") %>%
+  ggplot() +
+  geom_point(aes(UMAP1, UMAP2, colour = unique_key)) +
+  scale_colour_manual(values = c(col40(), "black"))
 
 #find differentially expressed genes
 markers <- FindAllMarkers(

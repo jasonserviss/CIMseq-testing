@@ -1,0 +1,206 @@
+---
+title: "Mouse colon analysis"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "circlize", "printr")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../data/CIMseqData.rda')
+load('../data/sObj.rda')
+
+#add multiplets (should be done previously)
+s <- rownames(getData(sObj, "fractions"))
+mgas <- s[str_detect(s, "NJD")]
+multiplets <- getData(cObjMul, "counts")
+sharedGenes <- intersect(rownames(multiplets), rownames(MGAS.Counts))
+features <- which(sharedGenes %in% rownames(multiplets)[getData(cObjMul, "features")])
+singlets <- getData(cObjSng, "counts")[sharedGenes, ]
+
+cObjMul	 <- CIMseqMultiplets(
+  cbind(multiplets[sharedGenes, ], MGAS.Counts[sharedGenes, mgas]),
+  cbind(getData(cObjMul, "counts.ercc"), MGAS.CountsERCC[, mgas]),
+  features
+)
+cObjSng <- CIMseqSinglets(
+  singlets,
+  getData(cObjSng, "counts.ercc"),
+  getData(cObjSng, "dim.red"),
+  getData(cObjSng, "classification")
+)
+```
+
+```{r}
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "C.Goblet.distal",
+    class == "1" ~ "C.TA.proximal",
+    class == "2" ~ "C.TA.distal",
+    class == "3" ~ "C.Mki67",
+    class == "4" ~ "C.Colonocyte",
+    class == "5" ~ "C.Stem.distal",
+    class == "6" ~ "C.Stem.proximal",
+    class == "7" ~ "C.Goblet.proximal",
+    class == "8" ~ "C.Chromaffin",
+    class == "9" ~ "C.Goblet.Mki67",
+    class == "10" ~ "C.Tufft",
+    TRUE ~ "error"
+  )
+}
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+### Fig 1: classes
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul)
+```
+
+### Fig 2: Cell type gene expression
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+### Fig 3: Cell cycle and architecture marker
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, c("Mki67", "Hoxb13"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+### Fig 4: Connections per multiplet
+```{r}
+adj <- adjustFractions(cObjSng, cObjMul, sObj)
+table(apply(adj, 1, sum))
+```
+
+### Fig 5: Fraction histogram
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(fractions = c(fractions)) %>%
+  ggplot() +
+  geom_histogram(aes(fractions), binwidth = 0.01) +
+  theme_bw()
+```
+
+### Fig 6: Detected cell types vs. cost
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  nCellTypes = apply(adj, 1, sum),
+  cost = getData(sObj, "costs")
+) %>%
+  ggplot() +
+  geom_boxplot(aes(nCellTypes, cost, group = nCellTypes)) +
+  scale_x_continuous(name = "Detected cell types", breaks = 0:max(apply(adj, 1, sum))) +
+  theme_bw()
+```
+
+### Fig 7: Estimated cell numbers vs. cost
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  sample = names(getData(sObj, "costs")),
+  cost = unname(getData(sObj, "costs"))
+) %>%
+  inner_join(
+    select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), 
+    by = "sample"
+  ) %>%
+  mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
+  ggplot() +
+  geom_boxplot(aes(estimatedCellNumber, cost, group = estimatedCellNumber)) +
+  scale_x_continuous(
+    name = "ERCC estimated cell number", 
+    breaks = 0:max(round(pull(estimateCells(cObjSng, cObjMul), estimatedCellNumber)))
+  ) +
+  theme_bw()
+```
+
+### Fig 8: Estimated cell number vs. Detected cell number
+```{r, fig.align="center", fig.width=10, fig.height=8}
+ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
+nConnections <- apply(adj, 1, sum)
+nConnections <- nConnections[match(ercc$sample, names(nConnections))]
+tibble(
+  detectedConnections = round(nConnections),
+  estimatedCellNumber = round(ercc$estimatedCellNumber)
+) %>%
+  ggplot() +
+  geom_boxplot(aes(estimatedCellNumber, detectedConnections, group = estimatedCellNumber)) +
+  scale_x_continuous(
+    name = "ERCC estimated cell number", 
+    breaks = 0:max(round(ercc$estimatedCellNumber))
+  ) +
+  scale_y_continuous(
+    name = "Detected cell number",
+    breaks = 0:max(round(nConnections))
+  ) +
+  theme_bw()
+```
+
+### Fig 9: Detected cell number vs. Total counts
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  sample = names(nConnections),
+  detectedConnections = nConnections
+) %>%
+  inner_join(tibble(
+    sample = colnames(getData(cObjMul, "counts")),
+    total.counts = colSums(getData(cObjMul, "counts"))
+  ), by = "sample") %>%
+  ggplot() +
+  geom_boxplot(aes(detectedConnections, total.counts, group = detectedConnections)) +
+  scale_x_continuous(
+    name = "Detected cell number", 
+    breaks = 0:max(nConnections)
+  ) +
+  scale_y_continuous(name = "Total counts") +
+  theme_bw()
+```
+
+### Fig 10: Detected cell number vs. Total ERCC counts
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  sample = names(nConnections),
+  detectedConnections = nConnections
+) %>%
+  inner_join(tibble(
+    sample = colnames(getData(cObjMul, "counts")),
+    total.ercc = colSums(getData(cObjMul, "counts.ercc"))
+  ), by = "sample") %>%
+  ggplot() +
+  geom_boxplot(aes(detectedConnections, total.ercc, group = detectedConnections)) +
+  scale_x_continuous(
+    name = "Detected cell number", 
+    breaks = 0:max(nConnections)
+  ) +
+  scale_y_continuous(name = "Total ERCC counts") +
+  theme_bw()
+```
+
+### Fig 11: Connections
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotSwarmCircos(sObj, cObjSng, cObjMul, classOrder = c(
+    "C.Goblet.distal", "C.Stem.distal", "C.TA.distal", "C.Colonocyte", "C.Mki67",
+    "C.TA.proximal", "C.Stem.proximal", "C.Goblet.proximal", "C.Goblet.Mki67", 
+    "C.Chromaffin", "C.Tufft"
+))
+```
+

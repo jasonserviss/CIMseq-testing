@@ -18,10 +18,10 @@ syntheticMultipletsFromCounts <- function(
 ){
   set.seed(seed)
   exCounts <- singlets[, idx]
-
+  
   #adjust the counts by multiplying with the corresponding values adjustment
   adjusted <- round(t(t(exCounts) * fractions))
-
+  
   #calculate the sum of counts for each gene
   rs <- matrixStats::rowSums2(adjusted)
   matrix(rs)
@@ -38,7 +38,7 @@ generateSyntheticMultiplets <- function(
     )
   }) %>%
     do.call(cbind, .)
-
+  
   colnames(mat) <- paste0("multiplet.", 1:n)
   rownames(mat) <- rownames(singlets)
   mat
@@ -46,8 +46,8 @@ generateSyntheticMultiplets <- function(
 ############
 
 ##RUN ALGO
-load('~/Github/CIMseq.testing/inst/analysis/SCM.analysis/data/CIMseqData.rda')
-load('~/Github/CIMseq.testing/inst/analysis/SCM.analysis/data/sObj.rda')
+load('../SCM.analysis/data/CIMseqData.rda')
+load('../SCM.analysis/data/sObj.rda')
 
 renameClasses <- function(class) {
   case_when(
@@ -80,13 +80,14 @@ idx <- map(1:n.multiplets, function(n) {
 #generate synthetic multiplets
 #use correct fractions
 adjust.right <- as.numeric(getData(sObj, "fractions")[m, unique(class)]) #A375-HCT116
-synthetic.mul.right <- generateSyntheticMultiplets(
-  getData(cObjSng, "counts.cpm"), class, fractions = adjust.right,
+mat <- generateSyntheticMultiplets(
+  getData(cObjSng, "counts.cpm")[g, ], class, fractions = adjust.right,
   seed = 8923, n = n.multiplets, idx = idx
-) %>%
+) 
+
+synthetic.mul.right <- mat %>%
   matrix_to_tibble("gene") %>%
-  add_column(real.multiplet = oneMultiplet) %>%
-  filter(gene %in% g) %>%
+  add_column(real.multiplet = oneMultiplet[g]) %>%
   gather(sample, value, -gene, -real.multiplet) %>%
   mutate(type = paste0(
     "Correct solution: A375 (", round(adjust.right[3], digits = 2),
@@ -96,13 +97,14 @@ synthetic.mul.right <- generateSyntheticMultiplets(
 
 #use incorrect fractions
 adjust.wrong <- rep(1/3, 3)
-synthetic.mul.wrong <- generateSyntheticMultiplets(
-  getData(cObjSng, "counts.cpm"), class, fractions = adjust.wrong,
+mat <- generateSyntheticMultiplets(
+  getData(cObjSng, "counts.cpm")[g, ], class, fractions = adjust.wrong,
   seed = 8923, n = n.multiplets, idx = idx
-) %>%
+)
+
+synthetic.mul.wrong <- mat %>%
   matrix_to_tibble("gene") %>%
-  add_column(real.multiplet = oneMultiplet) %>%
-  filter(gene %in% g) %>%
+  add_column(real.multiplet = oneMultiplet[g]) %>%
   gather(sample, value, -gene, -real.multiplet) %>%
   mutate(type = paste0(
     "Incorrect solution: A375 (", round(adjust.wrong[3], digits = 2),

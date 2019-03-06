@@ -12,7 +12,7 @@ editor_options:
 
 ```{r, message = FALSE}
 #PACKAGES
-packages <- c("CIMseq", "CIMseq.data", "tidyverse")
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "ggthemes")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
@@ -38,7 +38,7 @@ p
 
 ggsave(
   plot = p,
-  filename = '../figures/figure.pdf',
+  filename = '../figures/figure1.pdf',
   device = cairo_pdf,
   height = 180,
   width = 120,
