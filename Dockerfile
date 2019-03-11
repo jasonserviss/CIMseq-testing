@@ -61,7 +61,7 @@ RUN git clone https://github.com/EngeLab/EngeMetadata.git ~/Github/EngeMetadata
 RUN Rscript -e "devtools::install('~/Github/EngeMetadata', dependencies = FALSE)"
 
 # Clone and install CIMseq-data
-RUN touch /tmp1.txt
+RUN touch /tmp2.txt
 RUN git clone https://github.com/jasonserviss/CIMseq.data.git ~/Github/CIMseq.data
 RUN Rscript -e "devtools::install('~/Github/CIMseq.data', dependencies = FALSE)"
 RUN cd ~/Github/CIMseq.data && Rscript -e "source('~/Github/CIMseq.data/inst/rawData/processRaw.R'); processRaw(ignore = ignore, upload = FALSE, save = TRUE)"

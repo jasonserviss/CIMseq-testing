@@ -14,7 +14,7 @@ editor_options:
 #PACKAGES
 packages <- c(
   "CIMseq", "CIMseq.data", "CIMseq.testing", "printr", "ggthemes", "dplyr", 
-  "ggplot2", "tidyr", "purrr", "stringr"
+  "ggplot2", "tidyr", "purrr", "stringr", "readr"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
@@ -57,6 +57,32 @@ p <- plotCountsData(cObjSng, cObjMul) %>%
   theme_few() +
   theme(axis.title.x = element_blank())
 
+########################
+plotCountsData(cObjSng, cObjMul) %>%
+  inner_join(select(SCM.Meta, sample, cellTypes), by = c("Sample" = "sample")) %>%
+  mutate(`Real cell number` = map_int(cellTypes, function(x) {
+    str_split(x, "-")[[1]] %>% length()
+  })) %>%
+  ggplot(aes(x = `Real cell number`, y = `Estimated cell number`, colour = )) +
+  geom_boxplot(aes(group = `Real cell number`)) +
+  labs(x = "Real cell number", y = "Estimated cell number") +
+  theme_bw()
+
+adj <- adjustFractions(cObjSng, cObjMul, sObj, FALSE)
+inner_join(
+    tibble(sample = rownames(adj), `Adjusted estimated cell number` = rowSums(adj)),
+    select(SCM.Meta, sample, cellTypes),
+    by = "sample"
+) %>%
+  mutate(`Real cell number` = map_int(cellTypes, function(x) {
+    str_split(x, "-")[[1]] %>% length()
+  })) %>%
+  ggplot() +
+  geom_boxplot(aes(`Real cell number`, `Adjusted estimated cell number`, group = `Real cell number`)) +
+  theme_bw() +
+  labs(x = "Real cell number", y = "Adjusted estimated cell number")
+
+########################
 ggsave(
   plot = p,
   filename = '../figures/SCM.ercc.pdf',
