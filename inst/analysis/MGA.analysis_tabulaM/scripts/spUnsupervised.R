@@ -164,7 +164,7 @@ mca@dr$umap@cell.embeddings %>%
 
 DimPlot(
   object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
-  vector.friendly = FALSE, pt.size = 1
+  vector.friendly = FALSE, pt.size = 1, group.by = "source"
 ) + scale_colour_manual(values = col40())
 
 FeaturePlot(

@@ -1,0 +1,207 @@
+---
+title: "Mouse colon analysis"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "circlize", "printr")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../data/CIMseqData.rda')
+load('../data/sObj.rda')
+```
+
+```{r}
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "Stem",
+    class == "1" ~ "TA",
+    class == "2" ~ "Goblet.Junb",
+    class == "3" ~ "Goblet",
+    class == "4" ~ "Goblet.Plet1",
+    class == "5" ~ "Lgr5+.Mki67",
+    class == "6" ~ "Colonocytes",
+    class == "7" ~ "Goblet.Mki67",
+    class == "8" ~ "Tufft",
+    class == "9" ~ "Enteroendocrine",
+    TRUE ~ "error"
+  )
+}
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+### Fig 1: Classes
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul)
+```
+
+### Fig 2: Cell type gene expression
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+### Fig 3: Cell cycle and architecture marker
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, c("Mki67", "Plet1", "Junb"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+### Fig 4: Connections per multiplet
+```{r}
+adj <- adjustFractions(cObjSng, cObjMul, sObj)
+table(apply(adj, 1, sum))
+```
+
+### Fig 5: Fraction histogram
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(fractions = c(fractions)) %>%
+  ggplot() +
+  geom_histogram(aes(fractions), binwidth = 0.01) +
+  theme_bw()
+```
+
+### Fig 6: Detected cell types vs. cost
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  nCellTypes = apply(adj, 1, sum),
+  cost = getData(sObj, "costs")
+) %>%
+  ggplot() +
+  geom_boxplot(aes(nCellTypes, cost, group = nCellTypes)) +
+  scale_x_continuous(name = "Detected cell types", breaks = 0:max(apply(adj, 1, sum))) +
+  theme_bw()
+```
+
+### Fig 7: Estimated cell numbers vs. cost
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  sample = names(getData(sObj, "costs")),
+  cost = unname(getData(sObj, "costs"))
+) %>%
+  inner_join(
+    select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), 
+    by = "sample"
+  ) %>%
+  mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
+  ggplot() +
+  geom_boxplot(aes(estimatedCellNumber, cost, group = estimatedCellNumber)) +
+  scale_x_continuous(
+    name = "ERCC estimated cell number", 
+    breaks = 0:max(round(pull(estimateCells(cObjSng, cObjMul), estimatedCellNumber)))
+  ) +
+  theme_bw()
+```
+
+### Fig 8: Estimated cell number vs. Detected cell number
+```{r, fig.align="center", fig.width=10, fig.height=8}
+ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
+nConnections <- apply(adj, 1, sum)
+nConnections %>% 
+  tibble(
+    sample = names(.), 
+    detectedConnections = .
+  ) %>% 
+  inner_join(ercc) %>% 
+  mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
+  ggplot() +
+  geom_boxplot(aes(estimatedCellNumber, detectedConnections, group = estimatedCellNumber)) +
+  scale_x_continuous(
+    name = "ERCC estimated cell number", 
+    breaks = 0:max(round(ercc$estimatedCellNumber))
+  ) +
+  scale_y_continuous(
+    name = "Detected cell number",
+    breaks = 0:max(round(nConnections))
+  ) +
+  theme_bw()
+```
+
+### Fig 9: Detected cell number vs. Total counts
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  sample = names(nConnections),
+  detectedConnections = nConnections
+) %>%
+  inner_join(tibble(
+    sample = colnames(getData(cObjMul, "counts")),
+    total.counts = colSums(getData(cObjMul, "counts"))
+  ), by = "sample") %>%
+  ggplot() +
+  geom_boxplot(aes(detectedConnections, total.counts, group = detectedConnections)) +
+  scale_x_continuous(
+    name = "Detected cell number", 
+    breaks = 0:max(nConnections)
+  ) +
+  scale_y_continuous(name = "Total counts") +
+  theme_bw()
+```
+
+### Fig 10: Detected cell number vs. Total ERCC counts
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  sample = names(nConnections),
+  detectedConnections = nConnections
+) %>%
+  inner_join(tibble(
+    sample = colnames(getData(cObjMul, "counts")),
+    total.ercc = colSums(getData(cObjMul, "counts.ercc"))
+  ), by = "sample") %>%
+  ggplot() +
+  geom_boxplot(aes(detectedConnections, total.ercc, group = detectedConnections)) +
+  scale_x_continuous(
+    name = "Detected cell number", 
+    breaks = 0:max(nConnections)
+  ) +
+  scale_y_continuous(name = "Total ERCC counts") +
+  theme_bw()
+```
+
+### Fig 11: Connections
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotSwarmCircos(sObj, cObjSng, cObjMul, classOrder = c(
+    "Goblet", "Goblet.Junb", "Goblet.Plet1", "Goblet.Mki67", "Stem",
+    "Lgr5+.Mki67", "TA", "Colonocytes", "Tufft", "Enteroendocrine"
+))
+```
+
+### Fig 12: Filtered
+
+Only detected duplicates and triplicates.  
+Only ERCC estimated cell number <= 4.  
+Weight cutoff = 5.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
+samples <- rownames(adj)
+rs <- rowSums(adj)
+keep1 <- rs == 2 | rs == 3
+keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
+
+plotSwarmCircos(
+  filterSwarm(sObj, keep1 & keep2), cObjSng, cObjMul, weightCut = 5, 
+  classOrder = c(
+    "Goblet", "Goblet.Junb", "Goblet.Plet1", "Goblet.Mki67", "Stem",
+    "Lgr5+.Mki67", "TA", "Colonocytes", "Tufft", "Enteroendocrine"
+))
+```

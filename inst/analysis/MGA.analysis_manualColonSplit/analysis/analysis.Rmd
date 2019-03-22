@@ -1,0 +1,333 @@
+---
+title: "Mouse analysis"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "ggthemes")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../data/CIMseqData.rda')
+load('../data/sObj.rda')
+```
+
+```{r}
+#rename classes
+renameClasses <- function(oldClasses) {
+  case_when(
+    oldClasses == "10" ~ "SI.TA.1",
+    oldClasses == "11" ~ "SI.Lgr5.Mki67.low",
+    oldClasses == "13" ~ "SI.Goblet",
+    oldClasses == "14" ~ "SI.TA.2",
+    oldClasses == "15" ~ "SI.Lgr5",
+    oldClasses == "16" ~ "SI.Enteroendocrine",
+    oldClasses == "17" ~ "SI.Enterocytes",
+    oldClasses == "19" ~ "SI.Tufft",
+    oldClasses == "20" ~ "SI.Lgr5.Mki67.low.singelton",
+    oldClasses == "22" ~ "SI.Paneth",
+    oldClasses == "23" ~ "SI.Goblet.Mki67",
+    oldClasses == "24" ~ "Blood",
+    oldClasses == "4" ~ "SI.Lgr5.Mki67.high",
+    oldClasses == "42" ~ "C.Proximal.Lgr5",
+    oldClasses == "43" ~ "C.Proximal.TA",
+    oldClasses == "44" ~ "C.Proximal.colonocytes",
+    oldClasses == "45" ~ "C.Proximal.Lgr5.Mki67",
+    oldClasses == "46" ~ "C.Proximal.goblet",
+    oldClasses == "47" ~ "C.Proximal.Enteroendocrine",
+    oldClasses == "48" ~ "C.Proximal.Tufft",
+    oldClasses == "49" ~ "C.Distal.Lgr5",
+    oldClasses == "50" ~ "C.Distal.Goblet",
+    oldClasses == "51" ~ "C.Distal.TA",
+    oldClasses == "52" ~ "C.Distal.Lgr5.Mki67",
+    oldClasses == "53" ~ "C.Distal.Goblet.Fos",
+    oldClasses == "54" ~ "C.Distal.Goblet.Plet1",
+    oldClasses == "55" ~ "C.Distal.colonocytes",
+    oldClasses == "56" ~ "C.Distal.Goblet.Mki67",
+    oldClasses == "57" ~ "C.Distal.Tufft",
+    oldClasses == "58" ~ "C.Distal.Enteroendocrine",
+    TRUE ~ "error"
+  )
+}
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+```{r, eval = FALSE, echo = FALSE}
+renameClassesMedium <- function(class) {
+  case_when(
+    class == "0" ~ "Colon.d",
+    class == "1" ~ "Colon.p",
+    class == "2" ~ "Colon.d",
+    class == "3" ~ "SmallIntestine",
+    class == "4" ~ "Colon.d",
+    class == "5" ~ "Colon.p",
+    class == "6" ~ "SmallIntestine",
+    class == "7" ~ "Colon.p",
+    class == "8" ~ "Colon.p",
+    class == "9" ~ "SmallIntestine",
+    class == "10" ~ "SmallIntestine",
+    class == "11" ~ "SmallIntestine",
+    class == "12" ~ "SmallIntestine",
+    class == "13" ~ "Colon.p",
+    class == "14" ~ "Colon.d",
+    class == "15" ~ "SmallIntestine",
+    class == "16" ~ "Enteroendo",
+    class == "17" ~ "SmallIntestine",
+    class == "18" ~ "Tufft",
+    class == "19" ~ "Colon.d",
+    class == "20" ~ "SmallIntestine",
+    class == "21" ~ "SmallIntestine",
+    class == "22" ~ "Colon",
+    class == "23" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+#Combine classes to simplify
+s.classes <- c(
+  "Colon.d", "Colon.p", "SmallIntestine", "Enteroendo", "Tufft", 
+  "Colon", "Blood"
+)
+fractions <- getData(sObj, "fractions")
+sObj@fractions <- sapply(s.classes, function(c) {
+  idx <- which(renameClassesMedium(colnames(fractions)) == c)
+  if(length(idx) == 1) fractions[, idx] else rowSums(fractions[, idx])
+})
+getData(cObjSng, "classification") <- renameClassesMedium(getData(cObjSng, "classification"))
+
+```
+
+### Fig 1: Classes
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul)
+```
+
+### Fig 2: Cell type gene expression
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+### Fig 3: Cell cycle and architecture marker
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, c("Mki67", "Plet1", "Junb"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+### Fig 4: Plates
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul) %>%
+  plotData() %>%
+  inner_join(MGA.Meta, by = c("Sample" = "sample")) %>%
+  ggplot() +
+  geom_point(aes(`dim.red dim 1`, `dim.red dim 2`, colour = unique_key)) +
+  ggthemes::theme_few() +
+  scale_colour_manual(values = col40())
+```
+
+### Fig 5: Mice
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul) %>%
+  plotData() %>%
+  inner_join(MGA.Meta, by = c("Sample" = "sample")) %>%
+  mutate(subject_id = as.character(subject_id)) %>%
+  ggplot() +
+  geom_point(aes(`dim.red dim 1`, `dim.red dim 2`, colour = subject_id), alpha = 0.3) +
+  ggthemes::theme_few() +
+  scale_colour_manual(values = col40())
+```
+
+### Fig 6: Age
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul) %>%
+  plotData() %>%
+  inner_join(MGA.Meta, by = c("Sample" = "sample")) %>%
+  mutate(subject_age = as.character(subject_age)) %>%
+  ggplot() +
+  geom_point(aes(`dim.red dim 1`, `dim.red dim 2`, colour = subject_age)) +
+  ggthemes::theme_few() +
+  scale_colour_manual(values = col40())
+```
+
+### Fig 7: Connections per multiplet
+
+```{r}
+adj <- adjustFractions(cObjSng, cObjMul, sObj)
+table(apply(adj, 1, sum))
+```
+
+### Fig 8: Fraction histogram
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(fractions = c(fractions)) %>%
+  ggplot() +
+  geom_histogram(aes(fractions), binwidth = 0.01) +
+  theme_bw()
+```
+
+### Fig 9: Detected cell types vs. cost
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  nCellTypes = apply(adj, 1, sum),
+  cost = getData(sObj, "costs")
+) %>%
+  ggplot() +
+  geom_boxplot(aes(nCellTypes, cost, group = nCellTypes)) +
+  scale_x_continuous(name = "Detected cell types", breaks = 0:max(apply(adj, 1, sum))) +
+  theme_bw()
+```
+
+### Fig 10: Estimated cell numbers vs. cost
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  sample = names(getData(sObj, "costs")),
+  cost = unname(getData(sObj, "costs"))
+) %>%
+  inner_join(
+    select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), 
+    by = "sample"
+  ) %>%
+  mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
+  ggplot() +
+  geom_boxplot(aes(estimatedCellNumber, cost, group = estimatedCellNumber)) +
+  scale_x_continuous(
+    name = "ERCC estimated cell number", 
+    breaks = 0:max(round(pull(estimateCells(cObjSng, cObjMul), estimatedCellNumber)))
+  ) +
+  theme_bw()
+```
+
+### Fig 11: Estimated cell number vs. Detected cell number
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
+nConnections <- apply(adj, 1, sum)
+nConnections %>% 
+  tibble(
+    sample = names(.), 
+    detectedConnections = .
+  ) %>% 
+  inner_join(ercc) %>% 
+  mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
+  ggplot() +
+  geom_boxplot(aes(estimatedCellNumber, detectedConnections, group = estimatedCellNumber)) +
+  scale_x_continuous(
+    name = "ERCC estimated cell number", 
+    breaks = 0:max(round(ercc$estimatedCellNumber))
+  ) +
+  scale_y_continuous(
+    name = "Detected cell number",
+    breaks = 0:max(round(nConnections))
+  ) +
+  theme_bw()
+```
+
+### Fig 12: Detected cell number vs. Total counts
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  sample = names(nConnections),
+  detectedConnections = nConnections
+) %>%
+  inner_join(tibble(
+    sample = colnames(getData(cObjMul, "counts")),
+    total.counts = colSums(getData(cObjMul, "counts"))
+  ), by = "sample") %>%
+  ggplot() +
+  geom_boxplot(aes(detectedConnections, total.counts, group = detectedConnections)) +
+  scale_x_continuous(
+    name = "Detected cell number", 
+    breaks = 0:max(nConnections)
+  ) +
+  scale_y_continuous(name = "Total counts") +
+  theme_bw()
+```
+
+### Fig 13: Detected cell number vs. Total ERCC counts
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+tibble(
+  sample = names(nConnections),
+  detectedConnections = nConnections
+) %>%
+  inner_join(tibble(
+    sample = colnames(getData(cObjMul, "counts")),
+    total.ercc = colSums(getData(cObjMul, "counts.ercc"))
+  ), by = "sample") %>%
+  ggplot() +
+  geom_boxplot(aes(detectedConnections, total.ercc, group = detectedConnections)) +
+  scale_x_continuous(
+    name = "Detected cell number", 
+    breaks = 0:max(nConnections)
+  ) +
+  scale_y_continuous(name = "Total ERCC counts") +
+  theme_bw()
+```
+
+### Fig 14: Connections
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotSwarmCircos(sObj, cObjSng, cObjMul, classOrder = c(
+  "SI.Goblet.Mki67", "SI.Goblet", "SI.Paneth", "SI.Lgr5", "SI.Lgr5.Mki67.low", 
+  "SI.Lgr5.Mki67.low.singelton", "SI.Lgr5.Mki67.high", "SI.TA.1", "SI.TA.2", "SI.Enterocytes",
+  "SI.Enteroendocrine", "SI.Tufft", "Blood",
+  "C.Proximal.Lgr5", "C.Proximal.Lgr5.Mki67", "C.Proximal.TA", "C.Proximal.colonocytes",
+  "C.Distal.Lgr5", "C.Distal.Lgr5.Mki67", "C.Distal.TA", "C.Distal.colonocytes",
+  "C.Proximal.goblet", "C.Distal.Goblet", "C.Distal.Goblet.Fos", "C.Distal.Goblet.Plet1", "C.Distal.Goblet.Mki67",
+  "C.Proximal.Enteroendocrine", "C.Distal.Enteroendocrine", "C.Proximal.Tufft", "C.Distal.Tufft"
+))
+```
+
+### Fig 15: Filtered
+
+Only detected duplicates and triplicates.  
+Only ERCC estimated cell number <= 4.  
+Weight cutoff = 5.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
+samples <- rownames(adj)
+rs <- rowSums(adj)
+keep1 <- rs == 2 | rs == 3
+keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
+
+plotSwarmCircos(
+  filterSwarm(sObj, keep1 & keep2), cObjSng, cObjMul, weightCut = 5, 
+  classOrder = c(
+  "SI.Goblet.Mki67", "SI.Goblet", "SI.Paneth", "SI.Lgr5", "SI.Lgr5.Mki67.low", 
+  "SI.Lgr5.Mki67.low.singelton", "SI.Lgr5.Mki67.high", "SI.TA.1", "SI.TA.2", "SI.Enterocytes",
+  "SI.Enteroendocrine", "SI.Tufft", "Blood",
+  "C.Proximal.Lgr5", "C.Proximal.Lgr5.Mki67", "C.Proximal.TA", "C.Proximal.colonocytes",
+  "C.Distal.Lgr5", "C.Distal.Lgr5.Mki67", "C.Distal.TA", "C.Distal.colonocytes",
+  "C.Proximal.goblet", "C.Distal.Goblet", "C.Distal.Goblet.Fos", "C.Distal.Goblet.Plet1", "C.Distal.Goblet.Mki67",
+  "C.Proximal.Enteroendocrine", "C.Distal.Enteroendocrine", "C.Proximal.Tufft", "C.Distal.Tufft"
+))
+```
+
+
+

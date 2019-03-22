@@ -29,8 +29,8 @@ renameClasses <- function(class) {
     class == "0" ~ "LGR5+.Mki67high",
     class == "1" ~ "LGR5+.Mki67low",
     class == "2" ~ "Goblet",
-    class == "3" ~ "TA.late",
-    class == "4" ~ "Stem",
+    class == "3" ~ "Stem",
+    class == "4" ~ "TA.late",
     class == "5" ~ "LGR5-.Mki67low",
     class == "6" ~ "Enterocyte",
     class == "7" ~ "TA.early",
@@ -181,6 +181,28 @@ tibble(
 ### Fig 11: Connections
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 plotSwarmCircos(sObj, cObjSng, cObjMul, classOrder = c(
+    "Paneth", "Stem", "LGR5+.Mki67low", "LGR5+.Mki67high", "LGR5-.Mki67low",
+    "TA.early", "TA.late", "Enterocyte", "Goblet", 
+    "Tufft", "Chromaffin", "Blood"
+))
+```
+
+### Fig 12: Filtered
+
+Only detected duplicates and triplicates.  
+Only ERCC estimated cell number <= 4.  
+Weight cutoff = 5.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
+samples <- rownames(adj)
+rs <- rowSums(adj)
+keep1 <- rs == 2 | rs == 3
+keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
+
+plotSwarmCircos(
+  filterSwarm(sObj, keep1 & keep2), cObjSng, cObjMul, weightCut = 5, 
+  classOrder = c(
     "Paneth", "Stem", "LGR5+.Mki67low", "LGR5+.Mki67high", "LGR5-.Mki67low",
     "TA.early", "TA.late", "Enterocyte", "Goblet", 
     "Tufft", "Chromaffin", "Blood"
