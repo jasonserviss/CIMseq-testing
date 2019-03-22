@@ -1,3 +1,4 @@
+^inst$.
 ^analysis$.
 ^.*\.Rproj$
 ^\.Rproj\.user$
