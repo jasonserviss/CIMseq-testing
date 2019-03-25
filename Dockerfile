@@ -27,6 +27,7 @@ RUN pip install "umap-learn==0.2.3"
 RUN Rscript -e "install.packages(c('devtools','knitr','rmarkdown','shiny','RCurl', 'BiocManager'), repos = 'https://cran.rstudio.com')"
 
 ##CRAN Package Imports
+RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('Rcpp/1.0.1')" 
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('googledrive/0.1.3')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('openxlsx/4.1.0')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('lubridate/1.7.4')"
@@ -38,7 +39,6 @@ RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/m
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('viridis/0.5.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('ggraph/1.0.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('tidygraph/1.1.0')"
-RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('Rcpp/0.12.19')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('future.apply/0.2.0')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('RANN/2.6')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('gmodels/2.18.1')"
@@ -53,7 +53,7 @@ RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/m
 RUN Rscript -e "remotes::install_github('thomasp85/patchwork@fd7958bae3e7a1e30237c751952e412a0a1d1242', dependencies = FALSE)"
 
 #Bioconductor package imports
-RUN Rscript -e "BiocManager::install('S4Vectors')"
+RUN Rscript -e "BiocManager::install('S4Vectors', update = FALSE)"
 
 # Clone and install EngeMetadata
 RUN mkdir ~/Github
