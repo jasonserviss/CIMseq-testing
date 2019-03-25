@@ -50,34 +50,61 @@ sObj@fractions <- fractions
 
 ### Fig 1: Classes
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-plotUnsupervisedClass(cObjSng, cObjMul)
+p <- plotUnsupervisedClass(cObjSng, cObjMul)
+p
+# ggsave(
+#   plot = p,
+#   filename = 'figures/figure1.pdf',
+#   device = cairo_pdf,
+#   height = 240,
+#   width = 240,
+#   units = "mm"
+# )
 ```
 
 ### Fig 2: Cell type gene expression
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-plotUnsupervisedMarkers(
+p <- plotUnsupervisedMarkers(
   cObjSng, cObjMul,
   c("Lgr5", "Muc2", "Ptprc", "Chga", "Alpi", "Lyz1", "Dclk1"),
   pal = RColorBrewer::brewer.pal(8, "Set1")
 )
+p
+# ggsave(
+#   plot = p,
+#   filename = 'figures/figure2.pdf',
+#   device = cairo_pdf,
+#   height = 240,
+#   width = 240,
+#   units = "mm"
+# )
 ```
 
 ### Fig 3: Cell cycle
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-plotUnsupervisedMarkers(
+p <- plotUnsupervisedMarkers(
   cObjSng, cObjMul, c("Mki67"),
   pal = RColorBrewer::brewer.pal(8, "Set1")
 )
+p
+# ggsave(
+#   plot = p,
+#   filename = 'figures/figure3.pdf',
+#   device = cairo_pdf,
+#   height = 240,
+#   width = 240,
+#   units = "mm"
+# )
 ```
 
 ### Fig 4: Connections per multiplet
-```{r}
+```{r, eval = FALSE}
 adj <- adjustFractions(cObjSng, cObjMul, sObj)
 table(apply(adj, 1, sum))
 ```
 
 ### Fig 5: Fraction histogram
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(fractions = c(fractions)) %>%
   ggplot() +
   geom_histogram(aes(fractions), binwidth = 0.01) +
@@ -85,7 +112,7 @@ tibble(fractions = c(fractions)) %>%
 ```
 
 ### Fig 6: Detected cell types vs. cost
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(
   nCellTypes = apply(adj, 1, sum),
   cost = getData(sObj, "costs")
@@ -97,7 +124,7 @@ tibble(
 ```
 
 ### Fig 7: Estimated cell numbers vs. cost
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(
   sample = rownames(getData(sObj, "fractions")),
   cost = unname(getData(sObj, "costs"))
@@ -117,7 +144,7 @@ tibble(
 ```
 
 ### Fig 8: Estimated cell number vs. Detected cell number
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
 nConnections <- apply(adj, 1, sum)
 nConnections <- nConnections[match(ercc$sample, names(nConnections))]
@@ -139,7 +166,7 @@ tibble(
 ```
 
 ### Fig 9: Detected cell number vs. Total counts
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(
   sample = names(nConnections),
   detectedConnections = nConnections
@@ -159,7 +186,7 @@ tibble(
 ```
 
 ### Fig 10: Detected cell number vs. Total ERCC counts
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(
   sample = names(nConnections),
   detectedConnections = nConnections
@@ -180,11 +207,13 @@ tibble(
 
 ### Fig 11: Connections
 ```{r, fig.align="center", fig.width=10, fig.height=8}
+#pdf('figures/figure4.pdf', width = 9.5, height = 9.5)
 plotSwarmCircos(sObj, cObjSng, cObjMul, classOrder = c(
     "Paneth", "Stem", "LGR5+.Mki67low", "LGR5+.Mki67high", "LGR5-.Mki67low",
     "TA.early", "TA.late", "Enterocyte", "Goblet", 
     "Tufft", "Chromaffin", "Blood"
 ))
+#dev.off()
 ```
 
 ### Fig 12: Filtered
@@ -200,6 +229,7 @@ rs <- rowSums(adj)
 keep1 <- rs == 2 | rs == 3
 keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
 
+#pdf('figures/figure5.pdf', width = 9.5, height = 9.5)
 plotSwarmCircos(
   filterSwarm(sObj, keep1 & keep2), cObjSng, cObjMul, weightCut = 5, 
   classOrder = c(
@@ -207,5 +237,6 @@ plotSwarmCircos(
     "TA.early", "TA.late", "Enterocyte", "Goblet", 
     "Tufft", "Chromaffin", "Blood"
 ))
+#dev.off()
 ```
 

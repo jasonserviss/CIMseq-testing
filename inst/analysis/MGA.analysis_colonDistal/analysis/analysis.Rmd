@@ -67,13 +67,13 @@ plotUnsupervisedMarkers(
 ```
 
 ### Fig 4: Connections per multiplet
-```{r}
+```{r, eval = FALSE}
 adj <- adjustFractions(cObjSng, cObjMul, sObj)
 table(apply(adj, 1, sum))
 ```
 
 ### Fig 5: Fraction histogram
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(fractions = c(fractions)) %>%
   ggplot() +
   geom_histogram(aes(fractions), binwidth = 0.01) +
@@ -81,7 +81,7 @@ tibble(fractions = c(fractions)) %>%
 ```
 
 ### Fig 6: Detected cell types vs. cost
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(
   nCellTypes = apply(adj, 1, sum),
   cost = getData(sObj, "costs")
@@ -93,7 +93,7 @@ tibble(
 ```
 
 ### Fig 7: Estimated cell numbers vs. cost
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(
   sample = names(getData(sObj, "costs")),
   cost = unname(getData(sObj, "costs"))
@@ -113,7 +113,7 @@ tibble(
 ```
 
 ### Fig 8: Estimated cell number vs. Detected cell number
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
 nConnections <- apply(adj, 1, sum)
 nConnections %>% 
@@ -137,7 +137,7 @@ nConnections %>%
 ```
 
 ### Fig 9: Detected cell number vs. Total counts
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(
   sample = names(nConnections),
   detectedConnections = nConnections
@@ -157,7 +157,7 @@ tibble(
 ```
 
 ### Fig 10: Detected cell number vs. Total ERCC counts
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(
   sample = names(nConnections),
   detectedConnections = nConnections
