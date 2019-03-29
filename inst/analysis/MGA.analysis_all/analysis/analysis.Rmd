@@ -12,7 +12,7 @@ editor_options:
 
 ```{r, message = FALSE}
 packages <- c(
-  "CIMseq", "sp.scRNAseqData", "printr", "ggthemes", "tidyverse"
+  "CIMseq", "CIMseq.data", "printr", "ggthemes", "tidyverse"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
@@ -52,100 +52,214 @@ colnames(fractions) <- renameClasses(colnames(fractions))
 sObj@fractions <- fractions
 ```
 
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+### Fig 1: Classes
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
 plotUnsupervisedClass(cObjSng, cObjMul)
+```
+
+### Fig 2: Cell type gene expression
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
 plotUnsupervisedMarkers(
-  cObjSng, cObjMul, 
-  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1", "Lyz1", "Alpi", "Hoxb13", "Mki67"),
+  cObjSng, cObjMul,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1", "Alpi", "Lyz1"),
   pal = RColorBrewer::brewer.pal(8, "Set1")
 )
 ```
 
-Show table of number of cells detected per multiplet with edge cutoff = 0.01.
-```{r}
-cut1 <- apply(fractions, 1, function(r) {
-  length(which(r > 0.01))
-})
-table(cut1)
+### Fig 3: Cell cycle and architecture marker
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, c("Mki67", "Plet1", "Junb"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
 ```
 
-Show table of number of cells detected per multiplet with edge cutoff = 0.001.
-```{r}
-cut2 <- apply(fractions, 1, function(r) {
-  length(which(r > 0.001))
-})
-table(cut2)
+### Fig 4: Plates
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul) %>%
+  plotData() %>%
+  inner_join(MGA.Meta, by = c("Sample" = "sample")) %>%
+  ggplot() +
+  geom_point(aes(`dim.red dim 1`, `dim.red dim 2`, colour = unique_key)) +
+  ggthemes::theme_few() +
+  scale_colour_manual(values = col40())
 ```
 
-Show histogram of fractions.
+### Fig 5: Mice
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul) %>%
+  plotData() %>%
+  inner_join(MGA.Meta, by = c("Sample" = "sample")) %>%
+  mutate(subject_id = as.character(subject_id)) %>%
+  ggplot() +
+  geom_point(aes(`dim.red dim 1`, `dim.red dim 2`, colour = subject_id), alpha = 0.3) +
+  ggthemes::theme_few() +
+  scale_colour_manual(values = col40())
+```
+
+### Fig 6: Age
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul) %>%
+  plotData() %>%
+  inner_join(MGA.Meta, by = c("Sample" = "sample")) %>%
+  mutate(subject_age = as.character(subject_age)) %>%
+  ggplot() +
+  geom_point(aes(`dim.red dim 1`, `dim.red dim 2`, colour = subject_age)) +
+  ggthemes::theme_few() +
+  scale_colour_manual(values = col40())
+```
+
+### Fig 7: Connections per multiplet
+
+```{r, eval = FALSE}
+adj <- adjustFractions(cObjSng, cObjMul, sObj)
+table(apply(adj, 1, sum))
+```
+
+### Fig 8: Fraction histogram
+
 ```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 tibble(fractions = c(fractions)) %>%
-  mutate(cut = if_else(fractions > 0.001, TRUE, FALSE)) %>%
   ggplot() +
   geom_histogram(aes(fractions), binwidth = 0.01) +
-  facet_wrap(~cut, scales = "free")
+  theme_bw()
 ```
 
-Show cost per number of detected connections. Connections quantified with edge 
-cutoff 0.01.
-```{r}
-cut1 <- apply(fractions, 1, function(r) {
-  length(which(r > 0.01))
-})
+### Fig 9: Detected cell types vs. cost
 
-tibble(nConnections = cut1, cost = getData(sObj, "costs")) %>%
-  mutate(nConnections = parse_factor(nConnections, levels = sort(unique(nConnections)))) %>%
-  ggplot() + 
-  geom_boxplot(aes(nConnections, cost))
-```
-
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE, echo = FALSE}
-
-ideal <- c(
-  "C.Goblet.distal.1", "C.Goblet.distal.2", "C.Stem.distal", "C.TA", "C.Colonocyte.distal",
-  "C.Colonocyte.proximal", "C.Stem.proximal", "C.Goblet.proximal",
-  "Chromaffin", "Tufft", "Blood", "SI.Goblet", "SI.Paneth", "SI.Stem",
-  "SI.TA", "SI.Enterocyte"
-)
-
-cut <- 0.01
-tibble(sample = rownames(fractions)) %>%
-  mutate(from = map(sample, function(s) {
-    sample <- fractions[s, ]
-    n <- colnames(fractions)[sample > cut]
-    if(length(n) == 1) {
-      tibble(Var1 = n, Var2 = n)
-    } else {
-      expand.grid(n, n, stringsAsFactors = FALSE) %>%
-        as.tibble()
-    }
-  })) %>%
-  unnest() %>%
-  filter(Var1 != Var2) %>%
-  inner_join(matrix_to_tibble(fractions, "sample"), by = "sample") %>%
-  gather(class, frac, -(sample:Var2)) %>%
-  mutate(frac = pmap_dbl(list(Var1, Var2, class, frac), function(fr, to, c, f) {
-    if_else(c %in% c(fr, to), f, 0)
-  })) %>% 
-  mutate(
-    xord1 = match(Var1, ideal),
-    xord2 = match(Var2, ideal)
-  ) %>%
-  arrange(xord1, xord2, frac) %>%
-  mutate(x = paste(sample, Var1, Var2, sep = "-")) %>%
-  mutate(x = parse_factor(x, levels = unique(x))) %>%
-  mutate(class = parse_factor(class, levels = ideal)) %>%
-  mutate(Var1 = parse_factor(Var1, levels = ideal)) %>%
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+tibble(
+  nCellTypes = apply(adj, 1, sum),
+  cost = getData(sObj, "costs")
+) %>%
   ggplot() +
-  geom_tile(aes(x, class, fill = frac)) +
-  facet_wrap(~ Var1, scales = "free_x") +
-  labs(x = "Connections", y = "Class") +
-  scale_fill_viridis_c() +
-  theme(
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  guides(fill = guide_colorbar(title = "Fractions"))
+  geom_boxplot(aes(nCellTypes, cost, group = nCellTypes)) +
+  scale_x_continuous(name = "Detected cell types", breaks = 0:max(apply(adj, 1, sum))) +
+  theme_bw()
 ```
 
+### Fig 10: Estimated cell numbers vs. cost
 
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+tibble(
+  sample = names(getData(sObj, "costs")),
+  cost = unname(getData(sObj, "costs"))
+) %>%
+  inner_join(
+    select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), 
+    by = "sample"
+  ) %>%
+  mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
+  ggplot() +
+  geom_boxplot(aes(estimatedCellNumber, cost, group = estimatedCellNumber)) +
+  scale_x_continuous(
+    name = "ERCC estimated cell number", 
+    breaks = 0:max(round(pull(estimateCells(cObjSng, cObjMul), estimatedCellNumber)))
+  ) +
+  theme_bw()
+```
+
+### Fig 11: Estimated cell number vs. Detected cell number
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
+nConnections <- apply(adj, 1, sum)
+nConnections %>% 
+  tibble(
+    sample = names(.), 
+    detectedConnections = .
+  ) %>% 
+  inner_join(ercc) %>% 
+  mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
+  ggplot() +
+  geom_boxplot(aes(estimatedCellNumber, detectedConnections, group = estimatedCellNumber)) +
+  scale_x_continuous(
+    name = "ERCC estimated cell number", 
+    breaks = 0:max(round(ercc$estimatedCellNumber))
+  ) +
+  scale_y_continuous(
+    name = "Detected cell number",
+    breaks = 0:max(round(nConnections))
+  ) +
+  theme_bw()
+```
+
+### Fig 12: Detected cell number vs. Total counts
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+tibble(
+  sample = names(nConnections),
+  detectedConnections = nConnections
+) %>%
+  inner_join(tibble(
+    sample = colnames(getData(cObjMul, "counts")),
+    total.counts = colSums(getData(cObjMul, "counts"))
+  ), by = "sample") %>%
+  ggplot() +
+  geom_boxplot(aes(detectedConnections, total.counts, group = detectedConnections)) +
+  scale_x_continuous(
+    name = "Detected cell number", 
+    breaks = 0:max(nConnections)
+  ) +
+  scale_y_continuous(name = "Total counts") +
+  theme_bw()
+```
+
+### Fig 13: Detected cell number vs. Total ERCC counts
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+tibble(
+  sample = names(nConnections),
+  detectedConnections = nConnections
+) %>%
+  inner_join(tibble(
+    sample = colnames(getData(cObjMul, "counts")),
+    total.ercc = colSums(getData(cObjMul, "counts.ercc"))
+  ), by = "sample") %>%
+  ggplot() +
+  geom_boxplot(aes(detectedConnections, total.ercc, group = detectedConnections)) +
+  scale_x_continuous(
+    name = "Detected cell number", 
+    breaks = 0:max(nConnections)
+  ) +
+  scale_y_continuous(name = "Total ERCC counts") +
+  theme_bw()
+```
+
+### Fig 14: Connections
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotSwarmCircos(sObj, cObjSng, cObjMul)
+```
+
+### Fig 15: Filtered
+
+Only detected duplicates and triplicates.  
+Only ERCC estimated cell number <= 4.  
+Weight cutoff = 5.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
+samples <- rownames(adj)
+rs <- rowSums(adj)
+keep1 <- rs == 2 | rs == 3
+keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
+
+plotSwarmCircos(
+  filterSwarm(sObj, keep1 & keep2), cObjSng, cObjMul, weightCut = 5, 
+  classOrder = c(
+  "SI.Goblet.Mki67", "SI.Goblet", "SI.Paneth", "SI.Lgr5", "SI.Lgr5.Mki67.low", 
+  "SI.Lgr5.Mki67.low.singelton", "SI.Lgr5.Mki67.high", "SI.TA.1", "SI.TA.2", "SI.Enterocytes",
+  "SI.Enteroendocrine", "SI.Tufft", "Blood",
+  "C.Proximal.Lgr5", "C.Proximal.Lgr5.Mki67", "C.Proximal.TA", "C.Proximal.colonocytes",
+  "C.Distal.Lgr5", "C.Distal.Lgr5.Mki67", "C.Distal.TA", "C.Distal.colonocytes",
+  "C.Proximal.goblet", "C.Distal.Goblet", "C.Distal.Goblet.Fos", "C.Distal.Goblet.Plet1", "C.Distal.Goblet.Mki67",
+  "C.Proximal.Enteroendocrine", "C.Distal.Enteroendocrine", "C.Proximal.Tufft", "C.Distal.Tufft"
+))
+```

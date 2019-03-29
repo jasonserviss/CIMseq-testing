@@ -1,0 +1,99 @@
+---
+title: "Mouse colon analysis"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "CIMseq.data", "tidyverse")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../data/output.rda')
+load('../../MGA.analysis_colon/data/CIMseqData.rda')
+#load('../../MGA.analysis_colon/data/sObj.rda')
+```
+
+```{r, eval = FALSE}
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "C.Goblet.distal",
+    class == "1" ~ "C.TA.proximal",
+    class == "2" ~ "C.TA.distal",
+    class == "3" ~ "C.Mki67",
+    class == "4" ~ "C.Colonocyte",
+    class == "5" ~ "C.Stem.distal",
+    class == "6" ~ "C.Stem.proximal",
+    class == "7" ~ "C.Goblet.proximal",
+    class == "8" ~ "C.Chromaffin",
+    class == "9" ~ "C.Goblet.Mki67",
+    class == "10" ~ "C.Tufft",
+    TRUE ~ "error"
+  )
+}
+c.order <- c(
+)
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul)
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, c("Mki67", "Hoxb13"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, c("Plet1", "Junb"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+CIMseq:::.norm.counts(MGAB.Counts)['Hoxb13', filter(MGAB.Meta, sub_tissue == "colon")$sample] %>%
+  tibble(sample = names(.), Hoxb13 = .) %>%
+  inner_join(select(MGAB.Meta, sample, section)) %>%
+  ggplot() +
+  geom_boxplot(aes(section, Hoxb13, group = section)) +
+  theme_bw()
+```
+
+Costs
+```{r}
+costs
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, warning = FALSE}
+fractions %>%
+  matrix_to_tibble("sample") %>%
+  gather(class, fraction, -sample) %>%
+  inner_join(select(MGAB.Meta, sample, section), by = "sample") %>%
+  ggplot() + 
+  geom_point(aes(section, fraction), alpha = 0.5) +
+  geom_smooth(aes(section, fraction), method = "loess", formula = y ~ x) +
+  facet_wrap(~class, scales = "free") +
+  theme_bw()
+```
+
+

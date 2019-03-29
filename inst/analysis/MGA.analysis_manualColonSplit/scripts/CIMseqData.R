@@ -273,6 +273,13 @@ new@ident <- new.ident
 #   vector.friendly = FALSE
 # )
 
+# FeaturePlot(
+#   new,
+#   c("Plet1", "Junb"),
+#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+#   vector.friendly = FALSE
+# )
+
 #markers
 markers <- FindAllMarkers(
   object = new, only.pos = TRUE, min.diff.pct = 0.2, logfc.threshold = log(2),
@@ -283,6 +290,7 @@ markers <- FindAllMarkers(
 #   object = new, genes.use = unique(markers$gene), slim.col.label = TRUE,
 #   remove.key = TRUE, group.label.rot = TRUE
 # )
+
 
 singlets <- singlets[, colnames(singlets) %in% colnames(new@data)]
 singletERCC <- singletERCC[, colnames(singletERCC) %in% colnames(singlets)]

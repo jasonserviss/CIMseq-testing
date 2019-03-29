@@ -37,7 +37,7 @@ mca <- NormalizeData(
 )
 mca <- FindVariableGenes(
   object = mca, mean.function = ExpMean, dispersion.function = LogVMR,
-  do.plot = TRUE, x.low.cutoff = 0.5, y.cutoff = 0.5
+  do.plot = TRUE, x.low.cutoff = 0.5, y.cutoff = 1
 )
 mca <- ScaleData(
   object = mca, genes.use = mca@var.genes, display.progress = FALSE, do.par = TRUE,
@@ -51,10 +51,8 @@ mca <- RunPCA(
 # mca <- JackStrawPlot(object = mca, PCs = 1:50)
 # PCp <- mca@dr$pca@jackstraw@overall.p.values
 # pcs <- PCp[PCp[, 2] < 10^-6, 1]
-pcs <- c(
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 
-  18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30, 31, 34
-)
+pcs <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 
+         18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30, 31, 34)
 
 # var <- mca@dr$pca@sdev^2
 # var.percent <- var / sum(var) * 100
@@ -65,15 +63,11 @@ pcs <- c(
 # )
 # print(paste0("Using ", max(pcs), " principal components."))
 
-#984370
-#984375
-#984385
-#984395
 mca <- RunUMAP(
   object = mca, reduction.use = "pca", dims.use = pcs, min_dist = 0.45,
   n_neighbors = 10, seed.use = 984335
 )
-#984342
+
 # mca <- RunTSNE(mca, dims.use = pcs, seed.use = 2387, perplexity = 30)
 
 # mca <- FindClusters(
@@ -89,48 +83,48 @@ mca <- FindClusters(
   force.recalc = TRUE, random.seed = 93820
 )
 
-DimPlot(
-  object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
-  vector.friendly = FALSE, pt.size = 1
-) + scale_colour_manual(values = col40())
-
-FeaturePlot(
-  mca,
-  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1", "Mki67", "Hoxb13"),
-  reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
-  vector.friendly = FALSE
-)
-FeaturePlot(
-  mca,
-  c("Lgr5", "Slc26a3", "Alpi", "Mki67", "Hoxb13"),
-  reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
-  vector.friendly = FALSE
-)
-matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
-  inner_join(tibble(
-    sample = colnames(singlets), 
-    total.counts = colSums(singlets)
-  )) %>%
-  ggplot() +
-  geom_point(aes(UMAP1, UMAP2, colour = total.counts)) +
-  scale_colour_viridis_c() +
-  theme_few()
-
-matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
-  inner_join(tibble(
-    sample = colnames(singlets), 
-    total.genes = apply(singlets, 2, function(c) length(which(c != 0)))
-  )) %>%
-  ggplot() +
-  geom_point(aes(UMAP1, UMAP2, colour = total.genes)) +
-  scale_colour_viridis_c() +
-  theme_few()
-
-matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
-  inner_join(MGA.Meta, by = "sample") %>%
-  ggplot() +
-  geom_point(aes(UMAP1, UMAP2, colour = unique_key)) +
-  scale_colour_manual(values = c(col40(), "black"))
+# DimPlot(
+#   object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
+#   vector.friendly = FALSE, pt.size = 1
+# ) + scale_colour_manual(values = col40())
+# 
+# FeaturePlot(
+#   mca,
+#   c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1", "Mki67", "Hoxb13"),
+#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+#   vector.friendly = FALSE
+# )
+# FeaturePlot(
+#   mca,
+#   c("Lgr5", "Slc26a3", "Alpi", "Mki67", "Hoxb13"),
+#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+#   vector.friendly = FALSE
+# )
+# matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
+#   inner_join(tibble(
+#     sample = colnames(singlets), 
+#     total.counts = colSums(singlets)
+#   )) %>%
+#   ggplot() +
+#   geom_point(aes(UMAP1, UMAP2, colour = total.counts)) +
+#   scale_colour_viridis_c() +
+#   theme_few()
+# 
+# matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
+#   inner_join(tibble(
+#     sample = colnames(singlets), 
+#     total.genes = apply(singlets, 2, function(c) length(which(c != 0)))
+#   )) %>%
+#   ggplot() +
+#   geom_point(aes(UMAP1, UMAP2, colour = total.genes)) +
+#   scale_colour_viridis_c() +
+#   theme_few()
+# 
+# matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
+#   inner_join(MGA.Meta, by = "sample") %>%
+#   ggplot() +
+#   geom_point(aes(UMAP1, UMAP2, colour = unique_key)) +
+#   scale_colour_manual(values = c(col40(), "black"))
 
 #find differentially expressed genes
 markers <- FindAllMarkers(

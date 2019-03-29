@@ -1,0 +1,109 @@
+---
+title: "Colon Multiplet Segment Analysis"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "CIMseq.data", "tidyverse")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../../MGA.analysis_colon/data/CIMseqData.rda')
+load('../../MGA.analysis_colon/data/sObj.rda')
+```
+
+```{r}
+calculateEdgeStats(sObj, cObjSng, cObjMul)
+```
+
+```{r, eval = FALSE}
+s <- rownames(getData(sObj, "fractions"))
+mgas <- s[str_detect(s, "NJD")]
+multiplets <- getData(cObjMul, "counts")
+sharedGenes <- intersect(rownames(multiplets), rownames(MGAS.Counts))
+features <- which(sharedGenes %in% rownames(multiplets)[getData(cObjMul, "features")])
+singlets <- getData(cObjSng, "counts")[sharedGenes, ]
+
+cObjMul	 <- CIMseqMultiplets(
+  cbind(multiplets[sharedGenes, ], MGAS.Counts[sharedGenes, mgas]),
+  cbind(getData(cObjMul, "counts.ercc"), MGAS.CountsERCC[, mgas]),
+  features
+)
+cObjSng <- CIMseqSinglets(
+  singlets,
+  getData(cObjSng, "counts.ercc"),
+  getData(cObjSng, "dim.red"),
+  getData(cObjSng, "classification")
+)
+```
+
+```{r}
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "C.Goblet.distal",
+    class == "1" ~ "C.TA.proximal",
+    class == "2" ~ "C.TA.distal",
+    class == "3" ~ "C.Mki67",
+    class == "4" ~ "C.Colonocyte",
+    class == "5" ~ "C.Stem.distal",
+    class == "6" ~ "C.Stem.proximal",
+    class == "7" ~ "C.Goblet.proximal",
+    class == "8" ~ "C.Chromaffin",
+    class == "9" ~ "C.Goblet.Mki67",
+    class == "10" ~ "C.Tufft",
+    TRUE ~ "error"
+  )
+}
+
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+```{r, fig.align="center", fig.width=12, fig.height=10}
+getEdgesForMultiplet(sObj, cObjSng, cObjMul) %>%
+  mutate(Connection = map2_chr(from, to, ~paste(sort(c(.x, .y)), collapse = "-"))) %>%
+  select(sample, Connection) %>%
+  distinct() %>%
+  inner_join(select(MGAS.Meta, sample, Section), by = "sample") %>%
+  count(Section, Connection) %>%
+  rename(`Connections (n)` = n) %>%
+  mutate(type = case_when(
+    str_detect(Connection, "proximal") ~ "Proximal cell types",
+    str_detect(Connection, "distal") ~ "Distal cell types",
+    TRUE ~ "other cell types"
+  )) %>% 
+  ggplot() +
+  geom_tile(aes(Section, Connection, fill = `Connections (n)`)) +
+  scale_fill_viridis_c() +
+  facet_wrap(~type) +
+  theme_bw() +
+  labs(x = "Proximal -> Distal") +
+  theme(axis.text.x = element_text(angle = 90), legend.position = "top") +
+  guides(fill = guide_colorbar(title.hjust = 0.5, title.position = "top"))
+```
+
+Check for connections found in the matched samples but not in the section
+samples.
+
+```{r}
+d <- getEdgesForMultiplet(sObj, cObjSng, cObjMul) %>%
+  unite(connection, from, to, sep = "-") %>%
+  mutate(type = if_else(str_detect(sample, "NJA"), "matched", "sections"))
+
+a <- filter(d, type == "matched")$connection
+b <- filter(d, type == "sections")$connection
+table(a[!a %in% b])
+```
+
