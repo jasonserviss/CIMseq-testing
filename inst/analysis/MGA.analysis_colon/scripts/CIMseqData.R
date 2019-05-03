@@ -39,6 +39,18 @@ mca <- FindVariableGenes(
   object = mca, mean.function = ExpMean, dispersion.function = LogVMR,
   do.plot = FALSE, x.low.cutoff = 0.5, x.high.cutoff = Inf
 )
+load('../TMD.analysis/data/DE.rda')
+genes <- de %>% 
+  mutate(mean = map_dbl(gene, function(g) mean(singlets[g, ]))) %>%
+  filter(mean > 1) %>%
+  mutate(pct.diff = abs(pct.1 - pct.2)) %>%
+  group_by(cluster) %>% 
+  top_n(100, pct.diff) %>% 
+  pull(gene) %>% 
+  unique() 
+#"Tgm3"    "Klk1"    "Slc15a1" "Saa2"    "Atp12a" 
+mca@var.genes <- genes
+
 mca <- ScaleData(
   object = mca, genes.use = mca@var.genes, display.progress = FALSE, do.par = TRUE,
   num.cores = 4
@@ -50,29 +62,29 @@ mca <- RunPCA(
 
 PCAPlot(object = mca, dim.1 = 1, dim.2 = 2) +
   scale_colour_manual(values = col40())
-mca <- JackStraw(object = mca, num.replicate = 100, display.progress = TRUE, num.pc = 50)
+mca <- JackStraw(object = mca, num.replicate = 100, display.progress = TRUE, num.pc = 50, do.par = TRUE, num.cores = 8)
 mca <- JackStrawPlot(object = mca, PCs = 1:50)
 PCp <- mca@dr$pca@jackstraw@overall.p.values
 pcs <- PCp[PCp[, 2] < 10^-6, 1]
 pcs <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 
         18, 19, 20, 21, 22, 24, 25, 26)
 # VizPCA(object = mca, pcs.use = pcs[1:10])
-# var <- mca@dr$pca@sdev^2
-# var.percent <- var / sum(var) * 100
-# barplot(
-#   var.percent, xlab = "PC", ylab = "Percent Variance", 
-#   names.arg = 1:length(var.percent), las = 1, ylim = c(0, max(var.percent) + 2),
-#   col = "gray"
-# )
-# 
-# pcGeneCorr <- function(PCs, gene, cpm) {
-#   c <- cor(PCs, cpm[gene, ])
-#   plot(c)
-#   abline(h = 0, col = "red", lty = 2)
-#   imax <- which(c[, 1] == max(c[, 1]))
-#   print(paste0(rownames(c)[imax], " highest correlation at ", c[imax, ]))
-# }
-# pcGeneCorr(mca@dr$pca@cell.embeddings, "Hoxb13", singlets)
+var <- mca@dr$pca@sdev^2
+var.percent <- var / sum(var) * 100
+barplot(
+  var.percent, xlab = "PC", ylab = "Percent Variance",
+  names.arg = 1:length(var.percent), las = 1, ylim = c(0, max(var.percent) + 2),
+  col = "gray"
+)
+
+pcGeneCorr <- function(PCs, gene, cpm) {
+  c <- cor(PCs, cpm[gene, ])
+  plot(c)
+  abline(h = 0, col = "red", lty = 2)
+  imax <- which(c[, 1] == max(c[, 1]))
+  print(paste0(rownames(c)[imax], " highest correlation at ", c[imax, ]))
+}
+pcGeneCorr(mca@dr$pca@cell.embeddings, "Hoxb13", singlets)
 print(paste0("Using ", max(pcs), " principal components."))
 
 #umap representation at: mca@dr$umap@cell.embeddings
@@ -115,9 +127,6 @@ print(paste0("Using ", max(pcs), " principal components."))
 #   geom_point(aes(V1, V2, colour = unique_key)) +
 #   scale_colour_manual(values = c(col40(), "black")) +
 #   theme(legend.position = "top")
-# 
-#reticulate::use_python('/Users/jason/miniconda3/bin/python')
-#reticulate::py_config()
 
 mca <- RunUMAP(
   object = mca, reduction.use = "pca", dims.use = pcs[1:10], min_dist = 0.5,

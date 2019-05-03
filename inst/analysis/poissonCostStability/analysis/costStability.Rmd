@@ -18,7 +18,7 @@ library(tidyverse)
 load("../data/costs.rda")
 ```
 
-
+## SCM dataset
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 tests <- seq(50, 1000, 50)
 p <- data %>%
@@ -43,6 +43,27 @@ ggsave(
   device = cairo_pdf, height = 180,
   width = 240, units = "mm"
 )
+```
+
+## Enge, Regev, Tabula Muris dataset
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+load('../data/costs2.rda')
+nSyntheticMultiplets <- c(10, 100, 400, 800, 1200, 1600, 2000)
+tibble(
+  nSyntheticMultiplets = nSyntheticMultiplets,
+  costs
+) %>%
+  unnest() %>%
+  ggplot() +
+  geom_boxplot(aes(nSyntheticMultiplets, costs, group = nSyntheticMultiplets)) +
+  theme_bw() +
+  theme(plot.caption = element_text(hjust = 0)) +
+  scale_x_continuous(breaks = nSyntheticMultiplets, minor_breaks = nSyntheticMultiplets) +
+  labs(
+    x = "Number of synthetic multiplets", y = "Cost",
+    caption = "21 replicates per number of synthetic multiplets"
+  )
 ```
 
 ```{r}

@@ -1,5 +1,5 @@
 ---
-title: "Mouse analysis"
+title: "Mouse analysis manual colon split"
 author: "Jason T. Serviss"
 date: "`r Sys.Date()`"
 output:
@@ -174,14 +174,14 @@ plotUnsupervisedClass(cObjSng, cObjMul) %>%
 
 ### Fig 7: Connections per multiplet
 
-```{r, eval = FALSE}
+```{r, eval = TRUE}
 adj <- adjustFractions(cObjSng, cObjMul, sObj)
-table(apply(adj, 1, sum))
+table(apply(adj, 1, sum)) / nrow(adj) * 100
 ```
 
 ### Fig 8: Fraction histogram
 
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(fractions = c(fractions)) %>%
   ggplot() +
   geom_histogram(aes(fractions), binwidth = 0.01) +
@@ -190,7 +190,7 @@ tibble(fractions = c(fractions)) %>%
 
 ### Fig 9: Detected cell types vs. cost
 
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(
   nCellTypes = apply(adj, 1, sum),
   cost = getData(sObj, "costs")
@@ -203,7 +203,7 @@ tibble(
 
 ### Fig 10: Estimated cell numbers vs. cost
 
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(
   sample = names(getData(sObj, "costs")),
   cost = unname(getData(sObj, "costs"))
@@ -216,15 +216,15 @@ tibble(
   ggplot() +
   geom_boxplot(aes(estimatedCellNumber, cost, group = estimatedCellNumber)) +
   scale_x_continuous(
-    name = "ERCC estimated cell number", 
-    breaks = 0:max(round(pull(estimateCells(cObjSng, cObjMul), estimatedCellNumber)))
+    name = "ERCC estimated cell number"
+    #breaks = 0:max(round(pull(estimateCells(cObjSng, cObjMul), estimatedCellNumber)))
   ) +
   theme_bw()
 ```
 
 ### Fig 11: Estimated cell number vs. Detected cell number
 
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
 nConnections <- apply(adj, 1, sum)
 nConnections %>% 
@@ -249,7 +249,7 @@ nConnections %>%
 
 ### Fig 12: Detected cell number vs. Total counts
 
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(
   sample = names(nConnections),
   detectedConnections = nConnections
@@ -270,7 +270,7 @@ tibble(
 
 ### Fig 13: Detected cell number vs. Total ERCC counts
 
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(
   sample = names(nConnections),
   detectedConnections = nConnections

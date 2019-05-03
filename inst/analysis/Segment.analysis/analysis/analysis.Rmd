@@ -16,94 +16,81 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
-load('../../MGA.analysis_colon/data/CIMseqData.rda')
-load('../../MGA.analysis_colon/data/sObj.rda')
-```
+load('../../MGA.analysis_colonProximal/data/CIMseqData.rda')
+load('../../MGA.analysis_colonProximal/data/sObj.rda')
+cObjSng.p <- cObjSng
+cObjMul.p <- cObjMul
+sObj.p <- sObj
+rm(cObjSng, cObjMul, sObj)
+load('../../MGA.analysis_colonDistal/data/CIMseqData.rda')
+cObjSng.d <- cObjSng
+cObjMul.d <- cObjMul
+rm(cObjSng, cObjMul)
 
-```{r}
-calculateEdgeStats(sObj, cObjSng, cObjMul)
-```
-
-```{r, eval = FALSE}
-s <- rownames(getData(sObj, "fractions"))
-mgas <- s[str_detect(s, "NJD")]
-multiplets <- getData(cObjMul, "counts")
-sharedGenes <- intersect(rownames(multiplets), rownames(MGAS.Counts))
-features <- which(sharedGenes %in% rownames(multiplets)[getData(cObjMul, "features")])
-singlets <- getData(cObjSng, "counts")[sharedGenes, ]
-
-cObjMul	 <- CIMseqMultiplets(
-  cbind(multiplets[sharedGenes, ], MGAS.Counts[sharedGenes, mgas]),
-  cbind(getData(cObjMul, "counts.ercc"), MGAS.CountsERCC[, mgas]),
-  features
-)
-cObjSng <- CIMseqSinglets(
-  singlets,
-  getData(cObjSng, "counts.ercc"),
-  getData(cObjSng, "dim.red"),
-  getData(cObjSng, "classification")
-)
-```
-
-```{r}
 #rename classes
-renameClasses <- function(class) {
-  case_when(
-    class == "0" ~ "C.Goblet.distal",
-    class == "1" ~ "C.TA.proximal",
-    class == "2" ~ "C.TA.distal",
-    class == "3" ~ "C.Mki67",
-    class == "4" ~ "C.Colonocyte",
-    class == "5" ~ "C.Stem.distal",
-    class == "6" ~ "C.Stem.proximal",
-    class == "7" ~ "C.Goblet.proximal",
-    class == "8" ~ "C.Chromaffin",
-    class == "9" ~ "C.Goblet.Mki67",
-    class == "10" ~ "C.Tufft",
+renameClasses.d <- function(class) {
+  n <- case_when(
+    class == "0" ~ "Stem",
+    class == "1" ~ "TA",
+    class == "2" ~ "Goblet.Junb",
+    class == "3" ~ "Goblet",
+    class == "4" ~ "Goblet.Plet1",
+    class == "5" ~ "Lgr5+.Mki67",
+    class == "6" ~ "Colonocytes",
+    class == "7" ~ "Goblet.Mki67",
+    class == "8" ~ "Tufft",
+    class == "9" ~ "Enteroendocrine",
     TRUE ~ "error"
   )
+  paste0(n, ".distal")
 }
+getData(cObjSng.d, "classification") <- renameClasses.d(getData(cObjSng.d, "classification"))
+fractions <- getData(sObj.d, "fractions")
+colnames(fractions) <- renameClasses.d(colnames(fractions))
+sObj.d@fractions <- fractions
 
+renameClasses.p <- function(class) {
+  n <- case_when(
+    class == "0" ~ "Stem",
+    class == "1" ~ "TA",
+    class == "2" ~ "Colonocytes",
+    class == "3" ~ "Goblet",
+    class == "4" ~ "Lgr5+.Mki67",
+    class == "5" ~ "Enteroendocrine",
+    class == "6" ~ "Tufft",
+    TRUE ~ "error"
+  )
+  paste0(n, ".proximal")
+}
+getData(cObjSng.p, "classification") <- renameClasses.p(getData(cObjSng.p, "classification"))
+fractions <- getData(sObj.p, "fractions")
+colnames(fractions) <- renameClasses.p(colnames(fractions))
+sObj.p@fractions <- fractions
 
-getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
-fractions <- getData(sObj, "fractions")
-colnames(fractions) <- renameClasses(colnames(fractions))
-sObj@fractions <- fractions
+cObjSng <- c(cObjSng.p, cObjSng.d)
+cObjMul <- c(cObjMul.p, cObjMul.d)
+
+fractions.p <- getData(sObj.p, "fractions")
+fractions.d <- getData(sObj.d, "fractions")
+fractions.new <- matrix(
+  0, 
+  ncol = ncol(fractions.p) + ncol(fractions.d), 
+  nrow = nrow(fractions.p) + nrow(fractions.d),
+  dimnames = list(
+    c(rownames(fractions.p), rownames(fractions.d)),
+    c(colnames(fractions.p), colnames(fractions.d))
+  )
+)
+fractions.new[1:nrow(fractions.p), 1:ncol(fractions.p)] <- fractions.p
+fractions.new[(nrow(fractions.p) + 1):nrow(fractions.new), (ncol(fractions.p) + 1):ncol(fractions.new)] <- fractions.d
+
+sObj <- new(
+    "CIMseqSwarm",
+    fractions = fractions.new,
+    costs = c(getData(sObj.p, "costs"), getData(sObj.d, "costs")),
+    convergence = c(getData(sObj.p, "convergence"), getData(sObj.d, "convergence")),
+    stats = tibble(),
+    singletIdx = list(),
+    arguments = tibble()
+  )
 ```
-
-```{r, fig.align="center", fig.width=12, fig.height=10}
-getEdgesForMultiplet(sObj, cObjSng, cObjMul) %>%
-  mutate(Connection = map2_chr(from, to, ~paste(sort(c(.x, .y)), collapse = "-"))) %>%
-  select(sample, Connection) %>%
-  distinct() %>%
-  inner_join(select(MGAS.Meta, sample, Section), by = "sample") %>%
-  count(Section, Connection) %>%
-  rename(`Connections (n)` = n) %>%
-  mutate(type = case_when(
-    str_detect(Connection, "proximal") ~ "Proximal cell types",
-    str_detect(Connection, "distal") ~ "Distal cell types",
-    TRUE ~ "other cell types"
-  )) %>% 
-  ggplot() +
-  geom_tile(aes(Section, Connection, fill = `Connections (n)`)) +
-  scale_fill_viridis_c() +
-  facet_wrap(~type) +
-  theme_bw() +
-  labs(x = "Proximal -> Distal") +
-  theme(axis.text.x = element_text(angle = 90), legend.position = "top") +
-  guides(fill = guide_colorbar(title.hjust = 0.5, title.position = "top"))
-```
-
-Check for connections found in the matched samples but not in the section
-samples.
-
-```{r}
-d <- getEdgesForMultiplet(sObj, cObjSng, cObjMul) %>%
-  unite(connection, from, to, sep = "-") %>%
-  mutate(type = if_else(str_detect(sample, "NJA"), "matched", "sections"))
-
-a <- filter(d, type == "matched")$connection
-b <- filter(d, type == "sections")$connection
-table(a[!a %in% b])
-```
-

@@ -1,0 +1,43 @@
+---
+title: "Mouse analysis all"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c(
+  "CIMseq", "CIMseq.data", "printr", "ggthemes", "tidyverse", "Seurat"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../data/seuratObj.rda')
+```
+
+```{r}
+DimPlot(
+  object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
+  vector.friendly = FALSE, pt.size = 1
+) + scale_colour_manual(values = col40())
+
+FeaturePlot(
+  mca,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1", "Mki67", "Hoxb13"),
+  reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+  vector.friendly = FALSE, do.return = FALSE
+)
+
+matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
+  mutate(joined = if_else(nchar(sample) == 12, FALSE, TRUE)) %>%
+  ggplot() +
+  geom_point(aes(UMAP1, UMAP2, colour = joined)) +
+  scale_colour_manual(values = col40())
+```
+
