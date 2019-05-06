@@ -226,6 +226,10 @@ p.cor %>%
   guides(fill = guide_colorbar(title = "Pearson's\ncorrelation"))
 ```
 
+```{r}
+knitr::knit_exit()
+```
+
 ### Fig 10: Connections per multiplet
 
 ```{r, eval = TRUE}
