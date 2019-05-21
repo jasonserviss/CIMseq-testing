@@ -27,43 +27,40 @@ load('../data/sObj.rda')
 renameClasses <- function(class) {
   case_when(
     class == "0" ~ "C.Lgr5.proximal.1",
-    class == "1" ~ "C.Lgr5.proximal.2",
-    class == "2" ~ "C.Colonocytes.early.proximal",
-    class == "3" ~ "SI.Stem",
+    class == "1" ~ "SI.Stem",
+    class == "2" ~ "C.TA.proximal.1",
+    class == "3" ~ "C.Lgr5.proximal.2",
     class == "4" ~ "C.Lgr5.distal",
-    class == "5" ~ "C.Goblet.distal.1",
-    class == "6" ~ "C.Colonocytes.late.proximal",
-    class == "7" ~ "SI.Lgr5.Mki67",
-    class == "8" ~ "C.TA.proximal",
-    class == "9" ~ "C.TA.distal",
-    class == "10" ~ "SI.TA.1",
-    class == "11" ~ "C.Colonocytes.distal",
-    class == "12" ~ "C.Lgr5.Mki67.proximal.2",
-    class == "13" ~ "C.Goblet.distal.2",
-    class == "14" ~ "C.Goblet.proximal.1",
-    class == "15" ~ "C.Goblet.proximal.2",
+    class == "5" ~ "SI.Lgr5.Mki67",
+    class == "6" ~ "C.Goblet.distal.1",
+    class == "7" ~ "SI.TA.1",
+    class == "8" ~ "C.TA.proximal.2",
+    class == "9" ~ "C.Goblet.distal.2",
+    class == "10" ~ "SI.TA.2",
+    class == "11" ~ "C.Goblet.proximal.1",
+    class == "12" ~ "SI.Goblet",
+    class == "13" ~ "SI.Enterocytes",
+    class == "14" ~ "C.Colonocytes.distal",
+    class == "15" ~ "C.Goblet.distal.3",
     class == "16" ~ "C.Lgr5.Mki67.proximal.1",
-    class == "17" ~ "SI.Goblet",
-    class == "18" ~ "SI.Enterocytes.early",
-    class == "19" ~ "C.Goblet.distal.3",
-    class == "20" ~ "C.Goblet.distal.4",
-    class == "21" ~ "Tufft",
-    class == "22" ~ "SI.TA.2",
-    class == "23" ~ "C.Goblet.distal.5",
-    class == "24" ~ "Enteroendocrine",
-    class == "25" ~ "SI.Enterocytes.late",
-    class == "26" ~ "C.Goblet.distal.6",
-    class == "27" ~ "SI.Paneth",
-    class == "28" ~ "Blood",
+    class == "17" ~ "C.TA.distal",
+    class == "18" ~ "C.Lgr5.Mki67.proximal.2",
+    class == "19" ~ "C.Colonocyte.proximal.1",
+    class == "20" ~ "Tufft",
+    class == "21" ~ "C.Colonocyte.proximal.2",
+    class == "22" ~ "C.Goblet.proximal.2",
+    class == "23" ~ "Enteroendocrine",
+    class == "24" ~ "C.Goblet.distal.4",
+    class == "25" ~ "SI.Paneth",
     TRUE ~ "error"
   )
 }
 
 c.order <- c(
-  "SI.Goblet", "SI.Paneth", "SI.Stem", "SI.Lgr5.Mki67", "SI.TA.1", "SI.TA.2", "SI.Enterocytes.early", "SI.Enterocytes.late",
-  "C.Goblet.proximal.1", "C.Goblet.proximal.2", "C.Lgr5.proximal.1", "C.Lgr5.proximal.2", "C.Lgr5.Mki67.proximal.1", "C.Lgr5.Mki67.proximal.2", "C.TA.proximal", "C.Colonocytes.early.proximal", "C.Colonocytes.late.proximal",
-  "C.Goblet.distal.1", "C.Goblet.distal.2", "C.Goblet.distal.3", "C.Goblet.distal.4", "C.Goblet.distal.5", "C.Goblet.distal.6", "C.Lgr5.distal", "C.TA.distal", "C.Colonocytes.distal",
-  "Tufft", "Enteroendocrine", "Blood"
+  "SI.Goblet", "SI.Paneth", "SI.Stem", "SI.Lgr5.Mki67", "SI.TA.1", "SI.TA.2", "SI.Enterocytes",
+  "C.Goblet.proximal.1", "C.Goblet.proximal.2", "C.Lgr5.proximal.1", "C.Lgr5.proximal.2", "C.Lgr5.Mki67.proximal.1", "C.Lgr5.Mki67.proximal.2", "C.TA.proximal.1", "C.TA.proximal.2", "C.Colonocyte.proximal.1", "C.Colonocyte.proximal.2",
+  "C.Goblet.distal.1", "C.Goblet.distal.2", "C.Goblet.distal.3", "C.Goblet.distal.4", "C.Lgr5.distal", "C.TA.distal", "C.Colonocytes.distal",
+  "Tufft", "Enteroendocrine"
 )
 
 getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
@@ -226,15 +223,32 @@ p.cor %>%
   guides(fill = guide_colorbar(title = "Pearson's\ncorrelation"))
 ```
 
-```{r}
-knitr::knit_exit()
-```
-
 ### Fig 10: Connections per multiplet
 
+There are `r nrow(getData(sObj, "fractions"))` multiplets in the analysis.
+
+```{r, echo = FALSE}
+#setup singlets object with only our data
+engeBool <- str_detect(colnames(getData(cObjSng, "counts")), "s.NJ")
+cObjSng.enge <- CIMseqSinglets(
+  getData(cObjSng, "counts")[, engeBool],
+  getData(cObjSng, "counts.ercc")[, engeBool],
+  getData(cObjSng, "dim.red")[engeBool, ],
+  getData(cObjSng, "classification")[engeBool]
+)
+```
+
 ```{r, eval = TRUE}
-adj <- adjustFractions(cObjSng, cObjMul, sObj)
-table(apply(adj, 1, sum)) / nrow(adj) * 100
+adj <- adjustFractions(cObjSng.enge, cObjMul, sObj, theoretical.max = 4)
+nConnections <- rowSums(adj)
+table(nConnections) / length(nConnections) * 100
+
+tibble(
+  sample = names(nConnections),
+  connections = nConnections
+) %>% 
+  inner_join(MGA.Meta, by = "sample") %>%
+  count(sub_tissue, connections)
 ```
 
 ### Fig 11: Fraction histogram
@@ -250,25 +264,27 @@ tibble(fractions = c(fractions)) %>%
 ### Fig 12: Detected cell types vs. cost
 
 ```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
+costs <- getData(sObj, "costs")
 tibble(
-  nCellTypes = apply(adj, 1, sum),
-  cost = getData(sObj, "costs")
+  nCellTypes = nConnections,
+  cost = costs
 ) %>%
   ggplot() +
   geom_boxplot(aes(nCellTypes, cost, group = nCellTypes)) +
-  scale_x_continuous(name = "Detected cell types", breaks = 0:max(apply(adj, 1, sum))) +
+  scale_x_continuous(name = "Detected cell types", breaks = 0:max(nConnections)) +
   theme_bw()
 ```
 
 ### Fig 13: Estimated cell numbers vs. cost
 
 ```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
+estimatedCells <- estimateCells(cObjSng.enge, cObjMul, theoretical.max = 4)
 tibble(
-  sample = names(getData(sObj, "costs")),
-  cost = unname(getData(sObj, "costs"))
+  sample = names(costs),
+  cost = unname(costs)
 ) %>%
   inner_join(
-    select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), 
+    select(estimatedCells, sample, estimatedCellNumber), 
     by = "sample"
   ) %>%
   mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
@@ -284,20 +300,17 @@ tibble(
 ### Fig 14: Estimated cell number vs. Detected cell number
 
 ```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
-ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
-nConnections <- apply(adj, 1, sum)
-nConnections %>% 
-  tibble(
-    sample = names(.), 
-    detectedConnections = .
-  ) %>% 
-  inner_join(ercc) %>% 
+tibble(
+  sample = names(nConnections), 
+  detectedConnections = nConnections
+) %>% 
+  inner_join(estimatedCells) %>% 
   mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
   ggplot() +
   geom_boxplot(aes(estimatedCellNumber, detectedConnections, group = estimatedCellNumber)) +
   scale_x_continuous(
     name = "ERCC estimated cell number", 
-    breaks = 0:max(round(ercc$estimatedCellNumber))
+    breaks = 0:max(round(pull(filter(estimatedCells, sampleType == "Multiplet"), estimatedCellNumber)))
   ) +
   scale_y_continuous(
     name = "Detected cell number",
@@ -350,17 +363,6 @@ tibble(
 
 ### Fig 17: Connections
 
-```{r, echo = FALSE}
-#setup singlets object with only our data
-engeBool <- str_detect(colnames(getData(cObjSng, "counts")), "s.NJ")
-cObjSng.enge <- CIMseqSinglets(
-  getData(cObjSng, "counts")[, engeBool],
-  getData(cObjSng, "counts.ercc")[, engeBool],
-  getData(cObjSng, "dim.red")[engeBool, ],
-  getData(cObjSng, "classification")[engeBool]
-)
-```
-
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 plotSwarmCircos(sObj, cObjSng.enge, cObjMul, classOrder = c.order)
 ```
@@ -368,17 +370,17 @@ plotSwarmCircos(sObj, cObjSng.enge, cObjMul, classOrder = c.order)
 ### Fig 18: Filtered
 
 Only detected duplicates and triplicates.  
-Only ERCC estimated cell number <= 4.  
-Weight cutoff = 5.
+ERCC estimated cell number max = 4.  
+Weight cutoff = 2.
 
 ```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
 adj <- adjustFractions(cObjSng.enge, cObjMul, sObj, binary = TRUE)
 samples <- rownames(adj)
 rs <- rowSums(adj)
-keep1 <- rs == 2 | rs == 3
-keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
+keep <- rs == 2 | rs == 3
+
 
 plotSwarmCircos(
-  filterSwarm(sObj, keep1 & keep2), cObjSng.enge, cObjMul, weightCut = 5, 
-  classOrder = c.order)
+  filterSwarm(sObj, keep), cObjSng.enge, cObjMul, weightCut = 2, 
+  classOrder = c.order, theoretical.max = 4)
 ```

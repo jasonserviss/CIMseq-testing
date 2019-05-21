@@ -1,0 +1,169 @@
+---
+title: "Mouse analysis"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "CIMseq.data", "tidyverse")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../data/CIMseqData.rda')
+load('../data/sObj.rda')
+```
+
+```{r, eval = FALSE, echo = FALSE}
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "C.Goblet.d",
+    class == "1" ~ "C.Lgr5+.p.1",
+    class == "2" ~ "C.Lgr5+.d",
+    class == "3" ~ "SI.Lgr5+.KI67h",
+    class == "4" ~ "C.TA.d",
+    class == "5" ~ "C.Lgr5+.p.2",
+    class == "6" ~ "SI.Lgr5+.KI67l",
+    class == "7" ~ "C.Lgr5+.KI67+.p",
+    class == "8" ~ "C.Colonocytes.p",
+    class == "9" ~ "SI.Entero.early",
+    class == "10" ~ "SI.Lgr5-.KI67l",
+    class == "11" ~ "SI.Lgr5+.KI67-",
+    class == "12" ~ "SI.Goblet",
+    class == "13" ~ "C.Goblet.p",
+    class == "14" ~ "C.Colonocyte.d",
+    class == "15" ~ "SI.Entero",
+    class == "16" ~ "Enteroendo",
+    class == "17" ~ "SI.Lgr5-.KI67+",
+    class == "18" ~ "Tufft",
+    class == "19" ~ "C.Lgr5+.KI67+.d",
+    class == "20" ~ "SI.Paneth",
+    class == "21" ~ "SI.Goblet.KI67+",
+    class == "22" ~ "C.Goblet.KI67+",
+    class == "23" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+```{r, eval = FALSE}
+renameClassesMedium <- function(class) {
+  case_when(
+    class == "0" ~ "Colon.d",
+    class == "1" ~ "Colon.p",
+    class == "2" ~ "Colon.d",
+    class == "3" ~ "SmallIntestine",
+    class == "4" ~ "Colon.d",
+    class == "5" ~ "Colon.p",
+    class == "6" ~ "SmallIntestine",
+    class == "7" ~ "Colon.p",
+    class == "8" ~ "Colon.p",
+    class == "9" ~ "SmallIntestine",
+    class == "10" ~ "SmallIntestine",
+    class == "11" ~ "SmallIntestine",
+    class == "12" ~ "SmallIntestine",
+    class == "13" ~ "Colon.p",
+    class == "14" ~ "Colon.d",
+    class == "15" ~ "SmallIntestine",
+    class == "16" ~ "Enteroendo",
+    class == "17" ~ "SmallIntestine",
+    class == "18" ~ "Tufft",
+    class == "19" ~ "Colon.d",
+    class == "20" ~ "SmallIntestine",
+    class == "21" ~ "SmallIntestine",
+    class == "22" ~ "Colon",
+    class == "23" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+#Combine classes to simplify
+s.classes <- c(
+  "Colon.d", "Colon.p", "SmallIntestine", "Enteroendo", "Tufft", 
+  "Colon", "Blood"
+)
+fractions <- getData(sObj, "fractions")
+sObj@fractions <- sapply(s.classes, function(c) {
+  idx <- which(renameClassesMedium(colnames(fractions)) == c)
+  if(length(idx) == 1) fractions[, idx] else rowSums(fractions[, idx])
+})
+getData(cObjSng, "classification") <- renameClassesMedium(getData(cObjSng, "classification"))
+
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+plotUnsupervisedClass(cObjSng, cObjMul)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul,
+  c("Mki67", "Hoxb13"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+```{r, eval = FALSE}
+cOrder <- c("SmallIntestine", "Blood", "Enteroendo", "Tufft", "Colon", "Colon.d", "Colon.p")
+```
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+cOrder <- as.character(c(
+  5, 1, 7, 8, 2, 4, 19, 14, 13, 22, 0,
+  16, 18, 23,
+  12, 21, 20, 11, 3, 17, 6, 10, 9, 15
+))
+plotSwarmCircos(sObj, cObjSng, cObjMul, weightCut = 0, classOrder = cOrder)
+```
+
+```{r, eval = FALSE, echo = FALSE}
+c(
+    "SI.Goblet", "SI.Goblet.KI67+", "SI.Paneth", "SI.Lgr5+.KI67-", "SI.Lgr5+.KI67h", 
+    "SI.Lgr5+.KI67l", "SI.Lgr5-.KI67l", "SI.Lgr5-.KI67+", "SI.Entero", "SI.Entero.early", 
+    "Enteroendo", "Tufft", "Blood",
+    "C.Lgr5+.d", "C.TA.d", "C.Lgr5+.KI67+.d", "C.Colonocyte.d",
+    "C.Lgr5+.p.2", "C.Lgr5+.p.1", "C.Lgr5+.KI67+.p", "C.Colonocyte.p",
+    "C.Goblet.p", "C.Goblet.KI67+", "C.Goblet.d"
+)
+```
+
+clockwise  
+Colon = 5-0 (proximal = 5-8 + 13, distal = 2-14 + 0)  
+Other  16-23  
+Small intestine = 12-15  
+
+### Filtering
+
+Only detected duplicates and triplicates.  
+Only ERCC estimated cell number <= 4.  
+Weight cutoff = 5.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
+samples <- rownames(adj)
+rs <- rowSums(adj)
+keep1 <- rs == 2 | rs == 3
+keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
+
+plotSwarmCircos(
+  filterSwarm(sObj, keep1 & keep2), cObjSng, cObjMul, weightCut = 5, 
+  classOrder = cOrder, alpha = 0.01
+)
+```
+
+
+

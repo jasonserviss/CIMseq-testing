@@ -153,10 +153,10 @@ markers <- FindAllMarkers(
   test.use = "roc"
 )
 
-DoHeatmap(
-  object = mca, genes.use = unique(markers$gene), slim.col.label = TRUE, remove.key = TRUE,
-  group.label.rot = TRUE, cex.row = 1
-)
+# DoHeatmap(
+#   object = mca, genes.use = unique(markers$gene), slim.col.label = TRUE, remove.key = TRUE,
+#   group.label.rot = TRUE, cex.row = 1
+# )
 
 print(paste0("Done all cells analysis at ", Sys.time()))
 

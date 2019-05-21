@@ -1,0 +1,219 @@
+---
+title: "Mouse analysis Enge Simple"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "scSeqTools")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../data/CIMseqData.rda')
+load('../data/sObj.rda')
+```
+
+```{r, eval = TRUE}
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "C.Stem.proximal",
+    class == "1" ~ "C.Stem.distal",
+    class == "2" ~ "SI.Stem",
+    class == "3" ~ "C.Goblet.distal",
+    class == "4" ~ "SI.Enterocytes",
+    class == "5" ~ "SI.Goblet",
+    class == "6" ~ "C.Goblet.proximal",
+    class == "7" ~ "Enteroendocrine",
+    class == "8" ~ "Tufft",
+    class == "9" ~ "SI.Paneth",
+    class == "10" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+cOrder <- c(
+  "C.Stem.proximal", "C.Goblet.proximal", "C.Stem.distal", "C.Goblet.distal",
+  "SI.Goblet", "SI.Paneth", "SI.Stem", "SI.Enterocytes",
+  "Enteroendocrine", "Tufft", "Blood"
+)
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+features <- getData(cObjMul, "features")
+names(features) <- renameClasses(names(features))
+getData(cObjMul, "features") <- features
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
+plotUnsupervisedClass(cObjSng, cObjMul)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, "Hoxb13",
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, "Mki67",
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
+classHeatmap(
+  data = data.frame(
+    gene = rownames(getData(cObjMul, "counts"))[getData(cObjMul, "features")],
+    class = names(getData(cObjMul, "features"))
+  ),
+  counts.log = getData(cObjSng, "counts.log"),
+  classes = tibble(
+    sample = colnames(getData(cObjSng, "counts")), 
+    class = getData(cObjSng, "classification")
+  )
+)
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
+violinPlot <- function(cpm, genes, classes, class) {
+  cpm[genes, ] %>%
+    t() %>% 
+    matrix_to_tibble("sample") %>%
+    gather(gene, cpm, -sample) %>%
+    full_join(tibble(sample = colnames(cpm), class = classes), by = "sample") %>%
+    ggplot() +
+    geom_jitter(aes(class, cpm), height = 0, size = 0.1, alpha = 0.25) +
+    facet_wrap(~gene, scales = "free_y") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90)) +
+    labs(title = paste0(class, " genes"))
+}
+
+
+getGenes <- function(
+  cpm, classes, features, class, ntop = 10
+) {
+  fc <- foldChangePerClass(
+    cpm[features[names(features) == class], ], 
+    tibble(sample = colnames(cpm), class = classes)
+  )
+  rownames(fc[order(fc[, class], decreasing = TRUE), ])[1:ntop]
+}
+
+c <- "C.Stem.distal"
+g <- getGenes(getData(cObjSng, "counts.cpm"), getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(getData(cObjSng, "counts.cpm"), g, getData(cObjSng, "classification"), c)
+
+c <- "C.Stem.proximal"
+g <- getGenes(getData(cObjSng, "counts.cpm"), getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(getData(cObjSng, "counts.cpm"), g, getData(cObjSng, "classification"), c)
+
+c <- "C.Goblet.distal"
+g <- getGenes(getData(cObjSng, "counts.cpm"), getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(getData(cObjSng, "counts.cpm"), g, getData(cObjSng, "classification"), c)
+
+c <- "C.Goblet.proximal"
+g <- getGenes(getData(cObjSng, "counts.cpm"), getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(getData(cObjSng, "counts.cpm"), g, getData(cObjSng, "classification"), c)
+
+c <- "SI.Stem"
+g <- getGenes(getData(cObjSng, "counts.cpm"), getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(getData(cObjSng, "counts.cpm"), g, getData(cObjSng, "classification"), c)
+
+c <- "SI.Goblet"
+g <- getGenes(getData(cObjSng, "counts.cpm"), getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(getData(cObjSng, "counts.cpm"), g, getData(cObjSng, "classification"), c)
+
+c <- "SI.Enterocytes"
+g <- getGenes(getData(cObjSng, "counts.cpm"), getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(getData(cObjSng, "counts.cpm"), g, getData(cObjSng, "classification"), c)
+
+c <- "SI.Paneth"
+g <- getGenes(getData(cObjSng, "counts.cpm"), getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(getData(cObjSng, "counts.cpm"), g, getData(cObjSng, "classification"), c)
+```
+
+### Deconvolution
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+plotSwarmCircos(sObj, cObjSng, cObjMul, weightCut = 0, classOrder = cOrder)
+```
+
+### Filtering
+
+Only detected duplicates and triplicates.  
+Only ERCC estimated cell number <= 4.  
+Weight cutoff = 5.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
+samples <- rownames(adj)
+rs <- rowSums(adj)
+keep <- rs == 2 | rs == 3
+
+plotSwarmCircos(
+  filterSwarm(sObj, keep), cObjSng, cObjMul, weightCut = 5, 
+  classOrder = cOrder, theoretical.max = 4
+)
+```
+
+#False positive stats
+
+```{r}
+efm <- getEdgesForMultiplet(sObj, cObjSng, cObjMul, theoretical.max = 4) %>% 
+  mutate(conn = map2(from, to, ~tibble(
+    from = sort(c(.x, .y))[1], to = sort(c(.x, .y))[2]
+  ))) %>% 
+  select(-from, -to) %>% 
+  unnest() %>% 
+  distinct()
+
+fp <- efm %>%
+  mutate(fp = case_when(
+    str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
+    str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
+    str_detect(from, "proximal") & str_detect(to, "distal") ~ TRUE,
+    str_detect(to, "proximal") & str_detect(from, "distal") ~ TRUE,
+    TRUE ~ FALSE
+  )) %>%
+  group_by(sample) %>%
+  summarize(fp = sum(fp)) %>%
+  {setNames(pull(., fp), pull(., sample))}
+
+mulNames <- names(fp) #note other multiplets have 0 connections
+
+sub_tissue_count <- tibble(sample = names(fp), fp = fp) %>% 
+  inner_join(MGA.Meta, by = "sample") %>% 
+  mutate(`False positive` = fp > 0) %>% 
+  count(`False positive`, sub_tissue) %>%
+  rename(`multiplets (n)` = n)
+
+#counts the type of false positives per tissue
+type <- efm %>%
+  mutate(`False positive type` = case_when(
+    str_detect(from, "^SI") & str_detect(to, "^C") ~ "SC",
+    str_detect(to, "^SI") & str_detect(from, "^C") ~ "SC",
+    str_detect(from, "proximal") & str_detect(to, "distal") ~ "PD",
+    str_detect(to, "proximal") & str_detect(from, "distal") ~ "PD",
+    TRUE ~ "none"
+  )) %>%
+  inner_join(MGA.Meta) %>%
+  count(sub_tissue, `False positive type`) %>%
+  rename(`False positives (n)` = n)
+
+```
+
+
+

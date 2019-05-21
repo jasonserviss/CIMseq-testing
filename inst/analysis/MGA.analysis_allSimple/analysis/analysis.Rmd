@@ -205,9 +205,28 @@ p.cor %>%
 
 ### Fig 10: Connections per multiplet
 
+```{r, echo = FALSE}
+#setup singlets object with only our data
+engeBool <- str_detect(colnames(getData(cObjSng, "counts")), "s.NJ")
+cObjSng.enge <- CIMseqSinglets(
+  getData(cObjSng, "counts")[, engeBool],
+  getData(cObjSng, "counts.ercc")[, engeBool],
+  getData(cObjSng, "dim.red")[engeBool, ],
+  getData(cObjSng, "classification")[engeBool]
+)
+```
+
 ```{r, eval = TRUE}
-adj <- adjustFractions(cObjSng, cObjMul, sObj)
+adj <- adjustFractions(cObjSng.enge, cObjMul, sObj, theoretical.max = 4)
 table(apply(adj, 1, sum)) / nrow(adj) * 100
+
+rowSums(adj) %>%
+  tibble(
+    sample = names(.),
+    connections = .
+  ) %>% 
+  inner_join(MGA.Meta, by = "sample") %>%
+  count(sub_tissue, connections)
 ```
 
 ### Fig 11: Fraction histogram
@@ -241,7 +260,7 @@ tibble(
   cost = unname(getData(sObj, "costs"))
 ) %>%
   inner_join(
-    select(estimateCells(cObjSng, cObjMul), sample, estimatedCellNumber), 
+    select(estimateCells(cObjSng.enge, cObjMul), sample, estimatedCellNumber), 
     by = "sample"
   ) %>%
   mutate(estimatedCellNumber = round(estimatedCellNumber)) %>%
@@ -257,8 +276,8 @@ tibble(
 ### Fig 14: Estimated cell number vs. Detected cell number
 
 ```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
-ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
-nConnections <- apply(adj, 1, sum)
+ercc <- filter(estimateCells(cObjSng.enge, cObjMul), sampleType == "Multiplet")
+nConnections <- rowSums(adj)
 nConnections %>% 
   tibble(
     sample = names(.), 
@@ -322,17 +341,6 @@ tibble(
 ```
 
 ### Fig 17: Connections
-
-```{r, echo = FALSE}
-#setup singlets object with only our data
-engeBool <- str_detect(colnames(getData(cObjSng, "counts")), "s.NJ")
-cObjSng.enge <- CIMseqSinglets(
-  getData(cObjSng, "counts")[, engeBool],
-  getData(cObjSng, "counts.ercc")[, engeBool],
-  getData(cObjSng, "dim.red")[engeBool, ],
-  getData(cObjSng, "classification")[engeBool]
-)
-```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 plotSwarmCircos(sObj, cObjSng.enge, cObjMul, classOrder = c.order)

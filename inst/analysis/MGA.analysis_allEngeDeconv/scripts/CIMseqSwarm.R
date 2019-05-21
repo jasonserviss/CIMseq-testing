@@ -2,15 +2,18 @@
 args <- commandArgs(TRUE)
 
 #PACKAGES
-packages <- c("CIMseq", "CIMseq.data", "tidyverse", "future")
+packages <- c("tidyverse", "future")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
+
+library(CIMseq, lib.loc = "/home/jason/R/x86_64-redhat-linux-gnu-library/3.5")
+library(CIMseq.data, lib.loc = "/home/jason/R/x86_64-redhat-linux-gnu-library/3.5")
 
 currPath <- getwd()
 
 #load data
 if(file.exists(file.path(currPath, 'data/CIMseqData.rda'))) {
-  load(file.path(currPath, 'data/CIMseqData.rda'))
+  load(file.path('../MGA.analysis_all', 'data/CIMseqData.rda'))
 }
 
 #remove non-Enge
