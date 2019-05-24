@@ -368,15 +368,15 @@ plotSwarmCircos(sObj, cObjSng.enge, cObjMul, classOrder = c.order)
 
 ### Fig 18: Filtered
 
-Only detected duplicates and triplicates.  
+Only detected duplicates - quadruplicates.  
 ERCC estimated cell number max = 4.  
-Weight cutoff = 2.
+Weight cutoff = 10.
 
 ```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
 adj <- adjustFractions(cObjSng.enge, cObjMul, sObj, binary = TRUE)
 samples <- rownames(adj)
 rs <- rowSums(adj)
-keep <- rs == 2 | rs == 3
+keep <- rs == 2 | rs == 3 | rs == 4
 
 
 plotSwarmCircos(

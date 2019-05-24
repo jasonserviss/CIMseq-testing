@@ -33,7 +33,7 @@ runSwarmMultiprocess <- function(
   ...
 ){
   if(is.null(swarmInit)) swarmInit <- swarmInit(singlets, 2)
-  future::plan(multiprocess)
+  plan(multiprocess)
   print(paste0("Starting deconvolution at ", Sys.time()))
   sObj <- CIMseqSwarm(
     singlets, multiplets, maxiter = maxiter, swarmsize = ncol(swarmInit), 
@@ -55,11 +55,12 @@ runSwarmMultiprocess <- function(
   time = "24:00:00",
   ...
 ){
+  #requires future.batchtools package
   if(is.null(swarmInit)) swarmInit <- swarmInit(singlets, 2)
   options(future.wait.interval = 10000.0)
   options(future.wait.timeout = 1e9)
-  future::plan(
-    future.batchtools::batchtools_slurm,
+  plan(
+    batchtools_slurm,
     template = "/crex/proj/snic2018-8-151/private/batchtools.slurm.tmpl",
     resources = list(
       account = "snic2018-8-151", partition = "core", ntasks = 1L,
@@ -119,11 +120,9 @@ runSwarmUppmax <- function(
   plan(sequential)
   sample <- as.character(args[1])
   print(paste0("Running ", sample))
-  counts <- getData(multiplets, "counts")
-  counts.ercc <- getData(multiplets, "counts.ercc")
   multiplets.2 <- CIMseqMultiplets(
-    matrix(counts[, sample], ncol = 1, dimnames = list(rownames(counts), sample)),
-    matrix(counts.ercc[, sample], ncol = 1, dimnames = list(rownames(counts.ercc), sample)),
+    getData(multiplets, "counts")[, sample, drop = FALSE],
+    getData(multiplets, "counts.ercc")[, sample, drop = FALSE],
     getData(multiplets, "features")
   )
   

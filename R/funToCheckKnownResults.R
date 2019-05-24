@@ -291,7 +291,7 @@ NULL
 #' @import CIMseq
 #' @importFrom dplyr pull "%>%" filter mutate select
 #' @importFrom stringr str_split
-#' @importFrom purrr map_dfr map
+#' @importFrom purrr map_dfr map map2
 #' @importFrom tibble tibble add_column column_to_rownames
 #' @importFrom utils combn
 #' @importFrom methods new
