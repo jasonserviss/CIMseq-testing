@@ -113,6 +113,7 @@ runSwarmUppmax <- function(
   nSyntheticMultiplets = 400,
   eps.stagnate = 1,
   maxit.stagnate = 5,
+  e = 0.001,
   currPath = getwd(),
   args,
   ...
@@ -131,7 +132,7 @@ runSwarmUppmax <- function(
   print(paste0("Starting deconvolution at ", Sys.time()))
   sObj <- CIMseqSwarm(
     singlets, multiplets.2, maxiter = maxiter, swarmsize = ncol(swarmInit), 
-    nSyntheticMultiplets = nSyntheticMultiplets, swarmInit = swarmInit,
+    nSyntheticMultiplets = nSyntheticMultiplets, swarmInit = swarmInit, e = e,
     psoControl = list(eps.stagnate = eps.stagnate, maxit.stagnate = maxit.stagnate)
   )
   print(paste0("Finished deconvolution at ", Sys.time()))

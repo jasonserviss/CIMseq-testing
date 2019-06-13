@@ -111,11 +111,20 @@ if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
 save(cObjSng, cObjMul, file = file.path(currPath, "data/CIMseqData.rda"))
 
 ##spSwarm
-future::plan(multiprocess)
+baseSeed <- 43892
+init <- map(1:10, function(i) {
+  cbind(
+    swarmInit(cObjSng, 2, null.weight = 0.5, seed = baseSeed + i), 
+    swarmInit(cObjSng, 3, null.weight = 0.5, seed = baseSeed + i)
+  )
+}) %>% do.call(cbind, .)
 
+future::plan(multiprocess)
 print(paste0("Starting deconvolution at ", Sys.time()))
 sObj <- CIMseqSwarm(
-  cObjSng, cObjMul, maxiter = 10, swarmsize = 150, nSyntheticMultiplets = 400
+  cObjSng, cObjMul, maxiter = 10, swarmsize = ncol(init), 
+  nSyntheticMultiplets = 400, swarmInit = init, 
+  psoControl = list(eps.stagnate = 1, maxit.stagnate = 5)
 )
 print(paste0("Finished deconvolution at ", Sys.time()))
 

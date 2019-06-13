@@ -184,6 +184,16 @@ efm <- getEdgesForMultiplet(sObj, cObjSng, cObjMul, theoretical.max = 4) %>%
   unnest() %>% 
   distinct()
 
+edgeStats <- calculateEdgeStats(sObj, cObjSng, cObjMul, theoretical.max = 4) %>%
+  mutate(conn = map2(from, to, ~tibble(
+    from = sort(c(.x, .y))[1], to = sort(c(.x, .y))[2]
+  ))) %>% 
+  select(-from, -to) %>% 
+  unnest() %>% 
+  select(from, to, everything()) %>%
+  distinct() %>%
+  as_tibble()
+
 fp <- efm %>%
   mutate(fp = case_when(
     str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
@@ -195,10 +205,26 @@ fp <- efm %>%
   group_by(sample) %>%
   summarize(fp = sum(fp)) %>%
   {setNames(pull(., fp), pull(., sample))}
+
+fp.c <- efm %>%
+  inner_join(select(MGA.Meta, sample, sub_tissue), by = "sample") %>%
+  mutate(fp = case_when(
+    (str_detect(from, "^C") | str_detect(to, "^C")) & sub_tissue == "small_intestine" ~ TRUE,
+    (str_detect(from, "^SI") | str_detect(to, "^SI")) & sub_tissue == "colon" ~ TRUE,
+    TRUE ~ FALSE
+  )) %>%
+  group_by(sample) %>%
+  summarize(fp = sum(fp)) %>%
+  {setNames(pull(., fp), pull(., sample))}
+
 ```
 
-Detected `r sum(fp[fp > 0])` false positive connections out of 
-`r sum(fp) + length(fp[fp == 0])` total connections. Of those multiplets with 
+If we define a false positive as a connection between either, the small 
+intestine and the colon or a connection between the proximal and distal colon 
+based on the classifications, the number of detected false positives is as 
+follows:  
+(Definition 1) Detected `r sum(fp[fp > 0])` false positive connections out of 
+`r nrow(efm)` total connections. Of those multiplets with 
 a detected connection, `r length(fp[fp > 0])` multiplets have at least one false
 positive out of `r length(fp)` total multiplets. The per multiplet false 
 positive distribution is shown in the plot below.
@@ -211,10 +237,57 @@ ggplot() +
   scale_x_continuous(breaks = 0:max(fp))
 ```
 
-The type of false positive connections and their amount are shown below.
+If we instead define the false positives as multiplets that were sorted as small
+intestine that contain connections with colon classes and vice versa, the number 
+of false positives is as follows:  
+(Definition 2) Detected `r sum(fp.c[fp.c > 0])` false positive connections out of 
+`r nrow(efm)` total connections. Of those multiplets with 
+a detected connection, `r length(fp.c[fp.c > 0])` multiplets have at least one false
+positive out of `r length(fp.c)` total multiplets.
+
+We can also evaluate false positives via definition 1 and 2 and also include
+whether or not the connection is significant at alpha 0.05.
+
+(Definition 1)
 
 ```{r}
-typeFreq <- efm %>%
+edgeStats %>% 
+  mutate(significant = pval < 0.05) %>%
+  mutate(`false positive` = case_when(
+    str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
+    str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
+    str_detect(from, "proximal") & str_detect(to, "distal") ~ TRUE,
+    str_detect(to, "proximal") & str_detect(from, "distal") ~ TRUE,
+    TRUE ~ FALSE
+  )) %>% 
+  group_by(significant, `false positive`) %>% 
+  summarize(n = sum(weight)) %>% 
+  ungroup() %>% 
+  as.data.frame()
+```
+
+(Definition 2)
+
+```{r}
+
+efm %>%
+  inner_join(edgeStats, by = c("from", "to")) %>% 
+  inner_join(select(MGA.Meta, sample, sub_tissue), by = "sample") %>%
+  mutate(significant = pval < 0.05) %>%
+  mutate(`false positive` = case_when(
+    (str_detect(from, "^C") | str_detect(to, "^C")) & sub_tissue == "small_intestine" ~ TRUE,
+    (str_detect(from, "^SI") | str_detect(to, "^SI")) & sub_tissue == "colon" ~ TRUE,
+    TRUE ~ FALSE
+  )) %>% 
+  count(significant, `false positive`)
+```
+
+The type of false positive connections and their number are shown below.
+
+(Definition 1)
+
+```{r}
+efm %>%
   mutate(fp = case_when(
     str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
     str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
@@ -226,35 +299,25 @@ typeFreq <- efm %>%
   count(from, to) %>%
   arrange(desc(n)) %>%
   as.data.frame()
-
-typeFreq
-
-#number of features corresponding to class
-#total sum of counts for features corresponding to class
-# features <- getData(cObjMul, "features")
-# cpm <- getData(cObjSng, "counts.cpm")
-# classifications <- getData(cObjSng, "classification")
-# rs <- rowSums(cpm)
-# table(names(features))
-# 
-# geneDat <- tibble(class = names(features), gene = rownames(getData(cObjSng, "counts"))[features]) %>%
-#   mutate(all = rs[gene]) %>%
-#   mutate(classOnly = map2_dbl(class, gene, function(c, g) {
-#     sum(cpm[g, classifications == c])
-#   })) %>% 
-#   group_by(class) %>%
-#   summarize(sum.all = sum(all), sum.classOnly = sum(classOnly)) 
-# 
-# inner_join(typeFreq, geneDat, by = c("from" = "class")) %>%
-#   inner_join(geneDat, by = c("to" = "class")) %>%
-#   mutate(
-#     sum.all = map2_dbl(sum.all.x, sum.all.y, ~sum(c(.x, .y))),
-#     sum.classOnly = map2_dbl(sum.classOnly.x, sum.classOnly.y, ~sum(c(.x, .y)))
-#   ) %>%
-#   ggplot() +
-# geom_point(aes(sum.all, n))
 ```
 
+(Definition 2)
+
+```{r}
+efm %>%
+  inner_join(select(MGA.Meta, sample, sub_tissue)) %>%
+  mutate(fp = case_when(
+    (str_detect(from, "^C") | str_detect(to, "^C")) & sub_tissue == "small_intestine" ~ TRUE,
+    (str_detect(from, "^SI") | str_detect(to, "^SI")) & sub_tissue == "colon" ~ TRUE,
+    TRUE ~ FALSE
+  )) %>%
+  filter(fp) %>%
+  count(from, to) %>%
+  arrange(desc(n)) %>%
+  as.data.frame()
+```
+
+Number of fp divided by number of detected connections.
 
 ```{r}
 dc <- rowSums(adjustFractions(cObjSng, cObjMul, sObj))

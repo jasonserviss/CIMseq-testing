@@ -380,6 +380,33 @@ keep <- rs == 2 | rs == 3 | rs == 4
 
 
 plotSwarmCircos(
-  filterSwarm(sObj, keep), cObjSng.enge, cObjMul, weightCut = 2, 
+  filterSwarm(sObj, keep), cObjSng.enge, cObjMul, weightCut = 10, 
   classOrder = c.order, theoretical.max = 4)
 ```
+
+```{r}
+efm <- getEdgesForMultiplet(sObj, cObjSng.enge, cObjMul, theoretical.max = 4) %>% 
+  mutate(conn = map2(from, to, ~tibble(
+    from = sort(c(.x, .y))[1], to = sort(c(.x, .y))[2]
+  ))) %>% 
+  select(-from, -to) %>% 
+  unnest() %>% 
+  distinct()
+
+fp <- efm %>%
+  mutate(fp = case_when(
+    str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
+    str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
+    str_detect(from, "proximal") & str_detect(to, "distal") ~ TRUE,
+    str_detect(to, "proximal") & str_detect(from, "distal") ~ TRUE,
+    TRUE ~ FALSE
+  )) %>%
+  group_by(sample) %>%
+  summarize(fp = sum(fp)) %>%
+  {setNames(pull(., fp), pull(., sample))}
+```
+
+Detected `r sum(fp[fp > 0])` false positive connections out of 
+`r nrow(efm)` total connections. Of those multiplets with 
+a detected connection, `r length(fp[fp > 0])` multiplets have at least one false
+positive out of `r length(fp)` total multiplets.

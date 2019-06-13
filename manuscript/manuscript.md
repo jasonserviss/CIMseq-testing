@@ -1,17 +1,18 @@
-### Single cell interaction mapping captures spatially defined architecture in the murine intestine
+<font size="5"><strong>Single cell interaction mapping captures spatially defined architecture in the murine intestine</strong></font>
 
-Jason T. Serviss1•, Nathanael Andrews1•, …, Marco Gerling, Martin Enge1
+Jason T. Serviss<sup>1•</sup>, Nathanael Andrews<sup>1•</sup>, …, Marco Gerling<sup>2</sup>, Martin Enge<sup>1</sup>
 
-1 Department of Oncology-Pathology Karolinska Institutet, Stockholm, Sweden.  
-
+<sup>1</sup> Department of Oncology-Pathology, Karolinska Institutet, Stockholm, Solna, Sweden.  
+<sup>2</sup> Department of Biosciences and Nutrition, Center of Innovative Medicine, Karolinska Institutet, Huddinge, Sweden.  
 • Equal contribution  
+
 Correspondence to: Martin Enge (martin.enge@ki.se)
 
-#### Abstract
+### Abstract
 
 Advances in single-cell biology has enabled investigation of isolated single cells at an unprecedented scale and resolution. However, cells in multicellular organisms are largely defined by their spatial organisation within organ structures, which means that general methods for studying direct cell interaction on a large scale are needed. Here we propose a novel method, Cell Interaction by Multiplet Sequencing (CIM-Seq), that uses computational deconvolution of RNA-seq data from partially dissociated tissue to create cell interaction maps. We applied CIM-seq to murine small intestine, demonstrating that it recapitulates known cell interactions such as stem cell-paneth cell contacts. Furthermore, we discover ... Thus, CIM-Seq is a general method for cell interaction studies that can be used on cell types defined to an arbitrary resolution allowing identification of interacting sub-cell types or cell states. (I think we really need to stress here or somewhere the benifits of our methods compared to others) INCLUDE LINK TO SOFTWARE
 
-#### Introduction
+### Introduction
 
 The lower gastrointestinal (GI) tract serves as an important element in the digestive system facilitating water and nutrient uptake, waste collection in addition to being a microbial boundary. The lower GI tract is further divided into the small and large intestine each having additional distinct sub-divisions, with the small intestine containing the duodenum, jejunum, ileum and the large intestine containing the cecum, colon, and rectum. These sub-divisions differ in their functionality, histology, gene expression profile and, in some cases, developmental origin (source). The micro-architecture of the small and large intestine is composed of columnar epithelial cells which form crypts, invaginations into the underlying lamina propria, at the base of which resident stem cells give rise to the multiple cell types which comprise the tissue. Mention e.g. stem - paneth interaction here? In the small intestine these cells are arranged in the form of villi - finger shaped structures that greatly increase the available surface area and thus the tissues nutrient absorption capability (figure 1x). Villi are comprised of multiple cell types including absorptive columnar cells, hormone-producing chromaffin cells, and mucus-secreting goblet cells. In contrast, the large intestine lacks villi although it does contain crypts, similar to the small intestine, where stem cells produce major cell types akin to those found in the small intestine. Recent single cell RNA sequencing (scRNA-seq) studies have provided an unparalleled glimpse into the plethora of cell types and cell states in the lower GI tract (source, source) indicating previously unobserved diversity in this tissue. Despite the accumulation of knowledge concerning the archtecture of the lower GI tract, the molecular mechanisms underlying the observed heterogeneity within these structures is largely unknown. Importantly, disease susceptibility, clinical features, and patient outcome vary dramatically between the different structures. Colonic crypts are the source of colorectal carcinomas although tumors differ between proximal and distal colon, as do patient outcomes (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2650032/, https://www.nature.com/articles/nrc2392, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3037515/). Regional ileitis and celiac disease as well as other human intestinal disorders are largely confined to particular segments. (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3210370/). Initiating cells and processes that trigger disease onset in other gastrointestinal diseases such as inflammatory bowel disease, ulcerative colitis, and Crohn’s disease remain unknown. As such, an increased understanding of the cellular heterogeneity, tissue architecture, and underlying molecular signatures of the lower GI tract is imperative to further our understanding of the diseases incurred in these tissues.
 
@@ -27,27 +28,27 @@ https://www.biorxiv.org/content/biorxiv/early/2018/10/30/456350.full.pdf (need t
 
 Here we describe Cellular Interactions via Multiplet Sequencing (CIM-seq) a novel single cell resolution high-throughput method for unsupervised interrogation of physical cell-cell interactions in a tissue. Using fluorescence activated cell sorting (FACS) and *in silico* deconvolution, CIM-seq utilises single cells and multiplets, a commonly discarded bi-product of tissue disassociation, to provide a detailed map of the cellular connectome. We utilise CIM-seq to characterise cell interactions in the mouse small intestine identifying a previously known enrichment in small intestinal stem cell and paneth cell interactions. In addition, we examine cell-cell interactions along the span of the mouse colon establishing... Finally, we...
 
-#### Results
+### Results
 
-*Begin by describing the method in more detail (exemple text below)*
+##### CIMseq: a method facilitating the interogation of tissue architecture
 
-Single-cell RNA-seq methods begin by obtaining a suspension of dissociated single cells, usually by enzymatic digestion of the extracellular matrix. Cells which are not fully dissociated (multiplets) are typically removed in a subsequent sorting step. In CIM-Seq, we instead use these multiplets to determine which cells were directly adjacent to each other in the intact tissue. CIM-Seq consists of three main parts (Fig 1a). In the first step, we perform partial dissociation of the target tissue, followed by cell sorting of singlets and multiplets into multiwell plates and conventional Smart-Seq2 library preperation. Second, we use the sequenced and quantified singlet data to perform automated feature selection followed by graph-based clustering to construct a blueprint of cell types and states in the tissue. In the third step, we employ computational deconvolution to project the multiplets onto the previously defined cell types. Specifically, the deconvolution uses particle swarm optimization to optimize a cost function that determines the probability of the observed multiplet expression values given a set of synthetic multiplet values derived from the singlet samples. Cell types that are frequently found together in multiplets can be inferred to physically interact in the intact tissue. 
+Single-cell RNA-seq methods begin by obtaining a suspension of dissociated single cells, usually by enzymatic digestion of the extracellular matrix. Cells which are not fully dissociated (multiplets) are typically removed in a subsequent sorting step. In CIM-Seq, we instead use these multiplets to determine which cells were directly adjacent to each other in the intact tissue. CIM-seq consists of three main parts (Fig. 1a). In the first step, we perform partial dissociation of the target tissue, followed by cell sorting of singlets and multiplets into multiwell plates and conventional Smart-Seq2 library preperation. Second, we use the sequenced and quantified singlet data to perform automated feature selection followed by graph-based clustering to construct a blueprint of cell types and states in the tissue. In the third step, we employ computational deconvolution to project the multiplets onto the previously defined cell types. Specifically, the deconvolution uses particle swarm optimization (PSO) to optimize a cost function that calculates the probability of the observed multiplet expression values given a set of synthetic multiplet values derived from the singlet samples. 
 
-*Introduce the results from the sorted multiplets and other testing* 
+We first tested the propensity of previously disassociated single cells to re-associate in suspension which would result in connections which are not representative of real connections in the tissue. To do this, we first sorted single cells from disassociated mouse small intestine into the same tube. At time points 0, 30, and 120 minutes, we re-analyzed the cells using the previously defined singlets gating scheme finding that 0.04, 0.42, and 0.24% of the cells had re-associated as multiplets indicating a negligable rate of re-association after initial disassociation (Supplementary Fig. 1a). 
 
-* Accuracy, TPR, and TNR in sorted multiplets
-* Show that singlets do not randomly associate once disassociated
-* Deconvolution of singlets (?)
-
-We first tested the propensity of previously disassociated single cells to re-associate in suspension which would result in connections which are not representative of real connections in the tissue. To do this, we first sorted single cells from disassociated mouse small intestine into the same tube. At time points xxx, xxx, and xxx, we re-analyzed the cells using the previously defined singlets gating scheme finding that xxx of the cells had re-associated as multiplets indicating a extreamly low rate of re-association after initial disassociation (Figure XXX). 
-
-To measure the performance of CIM-seq in a controlled setting, we first used three distinct cell lines and sorted these as both singlets and multiplets of a known composition. The final dataset included 96 singlets and 96 multiplets (32 multiplets consiting of 2, 3, and 4 cells, respectivley). CIM-seq mediated deconvolution revealed a high level of correspondence between the expected and detected number of connections as well as an accurracy of > 0.8 in multiplets in all tested multiplet compositions (Figure XXX). These results demonstrate the ability of CIM-seq to sucessfully 
+To measure the performance of CIM-seq in a controlled setting, we first used three distinct cell lines and sorted these as both singlets and multiplets of a known composition. The final dataset included 79 singlets and 83 multiplets (31, 27, and 25 multiplets consiting of 2, 3, and 4 cells, respectivley). Evaluation of the estimated cell number based on the percentage of ERCC spike-ins showed a clear average increase in cells contained in multiplets compared to singlets (Fig. 1b). The estimated cell number was also shown to correspond well to the number of sorted cells per well (Fig. 1b). Together these results indicate that the ERCC-based estimation of cell numbers accuratley reflect the number of cells contained in the ... Next, we examined cell specific marker genes and found them to be rarely coexpressed in singlets but frequently coexpressed in a subset of multiplets (Supplementary Fig. 1b). Unsupervised classification of the singlets reflected the known identity of the cells (Supplementary Fig. 1c). Gene exp heatmap here? During the ongoing deconvolution, the cost function estimates the probability bla bla bla (Fig. 1c). As the cost function is minimized during the ongoing optimization the swarm bla bla to find the lowest cost (Fig. 1d). CIM-seq mediated deconvolution revealed a high level of correspondence between the expected and detected number of connections (Supplementary Fig. 1d) as well as a mean misclassification rate () of less than or equal to 0.12 in all tested multiplet compositions (Fig. 1e and Supplementary Fig. 1e). These results demonstrate the ability of CIM-seq to sucessfully bla bla bla.
 
 
+##### CIMseq accuratley identifies the cell-cell interactions inf the small intestine stem cell niche
 
-*Introduce results from the scRNA-seq as a finding in itself without CIM-seq analysis*
+With the extensive amount of previous research investigating the architecture of the mammal small intestine, we next choose to evaluate the performance of CIMseq in the mouse small intestine epithelium. 
 
+The cell types of the small intestinal epithelium all derive from a resident stem cell population at the bottom of the small intestinal crypts (ref). As differentiation takes place, cells migrate up the vilus and towards the intestinal lumen. Characterization of the small intestine stem cell niche has previously shown the interaction between stem cells and paneth cells, and paracrine Wnt signaling, to be crucial in facilitating stem cell maintainance. To interogate the cell-cell interactions of the small intestine epithelium XXX singlets and XXX multiplets were isolated from XXX C57BL/J mice and sequenced using Smart-Seq2. Clustering and classification of the resulting data showed cell types characteristic to the small intestine and in agreement with previous studies in mouse small intestine (Umap fig, gene exp?). The results indicate a clear enrichment between Lgr5+ stem cells and Lyz1+ paneth cells. In addition, multiple connections between the multiple differentiation stages, from stem cell to all differentiated cell types, are also detected. In summary, ...
+
+
+* Mention the manual counting of cell numbers contained in multiplets. 
 * Include detailed (sub-classification) analysis in colon
+* Potentially differential expression results will want to fit in here as well
 
 *Introduce CIM-seq results*
 
@@ -55,7 +56,6 @@ To measure the performance of CIM-seq in a controlled setting, we first used thr
 * Zoom in on small intestine and show detected known connections
 * Zoom in on colon and include the "no colon paneth" result
 * How to fit in the "residuals" analysis? 
-* Potentially differential expression results will want to fit in here as well
 * End with indicating general differences in colon and small intestine architecture
 
 *Introduce segmented colon analysis in bulk and with multiplets*
@@ -74,38 +74,83 @@ CIM-seq is a general method capable of analyzing any solid tissue, and we expect
 
 #### Materials and Methods
 
-**_Murine gut isolation and FACS sorting_**
-
-Human Pancreas and Islet Procurement and FACS sorting. All studies involving human pancreas or islets were conducted in accordance with Stanford University Institutional Review Board guidelines. The de-identified human pancreatic rudiment, gestational week 14, was obtained from the University of Washington School of Medicine.
-
 * Add info for cell lines, i.e. purchased from, verified, mycoplasma tested.
-* Note that FACS-based singlet/multiplet discrimination was verified visually (for each sort?).
 
-Isolated human islets were dissociated into single cells by enzymatic digestion using Liberase DL (Sigma). Prior to antibody staining, cells were incubated with blocking solution containing FACS buffer (2% v/v fetal bovine serum in PBS and goat IgG [Jackson Labs], 11.2 μg per million cells). LIVE/DEAD Fixable Aqua Dead Cell Dye (Life Technologies) was used as a viability marker. Cells were then stained with appropriate antibodies at 1:100 (v/v) final concentration. Anti human EpCAM-APC (Biolegend, 324208) was use for staining doublets. Cells were sorted on a special order 5-laser FACS Aria II (BD Biosciences) using a 100 m nozzle. Cell singlets were determined by using the FSC-H and FSC-A channels with singlets and multiplets sorted into separate plates.
+**_Mice_**  
+All animal procedures were performed in accordance with Karolinska Institutet guidelines. Adult, age matched C57BL/J (origin) mice were used for extraction of colonic and small intestinal crypts.
 
-* Note: don't forget to add relevant info about FACS for the sorted multiplets dataset, i.e. cell lines
+**_Crypt isolation for CIM-Seq_**  
+The intestinal tract, ranging from the stomach to the rectum, was removed from C57BL/J wild-type mice and kept on ice. Small intestine and colon were subsequently removed and remaining parts were discarded. Lumina of colon and small intestine were washed three times with Dulbecco’s Phosphate Buffered Saline (PBS) and adipose tissue connected to the exterior of the small intestine or colon was removed. Colon and small intestine were opened longitudinally, and any remaining mucous on covering the epithelial layer was gently rubbed off. Tissues were washed once in PBS before being cut into 0.5 - 1 mm long fragments. Colon fragments were immersed in 10mM EDTA-PBS and incubated for 105 minutes on ice, with shaking every 15 minutes. Small intestinal fragments were similarly immersed in 10mM EDTA-PBS on ice and shaken. After 15 minutes small intestinal fragments were allowed to settle at the bottom and supernatant was discarded and replaced with new 10mM EDTA-PBS and shaken vigorously. This procedure was repeated 1-2 times, with supernatant fractions investigated through light microscopy before discarding, in order to enrich for crypts. Small intestinal fragments were then incubated on ice for 45-60 minutes for a total of 105 minutes. Following EDTA-PBS treatment fractions were triturated 10-15 times. Colon fractions were strained through a 100 um filter while small intestinal fractions were strained through a 70 um filter. Fractions were centrifuged at 300g for 5 minutes and dissociated using TrypLE Express (Invitrogen) at 37°C for 15-20 minutes. Enzymatic dissociation was supervised using light microscopy during regular intervals to obtain an appropriate amount of single cells and multiplets. Dead cells were removed using Dead Cell Removal Kit (Miltenyi Biotec) according to manufacturer's protocol before staining for FACS sorting was performed.
 
-Sorted single cells were collected directly into 96-well plates (Bio-Rad cat #: HSP9601) containing 4 µL of lysis buffer with dNTPs and ERCC spike-in controls.
+**_Cell sorting_**  
+Cells were stained with FITC anti-CD326 and 7AAD (Sony Biotechnology) in order to monitor number of epithelial cells and select live cells. Additionally, Paneth cells were enriched using Brilliant Violent anti-CD24. Single cells were distinguished from multiplets using FSC-H and FSC-W gating and the gating scheme was visually confirmed via phase contrast microscopy (Supplementary Fig. XXX). Cells were sorted into 384- or 96-well plates containing hypotonic lysis buffer using a SH800S FACS sorter (Sony). Plates were sealed immediately after sorting with microseal F foil (Biorad) and centrifuged at 4000g at 4°C for 5 min before being frozen on dry ice and stored at -80°C.
 
-**_scRNA-seq_**
+**_scRNA-seq_**  
+Single-cell and multiplet RNA-Seq libraries were generated as described (Picelli et al. 2014). Briefly, single-cells collected in 384-well plates were lysed, followed by reverse transcription with template-switch using an LNA-modified template switch oligo to generate cDNA. After 21 cycles of pre-amplification, DNA was purified and analyzed on an automated Fragment Analyzer (Advanced Analytical). Each cell’s cDNA fragment profile was individually inspected and only wells with successful amplification products (concentration higher than 0.06 ng/ul) and with no detectable RNA degradation were selected for final library preparation. Tagmentation assays and barcoded sequencing libraries were prepared using Nextera XT kit (Illumina) according to the manufacturer's instructions. Barcoded libraries were pooled and subjected to 75 bp paired-end sequencing on the Illumina NextSeq 500 instrument.
 
-Single-cell and multiplet RNA-Seq libraries were generated as described (Picelli et al. 2014). Briefly, single-cells collected in 96-well plates were lysed, followed by reverse transcription with template-switch using an LNA-modified template switch oligo to generate cDNA. After 21 cycles of pre-amplification, DNA was purified and analyzed on an automated Fragment Analyzer (Advanced Analytical). Each cell’s cDNA fragment profile was individually inspected and only wells with successful amplification products (concentration higher than 0.06 ng/ul) and with no detectable RNA degradation were selected for final library preparation. Tagmentation assays and barcoded sequencing libraries were prepared using Nextera XT kit (Illumina) according to the manufacturer's instructions. Barcoded libraries were pooled and subjected to 75 bp paired-end sequencing on the Illumina NextSeq 500 instrument.
+Sequencing reads were trimmed, adapter sequences removed and the reads aligned to the hg19 reference assembly using STAR (Dobin et al. 2013) with default parameters. Duplicate reads were removed using picard (McKenna et al. 2010). Transcript counts were obtained using HTSeq (Anders, Pyl, and Huber 2014) and hg19 UCSC exon/transcript annotations. Transcript counts were normalized into log transformed counts per million. Single cell profiles with the following features were deemed to be of poor quality and removed: 1) cells with less than a specified total number of valid counts in exonic regions (1.8x104 and 4x104 for the mouse gut and sorted multiplets dataset, respectively), 2) cells with low actin TPM, and 3) cells with high fractions of ERCC reads. To determine a cutoff for actin TPM, we used the normal distribution with empirical mean and standard deviation from log2 transformed actin TPM, which is normally distributed in successful experiments. The cutoff was set to the 0.01 quantile (eg. the lower 0.01 % of the bell curve). A similar strategy was used for fractions of ERCC reads, samples with a log2 transformed fraction of ERCC reads above the 0.99 % quantile were rejected. In total XXX singlets (out of XXX analyzed wells, XXX% success rate) and XXX multiplets (out of XXX, XXX% success rate) were retained for further analysis.
 
-Sequencing reads were trimmed, adapter sequences removed and the reads aligned to the hg19 reference assembly using STAR (Dobin et al. 2013) with default parameters. Duplicate reads were removed using picard (McKenna et al. 2010). Transcript counts were obtained using HTSeq (Anders, Pyl, and Huber 2014) and hg19 UCSC exon/transcript annotations. Transcript counts were normalized into log transformed counts per million. Single cell profiles with the following features were deemed to be of poor quality and removed: 1) cells with less than a specified total number of valid counts in exonic regions (10e4 and 4e4 for the mouse gut and sorted multiplets dataset, respectivley), 2) cells with very low actin CPM, and 3) cells with a fractions of ERCC reads greater than the 99th percentile. To determine a cutoff for actin CPM, we used the normal distribution with empirical mean and standard deviation from log2 transformed actin CPM, which is normally distributed in successful experiments. The cutoff was set to the 0.01 quantile (eg. the lower 0.01 % of the bell curve). In total XXX singlets (out of XXX analyzed wells, XXX% success rate) and XXX multiplets (out of XXX, XXX% success rate) were retained for further analysis.
+**_CIM-seq_**  
+CIM-seq is implemented in the R statistical programming language (source) and is freely available at (where) under a GPL-3 license. The CIM-seq method consists of two distinct stages; a preparatory stage, including feature selection, dimensionality reduction, and classification, and a deconvolution stage.
 
-**_CIM-seq_**
-
-CIM-seq is implemented in the R statistical programming language (source) and is freely available at (where) under a GPL-3 license. The CIM-seq method consists of two distinct stages; a preperatory stage, including feature selection, dimensionality reduction, and classification, and a deconvolution stage.
-
-Preperatory stage  
-CIM-seq permits the elements of the preperatory stage to be carried out using any appropriate methods selected by the end user. For the analysis of the data included here we choose to utilize the Seurat package version (source) for all 3 preperatory stage elements; i.e. feature selection, dimensionality reduction, and classification. Dimensionality reduction for visualization was performed using the t-SNE (source) (or UMAP) algorithm. Unsupervised classification of cell types and cell states was performed using a graph-based method. Breifly, data was scaled and centered using the *ScaleData* function after which feature selection was performed using *FindVariableGenes* function, selecting only those genes with a mean expression > 1 and dispersion > 1 and otherwise using default parameters. Principal component analysis (PCA) with the resulting features was performed followed by Jack straw testing to determine significant (p < 0.001) principal components. Significant principal components were subsequently used as input to the graph-based classification algorithm via the *FindClusters* function. Specifically, the louvain community detection algorithm was utilized to detect cell types with 100 random starts. Classification was often performed in an iterative fashion with various settings of the resolution parameter with final classifications judged to be sufficient based on the partitioning of known cell types and marker genes. Feature selection for downstream deconvolution was carried out via the *FindAllMarkers* function using the AUC test and setting the minimum difference in the fraction of detection parameter to 0.4 and log fold change threshold to log(2).
+_preparatory stage_   
+CIM-seq permits the elements of the preparatory stage to be carried out using appropriate methods selected by the end user. For the analysis of the data included here we choose to utilize the Seurat package version 2.3.4 (source) for all three preparatory stage elements; i.e. feature selection, dimensionality reduction, and classification. Dimensionality reduction for visualization was performed using the UMAP algorithm. Unsupervised classification of cell types and cell states was performed using a graph-based method. Briefly, data was scaled and centered using the *ScaleData* function after which feature selection was performed using *FindVariableGenes* function, selecting only those genes with a mean expression > 1 and dispersion > 1 and otherwise using default parameters. Principal component analysis with the resulting features was performed followed by Jack straw testing to determine significant (p < 0.001) principal components. Significant principal components were subsequently used as input to the graph-based classification algorithm via the *FindClusters* function. Specifically, the louvain community detection algorithm was utilized to detect cell types with 100 random starts. Classification was often performed in an iterative fashion with various settings of the resolution parameter with final classifications judged to be sufficient based on the partitioning of known cell types and marker genes. Feature selection for downstream deconvolution was carried out via the *FindAllMarkers* function using the AUC test and setting the minimum difference in the fraction of detection parameter to 0.4 and log fold change threshold to log(2).
 
 Include number of features included per analysis. Include Louvain resolution for each analysis. Include number of significant principal components per analysis.
 
-Deconvolution stage  
-In the deconvolution stage we utilize the blueprint of the possible cell types/states in the tissue from the preperatory stage to determine the cellular composition of each of the multiplets. The deconvolution takes advantage of particle swarm optimization (PSO) where a candidate solution (swarm particle), consisting of a vector of fractions with one value per cell type, is optimized with respect to a cost over a number of iterations. PSO is optimal for solving this problem due to the fact that it makes few assumptions about the problem being optimized and can search a large space for candidate solutions (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4436220/). The cost function essentially works by synthesizing synthetic multiplets using the singlet gene expression data and subsequently generating a gene-wise probability of the observed multiplet expression value given the synthetic multiplet values. To accomplish this, a defined number of singlet sets are composed with one randomly selected singlet from each of the predefined classes present in each set. For each iteration each singlet set is multiplied with the corresponding fraction in the candidate solution. The sum for each gene is calculated in each of the sets thus generating one synthetic multiplet per set. The Poisson density for each gene in the observed multiplet is then calculated based on the synthetic multiplet values for the corresponding gene giving a vector of densities corresponding to the probability of the observed expression value given the synthetic multiplet values. Subsequently summing the log10 mean densities for each gene and taking the inverse of the sum generates the cost. The final result of the deconvolution procedure gives one vector of fractions per multiplet and a corresponding cost.
+_Deconvolution stage_  
+In the deconvolution stage we utilize the blueprint of the possible cell types/states in the tissue from the preparatory stage to determine the cellular composition of each of the multiplets. The deconvolution takes advantage of particle swarm optimization (PSO) where [0, 1] constrained candidate solutions (swarm particles), consisting of a vector of fractions with one value per cell type, are optimized with respect to a cost over a number of iterations. PSO makes few assumptions about the problem being optimized, and does not require a differentiable optimization problem, while still being able to search a large space for candidate solutions (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4436220/). 
 
-We utilized the SPSO2007 reference implementation of the PSO algorithm provided by the psoptim function in the pso (source) R package. In each of the deconvolutions we allow a maximum iteration of 100 with 500 swarm particles and 400 synthetic multiplets are provided to the cost function. Candidate solutions are [0, 1] constrained.
+The CIMseq cost function is based on the the probability, p(m | s,c), of observing the gene expression profile of a multiplet (m), given a candidate solution (s), and the singlet profiles from each class (c). The probability is determined empirically by creating a number of *in silico* multiplet profiles derived from gene expression values of one randomly selected singlet from each class (cv), multiplied by the candidate solution vector (s), and summed over all classes. Each of these gene expression point values are treated as individual poisson processes with λ = round(s * cv) with the joint point p-value (probability mass function, pmf) for a gene j in m (m<sub>j</sub>), over n randomly generated multiplets given by: 
+
+<style>
+.sumOver {
+    position: relative;
+    font-size: 2.5em;
+    display: inline-block;
+    line-height: .7em;
+    vertical-align: middle;
+}
+
+.sumOver:before {
+    font-size: 12px;
+    display: block;
+    position absolute;
+    left: 0;
+    top: 0;
+    content: "n";
+    width: 22px;
+    text-align: center;
+}
+
+.sumOver:after {
+    font-size: 12px;
+    display: block;
+    position absolute;
+    left: 0;
+    bottom: 0;
+    content: "i = 1";
+    width: 27px;
+    text-align: center;
+}
+</style>
+
+Equation (1)
+<p align="center" style="font-size: 130%;">
+	<span class="sumOver">&Sigma;</span>
+	(<sup class="rest">&lambda;<sup>m<sub>j</sub></sup> e<sup>-&lambda;</sup></sup> &frasl; <sub><sup>m<sub>j</sub></sup></sub>!) / n
+</p>​
+
+The cost is defined as the sum of the -log10 of the probabilities, p(m | s,c), given by Equation (1). The final result of the deconvolution procedure gives one solution, a vector of fractions, per multiplet and a corresponding cost. 
+
+Converting the solution vector of fractions into connections was achieved by first normalizing the elements of the solution vector corresponding to each cell type by the ERCC-estimated median relative RNA contribution for each cell type. Fractions are then multiplied by the ERCC-estimated cell number for each multiplet to take into account the number of ... and then rounded. The resulting matrix from this procedure is then binairly transformed by converting all integers greater than 0 to 1 which indicate a connection between the corresponding cell types.
+
+CIMseq uses a modified SPSO2007 reference implementation of the PSO algorithm with two additions designed to improve performance when used in conjunction with CIMseq. These modifications include 1) increased user control over early stopping criteria allowing for early termination of the optimization and 2) acceptance of user supplied swarm particle starting positions. For 1) we allowed early termination in the case that the cost did not improve by 1 (costs tend to be on the scale of thousands) in 5 iterations for all deconvolutions. For 2), we supplied precalculated swarm positions for all possible cell class combinations of one and two and added random normaly distributed noise with a mean of 0 and standard deviation of 1 / the number of cell classes. In each of the deconvolutions we allow a maximum iteration of 100 with a minimum of 400 swarm particles and XXX synthetic multiplets (cv) are provided to the cost function.
+
+Hypothesis testing
+Determining the probability that a connection is significantly enriched is accomplished by first estimating the expected number of connections between all cell types. We assume that if connections are randomly distributed between cell types that the number of connections between two individual cell types would follow the relative abundance of those cell types. Therefore, we estimate the relative abundance of each cell type from the deconvoluted multiplets and subsequently calculate the expected number of edges based on that relative abundance and the total number of connections detected in the data. Probability is then derived using the poisson distribution.
+
+Assumptions. Null.
 
 **_Data availability and Reproducibility statement_**
 

@@ -98,21 +98,28 @@ p
 ```
 
 ### Fig 4: Connections per multiplet
-```{r, eval = FALSE}
+```{r, eval = TRUE}
 adj <- adjustFractions(cObjSng, cObjMul, sObj)
 table(apply(adj, 1, sum))
 ```
 
 ### Fig 5: Fraction histogram
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(fractions = c(fractions)) %>%
   ggplot() +
   geom_histogram(aes(fractions), binwidth = 0.01) +
   theme_bw()
 ```
 
+Range of fractions picked after adjustment.
+
+```{r}
+range(fractions[adj == 1])
+```
+
+
 ### Fig 6: Detected cell types vs. cost
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(
   nCellTypes = apply(adj, 1, sum),
   cost = getData(sObj, "costs")
@@ -124,7 +131,7 @@ tibble(
 ```
 
 ### Fig 7: Estimated cell numbers vs. cost
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(
   sample = rownames(getData(sObj, "fractions")),
   cost = unname(getData(sObj, "costs"))
@@ -144,7 +151,7 @@ tibble(
 ```
 
 ### Fig 8: Estimated cell number vs. Detected cell number
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 ercc <- filter(estimateCells(cObjSng, cObjMul), sampleType == "Multiplet")
 nConnections <- apply(adj, 1, sum)
 nConnections <- nConnections[match(ercc$sample, names(nConnections))]
@@ -166,7 +173,7 @@ tibble(
 ```
 
 ### Fig 9: Detected cell number vs. Total counts
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(
   sample = names(nConnections),
   detectedConnections = nConnections
@@ -186,7 +193,7 @@ tibble(
 ```
 
 ### Fig 10: Detected cell number vs. Total ERCC counts
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
 tibble(
   sample = names(nConnections),
   detectedConnections = nConnections
@@ -218,25 +225,25 @@ plotSwarmCircos(sObj, cObjSng, cObjMul, classOrder = c(
 
 ### Fig 12: Filtered
 
-Only detected duplicates and triplicates.  
-Only ERCC estimated cell number <= 4.  
+Only detected duplicates, triplicates, and quadruplicates.  
+ERCC estimated cell number set to max 4.  
 Weight cutoff = 5.
 
 ```{r, fig.align="center", fig.width=14, fig.height=12}
 adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
 samples <- rownames(adj)
 rs <- rowSums(adj)
-keep1 <- rs == 2 | rs == 3
-keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
+keep <- rs == 2 | rs == 3 | rs == 4
 
 #pdf('figures/figure5.pdf', width = 9.5, height = 9.5)
 plotSwarmCircos(
-  filterSwarm(sObj, keep1 & keep2), cObjSng, cObjMul, weightCut = 5, 
+  filterSwarm(sObj, keep), cObjSng, cObjMul, weightCut = 5, 
   classOrder = c(
     "Paneth", "Stem", "LGR5+.Mki67low", "LGR5+.Mki67high", "LGR5-.Mki67low",
     "TA.early", "TA.late", "Enterocyte", "Goblet", 
     "Tufft", "Chromaffin", "Blood"
-))
+    ), theoretical.max = 4
+)
 #dev.off()
 ```
 

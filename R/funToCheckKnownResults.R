@@ -44,7 +44,17 @@ checkResults <- function(
     group_by(sample) %>%
     summarize(data = list(cells))
   
-  full_join(detected, expected, by = "sample") %>%
+  #multiplets with 0 of 1 (self) connections will not be included in output from 
+  # getCellsForMultiplet.
+  
+  full.data <- full_join(detected, expected, by = "sample")
+  
+  #check here that all muultiplets are included in detected and expected
+  if(!all(colnames(getData(multiplets, "counts")) %in% pull(full.data, sample))) {
+    stop("detected missing samples. check checkResults FUN")
+  }
+  
+  full.data %>%
     mutate(
       tp = .tp(.),
       fp = .fp(.),
@@ -85,7 +95,7 @@ checkResults <- function(
 }
 
 #calculates the true negatives
-#in order to know which comdinations are possible and which are missing from
+#in order to know which combinations are possible and which are missing from
 # both expected and detected, the .possibleCombs function is used.
 .tn <- function(data, swarm, known) {
   possibleCombs <- .possibleCombs(swarm, known)
@@ -104,17 +114,24 @@ checkResults <- function(
 
 #Calculates all possible connections with all cell types
 #Helper for .tn
+# .possibleCombs <- function(swarm, known) {
+#   connections <- V1 <- V2 <- NULL
+#   ctKnown <- colnames(getData(known, "fractions"))
+#   ctDetected <- colnames(getData(swarm, "fractions"))
+# 
+#   c(ctKnown, ctDetected) %>%
+#     unique() %>%
+#     combn(., 2) %>%
+#     t() %>%
+#     as_tibble() %>%
+#     unite(connections, V1, V2, sep = "-")
+# }
+
 .possibleCombs <- function(swarm, known) {
   connections <- V1 <- V2 <- NULL
   ctKnown <- colnames(getData(known, "fractions"))
   ctDetected <- colnames(getData(swarm, "fractions"))
-
-  c(ctKnown, ctDetected) %>%
-    unique() %>%
-    combn(., 2) %>%
-    t() %>%
-    as_tibble() %>%
-    unite(connections, V1, V2, sep = "-")
+  unique(c(ctKnown, ctDetected))
 }
 
 #Calculates the true positive rate (sensitivity)
@@ -298,6 +315,7 @@ NULL
 
 setupPlate <- function(
   plateData,
+  fill = NULL,
   ...
 ){
   cellNumber <- cellTypes <- NULL
@@ -316,7 +334,7 @@ setupPlate <- function(
       l <- length(unique(c))
       frac <- rep(0, length(u.classes))
       names(frac) <- u.classes
-      frac[c] <- 1/l
+      if(is.null(fill)) frac[c] <- 1/l else frac[c] <- 1
       m <- matrix(frac, ncol = length(frac), dimnames= list(NULL, names(frac)))
       data.frame(sample = s, m, stringsAsFactors = FALSE)
     })) %>%

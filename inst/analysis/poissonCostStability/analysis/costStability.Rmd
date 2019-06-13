@@ -45,11 +45,11 @@ ggsave(
 )
 ```
 
-## Enge, Regev, Tabula Muris dataset
+## Small intestine dataset
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 load('../data/costs2.rda')
-nSyntheticMultiplets <- c(10, 100, 400, 800, 1200, 1600, 2000)
+nSyntheticMultiplets <- c(10, 50, 100, 500, 1000, 5000, 10000)
 tibble(
   nSyntheticMultiplets = nSyntheticMultiplets,
   costs
@@ -58,11 +58,14 @@ tibble(
   ggplot() +
   geom_boxplot(aes(nSyntheticMultiplets, costs, group = nSyntheticMultiplets)) +
   theme_bw() +
-  theme(plot.caption = element_text(hjust = 0)) +
-  scale_x_continuous(breaks = nSyntheticMultiplets, minor_breaks = nSyntheticMultiplets) +
+  theme(
+    plot.caption = element_text(hjust = 0),
+    axis.text.x = element_text(angle = 90, hjust = 0.5)
+  ) +
+  scale_x_log10(breaks = nSyntheticMultiplets, minor_breaks = nSyntheticMultiplets) +
   labs(
     x = "Number of synthetic multiplets", y = "Cost",
-    caption = "21 replicates per number of synthetic multiplets"
+    caption = "40 replicates per number of synthetic multiplets"
   )
 ```
 

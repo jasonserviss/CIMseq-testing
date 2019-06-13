@@ -405,9 +405,22 @@ fp <- efm %>%
   group_by(sample) %>%
   summarize(fp = sum(fp)) %>%
   {setNames(pull(., fp), pull(., sample))}
+
+# fp <- efm %>%
+#   inner_join(select(MGA.Meta, sample, sub_tissue)) %>%
+#   mutate(fp = case_when(
+#     (str_detect(from, "^C") | str_detect(to, "^C")) & sub_tissue == "small_intestine" ~ TRUE,
+#     (str_detect(from, "^SI") | str_detect(to, "^SI")) & sub_tissue == "colon" ~ TRUE,
+#     TRUE ~ FALSE
+#   )) %>%
+#   group_by(sample) %>%
+#   summarize(fp = sum(fp)) %>%
+#   {setNames(pull(., fp), pull(., sample))}
+
 ```
 
 Detected `r sum(fp[fp > 0])` false positive connections out of 
-`r sum(fp) + length(fp[fp == 0])` total connections. Of those multiplets with 
+`r nrow(efm)` total connections. Of those multiplets with 
 a detected connection, `r length(fp[fp > 0])` multiplets have at least one false
 positive out of `r length(fp)` total multiplets.
+

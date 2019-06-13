@@ -39,6 +39,22 @@ colnames(fractions) <- renameClasses(colnames(fractions))
 sObj@fractions <- fractions
 ```
 
+```{r, echo = FALSE}
+mul.stat <- SCM.Meta %>% 
+  filter(!filtered, cellNumber == "Multiplet") %>% 
+  mutate(n = map_int(cellTypes, ~length(str_split(.x, "-")[[1]]))) %>% 
+  count(n) %>% 
+  arrange(n) %>% 
+  pull(nn)
+```
+
+Dataset info  
+`r ncol(getData(cObjSng, "counts"))` singlets and 
+`r ncol(getData(cObjMul, "counts"))` multiplets are included in the final 
+dataset. The dataset includes `r mul.stat` multiplets with 2, 3, and 4 cells,
+respectivley.
+<br></br>
+
 ERCC estimated cell number
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 #Markdown
@@ -145,30 +161,7 @@ ggsave(
 
 
 ```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
-
-########################
-fractions <- getData(swarm, "fractions")
-  
-#calculate median cell number per singlet class
-cnc <- cellNumberPerClass(cObjSng, cObjMul) %>%
-  {setNames(pull(., medianCellNumber), pull(., class))}
-  
-cnc <- cnc[match(colnames(fractions), names(cnc))]
-if(!identical(names(cnc), colnames(fractions))) stop("cnc name mismatch")
-  
-  #calculate cell number per multiplet
-cnm <- estimateCells(cObjSng, cObjMul) %>%
-  filter(sampleType == "Multiplet") %>%
-  {setNames(pull(., estimatedCellNumber), pull(., sample))}
-
-cnm <- cnm[match(rownames(fractions), names(cnm))]
-if(!identical(names(cnm), rownames(fractions))) stop("cnm name mismatch")
-  
-#adjust fractions
-frac.renorm <- t(t(fractions) / cnc)
-adjusted <- frac.renorm * cnm
-
-
+adjusted <- adjustFractions(cObjSng, cObjMul, sObj, binary = FALSE)
 inner_join(
     tibble(sample = rownames(adjusted), `Adjusted estimated cell number` = rowSums(adjusted)),
     select(SCM.Meta, sample, cellTypes),
@@ -181,14 +174,12 @@ inner_join(
   geom_boxplot(aes(`Real cell number`, `Adjusted estimated cell number`, group = `Real cell number`)) +
   theme_bw() +
   labs(x = "Real cell number", y = "Adjusted estimated cell number")
-
-
 ```
 
 ### Show number of expected edges vs number of observed edges
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-known <- setupPlate(filter(SCM.Meta, !filtered))
+known <- setupPlate(filter(SCM.Meta, !filtered), fill = 1)
 res <- checkResults(sObj, known, cObjSng, cObjMul)
 
 d <- getCellsForMultiplet(sObj, cObjSng, cObjMul) %>%
@@ -218,9 +209,9 @@ data <- res %>%
   group_by(`Cells (n)`) %>%
   summarize(
     n = n(),
-    `TPR (mean)` = round(mean(TPR, na.rm = TRUE), digits = 2),
-    `TNR (mean)` = round(mean(TNR, na.rm = TRUE), digits = 2),
-    `MCR (mean)` = 1 - round(mean(ACC, na.rm = TRUE), digits = 2)
+    `TPR (mean)` = round(mean(TPR, na.rm = TRUE), digits = 3),
+    `TNR (mean)` = round(mean(TNR, na.rm = TRUE), digits = 3),
+    `MCR (mean)` = 1 - round(mean(ACC, na.rm = TRUE), digits = 3)
   )
 
 data

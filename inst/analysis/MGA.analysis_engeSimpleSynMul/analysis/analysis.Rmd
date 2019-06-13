@@ -1,0 +1,459 @@
+---
+title: "Mouse analysis Enge Simple 5000 synthetic multiplets"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "scSeqTools", "printr")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+##DATA
+load('../../MGA.analysis_engeSimple/data/CIMseqData.rda')
+load('../data/sObj.rda')
+```
+
+```{r, eval = TRUE}
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "C.Stem.proximal",
+    class == "1" ~ "C.Stem.distal",
+    class == "2" ~ "SI.Stem",
+    class == "3" ~ "C.Goblet.distal",
+    class == "4" ~ "SI.Enterocytes",
+    class == "5" ~ "SI.Goblet",
+    class == "6" ~ "C.Goblet.proximal",
+    class == "7" ~ "Enteroendocrine",
+    class == "8" ~ "Tufft",
+    class == "9" ~ "SI.Paneth",
+    class == "10" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+cOrder <- c(
+  "C.Stem.proximal", "C.Goblet.proximal", "C.Stem.distal", "C.Goblet.distal",
+  "SI.Goblet", "SI.Paneth", "SI.Stem", "SI.Enterocytes",
+  "Enteroendocrine", "Tufft", "Blood"
+)
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+features <- getData(cObjMul, "features")
+names(features) <- renameClasses(names(features))
+getData(cObjMul, "features") <- features
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+```
+
+### Classification
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
+plotUnsupervisedClass(cObjSng, cObjMul)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul,
+  c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1"),
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, "Hoxb13",
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+plotUnsupervisedMarkers(
+  cObjSng, cObjMul, "Mki67",
+  pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
+classHeatmap(
+  data = data.frame(
+    gene = rownames(getData(cObjMul, "counts"))[getData(cObjMul, "features")],
+    class = names(getData(cObjMul, "features"))
+  ),
+  counts.log = getData(cObjSng, "counts.log"),
+  classes = tibble(
+    sample = colnames(getData(cObjSng, "counts")), 
+    class = getData(cObjSng, "classification")
+  )
+)
+```
+
+Show top 10 (by fold change) features per class.
+
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
+violinPlot <- function(cpm, genes, classes, class) {
+  cpm[genes, ] %>%
+    t() %>% 
+    matrix_to_tibble("sample") %>%
+    gather(gene, cpm, -sample) %>%
+    full_join(tibble(sample = colnames(cpm), class = classes), by = "sample") %>%
+    ggplot() +
+    geom_jitter(aes(class, cpm), height = 0, size = 0.1, alpha = 0.25) +
+    facet_wrap(~gene, scales = "free_y") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90)) +
+    labs(title = paste0(class, " genes"))
+}
+
+
+getGenes <- function(
+  cpm, classes, features, class, ntop = 10
+) {
+  fc <- foldChangePerClass(
+    cpm[features[names(features) == class], ], 
+    tibble(sample = colnames(cpm), class = classes)
+  )
+  rownames(fc[order(fc[, class], decreasing = TRUE), ])[1:ntop]
+}
+
+cpm <- getData(cObjSng, "counts.cpm")
+c <- "C.Stem.distal"
+g <- getGenes(cpm, getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(cpm, g, getData(cObjSng, "classification"), c)
+
+c <- "C.Stem.proximal"
+g <- getGenes(cpm, getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(cpm, g, getData(cObjSng, "classification"), c)
+
+c <- "C.Goblet.distal"
+g <- getGenes(cpm, getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(cpm, g, getData(cObjSng, "classification"), c)
+
+c <- "C.Goblet.proximal"
+g <- getGenes(cpm, getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(cpm, g, getData(cObjSng, "classification"), c)
+
+c <- "SI.Stem"
+g <- getGenes(cpm, getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(cpm, g, getData(cObjSng, "classification"), c)
+
+c <- "SI.Goblet"
+g <- getGenes(cpm, getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(cpm, g, getData(cObjSng, "classification"), c)
+
+c <- "SI.Enterocytes"
+g <- getGenes(cpm, getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(cpm, g, getData(cObjSng, "classification"), c)
+
+c <- "SI.Paneth"
+g <- getGenes(cpm, getData(cObjSng, "classification"), getData(cObjMul, "features"), c)
+violinPlot(cpm, g, getData(cObjSng, "classification"), c)
+```
+
+### Deconvolution
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+plotSwarmCircos(sObj, cObjSng, cObjMul, weightCut = 0, classOrder = cOrder)
+```
+
+### Filtering
+
+Only detected duplicates and triplicates.  
+Only ERCC estimated cell number <= 4.  
+Weight cutoff = 5.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
+samples <- rownames(adj)
+rs <- rowSums(adj)
+keep <- rs == 2 | rs == 3
+
+plotSwarmCircos(
+  filterSwarm(sObj, keep), cObjSng, cObjMul, weightCut = 5, 
+  classOrder = cOrder, theoretical.max = 4
+)
+```
+
+#False positive stats
+
+```{r}
+efm <- getEdgesForMultiplet(sObj, cObjSng, cObjMul, theoretical.max = 4) %>% 
+  mutate(conn = map2(from, to, ~tibble(
+    from = sort(c(.x, .y))[1], to = sort(c(.x, .y))[2]
+  ))) %>% 
+  select(-from, -to) %>% 
+  unnest() %>% 
+  distinct()
+
+edgeStats <- calculateEdgeStats(sObj, cObjSng, cObjMul, theoretical.max = 4) %>%
+  mutate(conn = map2(from, to, ~tibble(
+    from = sort(c(.x, .y))[1], to = sort(c(.x, .y))[2]
+  ))) %>% 
+  select(-from, -to) %>% 
+  unnest() %>% 
+  select(from, to, everything()) %>%
+  distinct() %>%
+  as_tibble()
+
+fp <- efm %>%
+  mutate(fp = case_when(
+    str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
+    str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
+    str_detect(from, "proximal") & str_detect(to, "distal") ~ TRUE,
+    str_detect(to, "proximal") & str_detect(from, "distal") ~ TRUE,
+    TRUE ~ FALSE
+  )) %>%
+  group_by(sample) %>%
+  summarize(fp = sum(fp)) %>%
+  {setNames(pull(., fp), pull(., sample))}
+
+fp.c <- efm %>%
+  inner_join(select(MGA.Meta, sample, sub_tissue), by = "sample") %>%
+  mutate(fp = case_when(
+    (str_detect(from, "^C") | str_detect(to, "^C")) & sub_tissue == "small_intestine" ~ TRUE,
+    (str_detect(from, "^SI") | str_detect(to, "^SI")) & sub_tissue == "colon" ~ TRUE,
+    TRUE ~ FALSE
+  )) %>%
+  group_by(sample) %>%
+  summarize(fp = sum(fp)) %>%
+  {setNames(pull(., fp), pull(., sample))}
+
+```
+
+If we define a false positive as a connection between either, the small 
+intestine and the colon or a connection between the proximal and distal colon 
+based on the classifications, the number of detected false positives is as 
+follows:  
+(Definition 1) Detected `r sum(fp[fp > 0])` false positive connections out of 
+`r nrow(efm)` total connections. Of those multiplets with 
+a detected connection, `r length(fp[fp > 0])` multiplets have at least one false
+positive out of `r length(fp)` total multiplets. The per multiplet false 
+positive distribution is shown in the plot below.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+ggplot() +
+  geom_bar(aes(fp)) +
+  theme_bw() +
+  labs(x = "False positives per multiplet") +
+  scale_x_continuous(breaks = 0:max(fp))
+```
+
+If we instead define the false positives as multiplets that were sorted as small
+intestine that contain connections with colon classes and vice versa, the number 
+of false positives is as follows:  
+(Definition 2) Detected `r sum(fp.c[fp.c > 0])` false positive connections out of 
+`r nrow(efm)` total connections. Of those multiplets with 
+a detected connection, `r length(fp.c[fp.c > 0])` multiplets have at least one false
+positive out of `r length(fp.c)` total multiplets.
+
+We can also evaluate false positives via definition 1 and 2 and also include
+whether or not the connection is significant at alpha 0.05.
+
+(Definition 1)
+
+```{r}
+edgeStats %>% 
+  mutate(significant = pval < 0.05) %>%
+  mutate(`false positive` = case_when(
+    str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
+    str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
+    str_detect(from, "proximal") & str_detect(to, "distal") ~ TRUE,
+    str_detect(to, "proximal") & str_detect(from, "distal") ~ TRUE,
+    TRUE ~ FALSE
+  )) %>% 
+  group_by(significant, `false positive`) %>% 
+  summarize(n = sum(weight)) %>% 
+  ungroup() %>% 
+  as.data.frame()
+```
+
+(Definition 2)
+
+```{r}
+
+efm %>%
+  inner_join(edgeStats, by = c("from", "to")) %>% 
+  inner_join(select(MGA.Meta, sample, sub_tissue), by = "sample") %>%
+  mutate(significant = pval < 0.05) %>%
+  mutate(`false positive` = case_when(
+    (str_detect(from, "^C") | str_detect(to, "^C")) & sub_tissue == "small_intestine" ~ TRUE,
+    (str_detect(from, "^SI") | str_detect(to, "^SI")) & sub_tissue == "colon" ~ TRUE,
+    TRUE ~ FALSE
+  )) %>% 
+  count(significant, `false positive`)
+```
+
+The type of false positive connections and their number are shown below.
+
+(Definition 1)
+
+```{r}
+efm %>%
+  mutate(fp = case_when(
+    str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
+    str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
+    str_detect(from, "proximal") & str_detect(to, "distal") ~ TRUE,
+    str_detect(to, "proximal") & str_detect(from, "distal") ~ TRUE,
+    TRUE ~ FALSE
+  )) %>%
+  filter(fp) %>%
+  count(from, to) %>%
+  arrange(desc(n)) %>%
+  as.data.frame()
+```
+
+(Definition 2)
+
+```{r}
+efm %>%
+  inner_join(select(MGA.Meta, sample, sub_tissue)) %>%
+  mutate(fp = case_when(
+    (str_detect(from, "^C") | str_detect(to, "^C")) & sub_tissue == "small_intestine" ~ TRUE,
+    (str_detect(from, "^SI") | str_detect(to, "^SI")) & sub_tissue == "colon" ~ TRUE,
+    TRUE ~ FALSE
+  )) %>%
+  filter(fp) %>%
+  count(from, to) %>%
+  arrange(desc(n)) %>%
+  as.data.frame()
+```
+
+Number of fp divided by number of detected connections.
+
+```{r}
+dc <- rowSums(adjustFractions(cObjSng, cObjMul, sObj))
+tibble(
+  sample = names(fp),
+  `False positives (n)` = fp,
+  `Deconvolution detected connections (n)` = dc[names(fp)]
+) %>% 
+  group_by(`Deconvolution detected connections (n)`) %>%
+  summarize(`False positives (n)` = sum(`False positives (n)`)) %>%
+  as.data.frame()
+```
+
+```{r, eval = FALSE, echo = FALSE}
+sub_tissue_count <- tibble(sample = names(fp), fp = fp) %>% 
+  inner_join(MGA.Meta, by = "sample") %>% 
+  mutate(`False positive` = fp > 0) %>% 
+  count(`False positive`, sub_tissue) %>%
+  rename(`multiplets (n)` = n)
+
+#counts the type of false positives per tissue
+efm %>%
+  mutate(`False positive type` = case_when(
+    str_detect(from, "^SI") & str_detect(to, "^C") ~ "SC",
+    str_detect(to, "^SI") & str_detect(from, "^C") ~ "SC",
+    str_detect(from, "proximal") & str_detect(to, "distal") ~ "PD",
+    str_detect(to, "proximal") & str_detect(from, "distal") ~ "PD",
+    TRUE ~ "none"
+  )) %>%
+  inner_join(MGA.Meta) %>%
+  count(sub_tissue, `False positive type`) %>%
+  rename(`False positives (n)` = n)
+```
+
+Correlation between various parameters and the number of false positives is 
+shown below:
+
+```{r}
+mulNames <- names(fp) #note other multiplets have 0 connections
+
+ec <- estimateCells(cObjSng, cObjMul, warn = FALSE) %>%
+  filter(sample %in% mulNames) %>%
+  {setNames(pull(., estimatedCellNumber), pull(., sample))}
+ec <- ec[mulNames]
+dec <- rowSums(adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE))
+dec <- dec[mulNames]
+c <- getData(sObj, "costs")
+c <- c[mulNames]
+tc <- colSums(getData(cObjMul, "counts"))
+tc <- tc[mulNames]
+dg <- apply(getData(cObjMul, "counts"), 2, function(c) length(which(c != 0)))
+dg <- dg[mulNames]
+feat.do <- getData(cObjMul, "counts.cpm")[features, ] %>%
+  matrix_to_tibble("gene") %>%
+  gather(sample, cpm, -gene) %>%
+  group_by(sample) %>%
+  summarize(do = length(which(cpm == 0))) %>%
+  {setNames(pull(., do), pull(., sample))}
+feat.do <- feat.do[mulNames]
+
+cormat <- cor(matrix(c(fp, ec, dec, c, tc, dg, feat.do), ncol = 7))
+corvec <- cormat[2:nrow(cormat), 1]
+names(corvec) <- c(
+  "ERCC estimated cell number", "Deconvolution estimated cell number", 
+  "Deconvolution cost", "Total counts", "Total detected genes", 
+  "Drop-outs in features"
+)
+data.frame(cor = corvec)
+```
+
+```{r, eval = FALSE}
+cpm <- getData(cObjMul, "counts.cpm")
+features <- getData(cObjMul, "features")
+cpm[features, ] %>%
+  matrix_to_tibble("gene") %>%
+  gather(sample, cpm, -gene) %>%
+  inner_join(tibble(class = names(features), gene = rownames(cpm)[features])) %>%
+  group_by(sample, class) %>%
+  summarize(cpm.sum = sum(cpm)) %>%
+  ungroup() %>%
+  inner_join(tibble(sample = names(fp), fp = fp)) %>%
+  ggplot() +
+  geom_point(aes(cpm.sum, fp)) +
+  facet_wrap(~class)
+#multiplets with high fp look to have low expression of the selected features
+
+```
+
+Distribution of fractions in connections thought to be true vs connections
+known to be false.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+fractions <- getData(sObj, "fractions")
+efm %>%
+  mutate(fp = case_when(
+    str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
+    str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
+    str_detect(from, "proximal") & str_detect(to, "distal") ~ TRUE,
+    str_detect(to, "proximal") & str_detect(from, "distal") ~ TRUE,
+    TRUE ~ FALSE
+  )) %>%
+  mutate(fracs = pmap(list(sample, from, to), function(s, f, t) {
+    fractions[s, c(f, t)]
+  })) %>%
+  unnest() %>%
+  ggplot() +
+  geom_boxplot(aes(fp, fracs)) +
+  labs(x = "False positive", y = "Deconvolution fraction") +
+  theme_bw()
+```
+
+Cluster multiplets and look for an overrepresentaion of false positives.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+p.dist <- CIMseq::pearsonsDist(getData(cObjMul, "counts.cpm"), CIMseq::selectTopMax(getData(cObjMul, "counts.cpm"), 2000))
+set.seed(234899)
+u <- uwot::umap(p.dist)
+rownames(u) <- colnames(getData(cObjMul, "counts"))
+u %>% 
+  matrix_to_tibble("sample") %>% 
+  inner_join(tibble(sample = names(fp), fp = fp)) %>% 
+  mutate(fp.bool = fp > 0) %>% 
+  ggplot() + 
+  geom_point(aes(V1, V2, colour = fp.bool)) +
+  theme_bw() +
+  labs(x = "UMAP1", y = "UMAP2") +
+  guides(colour = guide_legend(title = "Has false positive?"))
+
+u %>% 
+  matrix_to_tibble("sample") %>% 
+  inner_join(tibble(sample = names(fp), fp = fp)) %>% 
+  ggplot() + 
+  geom_point(aes(V1, V2, colour = fp)) +
+  theme_bw() +
+  scale_colour_viridis_c() +
+  labs(x = "UMAP1", y = "UMAP2") +
+  guides(colour = guide_legend(title = "False positives (n)"))
+```
+

@@ -89,7 +89,7 @@ classHeatmap(
 
 Show top 10 (by fold change) features per class.
 
-```{r, fig.align="center", fig.width=10, fig.height=8, eval = TRUE}
+```{r, fig.align="center", fig.width=10, fig.height=8, eval = FALSE}
 violinPlot <- function(cpm, genes, classes, class) {
   cpm[genes, ] %>%
     t() %>% 
@@ -184,12 +184,23 @@ efm <- getEdgesForMultiplet(sObj, cObjSng, cObjMul, theoretical.max = 4) %>%
   unnest() %>% 
   distinct()
 
+# fp <- efm %>%
+#   mutate(fp = case_when(
+#     str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
+#     str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
+#     str_detect(from, "proximal") & str_detect(to, "distal") ~ TRUE,
+#     str_detect(to, "proximal") & str_detect(from, "distal") ~ TRUE,
+#     TRUE ~ FALSE
+#   )) %>%
+#   group_by(sample) %>%
+#   summarize(fp = sum(fp)) %>%
+#   {setNames(pull(., fp), pull(., sample))}
+
 fp <- efm %>%
+  inner_join(select(MGA.Meta, sample, sub_tissue)) %>%
   mutate(fp = case_when(
-    str_detect(from, "^SI") & str_detect(to, "^C") ~ TRUE,
-    str_detect(to, "^SI") & str_detect(from, "^C") ~ TRUE,
-    str_detect(from, "proximal") & str_detect(to, "distal") ~ TRUE,
-    str_detect(to, "proximal") & str_detect(from, "distal") ~ TRUE,
+    (str_detect(from, "^C") | str_detect(to, "^C")) & sub_tissue == "small_intestine" ~ TRUE,
+    (str_detect(from, "^SI") | str_detect(to, "^SI")) & sub_tissue == "colon" ~ TRUE,
     TRUE ~ FALSE
   )) %>%
   group_by(sample) %>%

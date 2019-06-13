@@ -31,6 +31,6 @@ data <- map_dfc(nSyntheticMultiplets, function(x) {
     })
   )
 }) 
-
+names(data) <- nSyntheticMultiplets
 save(data, file = file.path(currPath, "data/costs.rda"))
 writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo.txt"))

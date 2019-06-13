@@ -93,10 +93,32 @@ mca <- FindClusters(
   force.recalc = TRUE, random.seed = 93820
 )
 
-DimPlot(
-  object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
-  vector.friendly = FALSE, pt.size = 1
-) + scale_colour_manual(values = col40())
+#manually split proximal and distal stem/colonocytes
+loc <- apply(singlets, 2, function(c) if_else(c['Hoxb13'] > c['Osr2'], "distal", "proximal"))
+dat <- tibble(
+  sample = names(loc),
+  location = loc,
+  class = as.character(mca@ident[names(loc)])
+) %>%
+  mutate(new.class = case_when(
+    class %in% c("0", "1") & location == "proximal" ~ "0",
+    class %in% c("0", "1") & location == "distal" ~ "1",
+    TRUE ~ class
+  )) %>%
+  mutate(new.class = parse_factor(new.class, levels = unique(new.class)))
+
+new.class <- pull(dat, new.class)
+names(new.class) <- pull(dat, sample)
+mca@ident <- new.class
+meta <- mca@meta.data
+meta$res.0.2 <- new.class
+mca@meta.data <- meta
+
+# DimPlot(
+#   object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
+#   vector.friendly = FALSE, pt.size = 1
+# ) + scale_colour_manual(values = col40())
+
 # 
 # FeaturePlot(
 #   mca,
@@ -177,4 +199,4 @@ print(paste0("saving data to ", currPath, "."))
 save(cObjSng, cObjMul, file = file.path(currPath, "data/CIMseqData.rda"))
 
 #write logs
-writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_spUnsupervised.txt"))
+writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_CIMseqData.txt"))

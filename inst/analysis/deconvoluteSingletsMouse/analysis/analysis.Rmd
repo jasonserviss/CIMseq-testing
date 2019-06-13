@@ -1,5 +1,5 @@
 ---
-title: "Singlet deconvolution"
+title: "Mouse singlet deconvolution; Enge only"
 author: "Jason T. Serviss"
 date: "`r Sys.Date()`"
 output:
@@ -12,79 +12,114 @@ editor_options:
 
 ```{r, message = FALSE}
 #PACKAGES
-packages <- c(
-  "sp.scRNAseq", "sp.scRNAseqData", "sp.scRNAseqTesting",
-  "printr", "ggthemes", "tidyverse"
-)
+packages <- c("CIMseq", "tidyverse")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 #DATA
-s <- str_detect(colnames(countsMgfp), "^s")
-commonGenes <- intersect(rownames(countsMgfp), rownames(countsRegev))
-
-sng <- cbind(countsMgfp[commonGenes, s], countsRegev[commonGenes, ])
-mul <- countsMgfp[commonGenes, !s]
-
-erccSng <- cbind(
-  countsMgfpERCC[, s], 
-  matrix(NA, nrow = nrow(countsMgfpERCC), ncol = ncol(countsRegev))
-)
-erccMul <- cbind(countsMgfpERCC[, !s])
-
-#setup spCounts
-cObjSng <- spCounts(sng, erccSng)
-set.seed(29843)
-cObjMul <- spCounts(sng[, sample(1:ncol(sng), 100, replace = FALSE)], erccMul)
-
-load('../../testingPoissonMouse/data/uObj.rda')
+load('../../MGA.analysis_enge/data/CIMseqData.rda')
 load('../data/sObj.rda')
+
+cObjMul.2 <- CIMseqMultiplets(
+  getData(cObjSng, "counts")[, rownames(getData(sObj, "fractions"))],
+  getData(cObjSng, "counts.ercc")[, rownames(getData(sObj, "fractions"))],
+  getData(cObjMul, "features")
+)
+rm(cObjMul)
+```
+
+```{r}
+renameClasses <- function(class) {
+  case_when(
+    class == "0" ~ "C.Colonocytes",
+    class == "1" ~ "SI.Lgr5+",
+    class == "2" ~ "C.Distal.Lgr5+",
+    class == "3" ~ "C.Lgr5+.Ki67",
+    class == "4" ~ "C.Distal.TA",
+    class == "5" ~ "C.Proximal.Lgr5+.1",
+    class == "6" ~ "SI.Lgr5+.Mki67h",
+    class == "7" ~ "C.Proximal.TA",
+    class == "8" ~ "C.Distal.Goblet.marker",
+    class == "9" ~ "C.Proximal.Goblet",
+    class == "10" ~ "C.Distal.Goblet.Fos",
+    class == "11" ~ "SI.Goblet",
+    class == "12" ~ "C.Distal.Goblet.Plet1",
+    class == "13" ~ "SI.TA.1",
+    class == "14" ~ "SI.Lgr5+.Mki67l",
+    class == "15" ~ "C.Proximal.Lgr5+.2",
+    class == "16" ~ "Enteroendocrine",
+    class == "17" ~ "Tufft",
+    class == "18" ~ "SI.Enterocytes",
+    class == "19" ~ "SI.TA.2",
+    class == "20" ~ "SI.Paneth",
+    class == "21" ~ "C.Distal.Goblet.Mki67",
+    class == "22" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+cOrder <- c(
+  "SI.Goblet", "SI.Paneth", "SI.Lgr5+", "SI.Lgr5+.Mki67l", "SI.Lgr5+.Mki67h", "SI.TA.1", "SI.TA.2", "SI.Enterocytes",
+  "C.Proximal.Goblet", "C.Proximal.Lgr5+.1", "C.Proximal.Lgr5+.2", "C.Proximal.TA", "C.Colonocytes", "C.Lgr5+.Ki67",
+  "C.Distal.Goblet.Mki67", "C.Distal.Goblet.Plet1", "C.Distal.Goblet.Fos", "C.Distal.Goblet.marker", "C.Distal.Lgr5+", "C.Distal.TA",
+  "Enteroendocrine", "Tufft", "Blood"
+)
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
 ```
 
 ```{r, fig.align="center", fig.width = 10, fig.height=8}
-plotUnsupervisedClass(uObj, cObjSng)
+plotUnsupervisedClass(cObjSng, cObjMul.2)
 ```
-
-<br></br>
 
 ```{r, fig.align="center", fig.width = 12, fig.height=10}
-getData(sObj, "spSwarm") %>%
-  rownames_to_column("sample") %>%
-  as_tibble() %>%
-  inner_join(
-    tibble(
-      sample = rownames(getData(uObj, "tsne")), 
-      class = getData(uObj, "classification")
-    ), by = "sample"
-  ) %>%
-  gather(cellType, fraction, -sample, -class) %>%
-  ggplot() + 
-  geom_tile(aes(sample, cellType, fill = fraction)) +
-  facet_wrap(~ class, scales = "free") +
+data <- getCellsForMultiplet(sObj, cObjSng, cObjMul.2, theoretical.max = 4, drop = FALSE) %>%
+  inner_join(tibble(sample = colnames(getData(cObjSng, "counts")), class = getData(cObjSng, "classification")))
+```
+
+Precision: within any given class (defined by unsupervised classification) what
+fraction of times is a sample of that class devonvoluted correctly.
+
+```{r}
+data %>%
+  mutate(correct = cells == class) %>%
+  group_by(class) %>%
+  summarize(precision = sum(correct) / n()) %>%
+  arrange(precision) %>%
+  print(n = nrow(.))
+```
+
+```{r, fig.align="center", fig.width = 12, fig.height=10}
+data %>% 
+  count(class, cells) %>%
+  group_by(class) %>%
+  filter(cells != class) %>%
+  #mutate(n = 100 * (n / sum(n))) %>%
+  ungroup() %>%
+  ggplot() +
+  geom_tile(aes(class, cells, fill = n)) +
   scale_fill_viridis_c() +
-  theme(axis.text.x = element_text(angle = 90), legend.position = "top") +
-  labs(y = "Detected cell type") +
-  guides(fill = guide_colorbar(title.position = "top", title.hjust = 0.5))
+  ggthemes::theme_few() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
-<br></br>
+```{r, fig.align="center", fig.width = 12, fig.height=10}
+adj <- adjustFractions(cObjSng, cObjMul.2, sObj, binary = TRUE)
+samples <- rownames(adj)
+rs <- rowSums(adj)
+keep <- rs == 2 | rs == 3 | rs == 4
 
-```{r, fig.align="center", fig.width = 10, fig.height=8}
-getData(sObj, "spSwarm") %>%
-  as_tibble() %>%
-  gather(cellType, fraction) %>%
-  ggplot() +
-  geom_histogram(aes(fraction), binwidth = 0.01) +
-  theme_bw()
+
+plotSwarmCircos(
+  filterSwarm(sObj, keep), cObjSng, cObjMul.2, weightCut = 10, 
+  classOrder = cOrder, theoretical.max = 4
+)
 ```
 
-```{r, fig.align="center", fig.width = 10, fig.height=8}
-getData(sObj, "spSwarm") %>%
-  as_tibble() %>%
-  gather(cellType, fraction) %>%
-  filter(fraction != 0) %>%
-  ggplot() +
-  geom_histogram(aes(log10(fraction)), binwidth = 0.1) +
-  theme_bw()
+```{r}
+table(rs)
 ```
 

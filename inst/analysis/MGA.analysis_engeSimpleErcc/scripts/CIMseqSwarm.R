@@ -22,7 +22,7 @@ if(!is.na(args[1])) {
   runSwarmUppmax(
     cObjSng, cObjMul, swarmInit = NULL, maxiter = 100,
     nSyntheticMultiplets = 400, eps.stagnate = 1, maxit.stagnate = 5,
-    currPath = getwd(), args = args
+    currPath = getwd(), args = args, e = 5
   )
   
 } else {
@@ -33,7 +33,7 @@ if(!is.na(args[1])) {
   runSwarmMultiprocess(
     cObjSng, cObjMul, swarmInit = NULL, maxiter = 100,
     nSyntheticMultiplets = 400, eps.stagnate = 1, maxit.stagnate = 5,
-    currPath = getwd()
+    currPath = getwd(), e = 5
   )
 }
 
