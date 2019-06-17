@@ -13,6 +13,9 @@
 \item{multiplets}{matrix; A matrix with multiplet counts.}
 
 \item{multiplets}{matrix; A matrix with multiplet ERCC counts.}
+
+\item{markers}{data.frame; Output from \code{\link[Seurat]{FindAllMarkers}}
+function.}
 }
 \value{
 A list with CIMseqSinglets object as the first element and 

@@ -10,6 +10,8 @@
 #' @param singlet.ercc matrix; A matrix with singlet ERCC counts.
 #' @param multiplets matrix; A matrix with multiplet counts.
 #' @param multiplets matrix; A matrix with multiplet ERCC counts.
+#' @param markers data.frame; Output from \code{\link[Seurat]{FindAllMarkers}}
+#'  function. 
 #' @return A list with CIMseqSinglets object as the first element and 
 #' CIMseqMultiplets object as the second element.
 #' @author Jason T. Serviss
@@ -19,16 +21,16 @@ NULL
 #' @import CIMseq
 
 seuratToCIMseq <- function(
-  seurat.obj, singlets, singlet.ercc, multiplets, multiplet.ercc
+  seurat.obj, singlets, singlet.ercc, multiplets, multiplet.ercc, markers
 ){
   #singlet data
   singlets <- singlets[, colnames(singlets) %in% colnames(mca@data)]
   singletERCC <- singletERCC[, colnames(singletERCC) %in% colnames(singlets)]
-  idx <- match(rownames(mca@ident), colnames(singlets))
+  idx <- match(names(mca@ident), colnames(singlets))
   
   #classifications
-  classes <- as.character(mca@ident[[1]])[idx]
-  names(classes) <- rownames(mca@ident)[idx]
+  classes <- as.character(mca@ident)[idx]
+  names(classes) <- names(mca@ident)[idx]
   
   #features
   var.genes <- unique(markers$gene)
