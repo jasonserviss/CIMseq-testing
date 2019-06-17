@@ -1,5 +1,5 @@
 ---
-title: "Mouse analysis Enge only"
+title: "Mouse analysis enge"
 author: "Jason T. Serviss"
 date: "`r Sys.Date()`"
 output:
@@ -11,16 +11,16 @@ editor_options:
 ---
 
 ```{r, message = FALSE}
-packages <- c("CIMseq", "CIMseq.data", "tidyverse")
+packages <- c("CIMseq", "CIMseq.data", "tidyverse", "ggthemes")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
 load('../data/CIMseqData.rda')
-load('../data/sObj.rda')
+#load('../data/sObj.rda')
 ```
 
-```{r, eval = FALSE, echo = FALSE}
+```{r, eval = TRUE, echo = FALSE}
 #rename classes
 renameClasses <- function(class) {
   case_when(
@@ -59,17 +59,34 @@ cOrder <- c(
 )
 
 getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
-fractions <- getData(sObj, "fractions")
-colnames(fractions) <- renameClasses(colnames(fractions))
-sObj@fractions <- fractions
+# fractions <- getData(sObj, "fractions")
+# colnames(fractions) <- renameClasses(colnames(fractions))
+# sObj@fractions <- fractions
 ```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-plotUnsupervisedClass(cObjSng, cObjMul)
-plotUnsupervisedMarkers(
+p <- plotUnsupervisedClass(cObjSng, cObjMul)
+p
+ggsave(
+  plot = p,
+  filename = '../figures/MGA.enge.classes.pdf',
+  device = cairo_pdf,
+  height = 180,
+  width = 180,
+  units = "mm"
+)
+p <- plotUnsupervisedMarkers(
   cObjSng, cObjMul,
   c("Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1"),
   pal = RColorBrewer::brewer.pal(8, "Set1")
+)
+ggsave(
+  plot = p,
+  filename = '../figures/MGA.enge.markers.pdf',
+  device = cairo_pdf,
+  height = 180,
+  width = 180,
+  units = "mm"
 )
 plotUnsupervisedMarkers(
   cObjSng, cObjMul,
@@ -79,6 +96,11 @@ plotUnsupervisedMarkers(
 ```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
+markers <- c(
+  "Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1", "Mki67",
+  "Hoxb13", "Plet1", "Osr2", "Reg4", "Sval1"
+)
+
 gene.order <- c(
   "Hoxb13", "Osr2", "Atoh1", "Reg4", "Sval1", "Plet1", "Mki67", "Lgr5", "Alpi", 
   "Slc26a3", "Lyz1", "Dclk1", "Chga", "Ptprc"
@@ -153,26 +175,18 @@ library(patchwork)
 
 p <- over + under + plot_layout(ncol = 1, heights = c(2, 1))
 p
-```
-
-```{r, eval = FALSE}
-cOrder <- c("SmallIntestine", "Blood", "Enteroendo", "Tufft", "Colon", "Colon.d", "Colon.p")
-```
-
-```{r, fig.align="center", fig.width=14, fig.height=12}
-
-plotSwarmCircos(sObj, cObjSng, cObjMul, weightCut = 0, classOrder = cOrder)
-```
-
-```{r, eval = FALSE, echo = FALSE}
-c(
-    "SI.Goblet", "SI.Goblet.KI67+", "SI.Paneth", "SI.Lgr5+.KI67-", "SI.Lgr5+.KI67h", 
-    "SI.Lgr5+.KI67l", "SI.Lgr5-.KI67l", "SI.Lgr5-.KI67+", "SI.Entero", "SI.Entero.early", 
-    "Enteroendo", "Tufft", "Blood",
-    "C.Lgr5+.d", "C.TA.d", "C.Lgr5+.KI67+.d", "C.Colonocyte.d",
-    "C.Lgr5+.p.2", "C.Lgr5+.p.1", "C.Lgr5+.KI67+.p", "C.Colonocyte.p",
-    "C.Goblet.p", "C.Goblet.KI67+", "C.Goblet.d"
+ggsave(
+  plot = p,
+  filename = '../figures/MGA.enge.geneBar.pdf',
+  device = cairo_pdf,
+  height = 300,
+  width = 300,
+  units = "mm"
 )
+```
+
+```{r, fig.align="center", fig.width=14, fig.height=12, eval = FALSE}
+plotSwarmCircos(sObj, cObjSng, cObjMul, weightCut = 0, classOrder = cOrder)
 ```
 
 clockwise  
@@ -186,17 +200,21 @@ Only detected duplicates and triplicates.
 Only ERCC estimated cell number <= 4.  
 Weight cutoff = 5.
 
-```{r, fig.align="center", fig.width=14, fig.height=12}
+```{r, fig.align="center", fig.width=14, fig.height=12, eval = FALSE}
 adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
 samples <- rownames(adj)
 rs <- rowSums(adj)
 keep1 <- rs == 2 | rs == 3
 keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
 
+pdf('../figures/MGA.enge.circos.pdf')
 plotSwarmCircos(
   filterSwarm(sObj, keep1 & keep2), cObjSng, cObjMul, weightCut = 5, 
   classOrder = cOrder, alpha = 0.01
 )
+invisible(dev.off())
+
+
 ```
 
 
