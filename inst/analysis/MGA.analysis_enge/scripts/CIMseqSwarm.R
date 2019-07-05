@@ -20,16 +20,15 @@ if(!is.na(args[1])) {
   out <- if(is.na(args[2])) {out <- 'tmp'} else {out <- as.character(args[2])}
   
   baseSeed <- 43892
-  init <- map(1:10, function(i) {
-    cbind(
-      swarmInit(cObjSng, 2, null.weight = 0.5, seed = baseSeed + i), 
-      swarmInit(cObjSng, 3, null.weight = 0.5, seed = baseSeed + i)
-    )
-  }) %>% do.call(cbind, .)
-  
+  init <- cbind(
+    swarmInit(cObjSng, 2, null.weight = 0.5, seed = baseSeed), 
+    swarmInit(cObjSng, 3, null.weight = 0.5, seed = baseSeed)
+  )
+
+  options(future.globals.maxSize = Inf)
   runSwarmUppmax(
     cObjSng, cObjMul, swarmInit = init, maxiter = 100, swarmsize = ncol(init),
-    nSyntheticMultiplets = 400, eps.stagnate = 1, maxit.stagnate = 5,
+    nSyntheticMultiplets = 2000, eps.stagnate = 1, maxit.stagnate = 5,
     currPath = out, args = args
   )
   
@@ -39,16 +38,15 @@ if(!is.na(args[1])) {
   library(CIMseq.testing)
   
   baseSeed <- 43892
-  init <- map(1:10, function(i) {
-    cbind(
-      swarmInit(cObjSng, 2, null.weight = 0.5, seed = baseSeed + i), 
-      swarmInit(cObjSng, 3, null.weight = 0.5, seed = baseSeed + i)
-    )
-  }) %>% do.call(cbind, .)
-  
+  init <- cbind(
+    swarmInit(cObjSng, 2, null.weight = 0.5, seed = baseSeed), 
+    swarmInit(cObjSng, 3, null.weight = 0.5, seed = baseSeed)
+  )
+
+  options(future.globals.maxSize = Inf)  
   runSwarmMultiprocess(
     cObjSng, cObjMul, swarmInit = init, maxiter = 100, swarmsize = ncol(init),
-    nSyntheticMultiplets = 400, eps.stagnate = 1, maxit.stagnate = 5,
+    nSyntheticMultiplets = 2000, eps.stagnate = 1, maxit.stagnate = 5,
     currPath = getwd()
   )
 }

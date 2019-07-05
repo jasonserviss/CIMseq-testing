@@ -93,10 +93,10 @@ mca <- FindClusters(
   force.recalc = TRUE, random.seed = 93820
 )
 
-DimPlot(
-  object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
-  vector.friendly = FALSE, pt.size = 1
-) + scale_colour_manual(values = col40())
+# DimPlot(
+#   object = mca, reduction.use = "umap", no.legend = FALSE, do.return = TRUE,
+#   vector.friendly = FALSE, pt.size = 1
+# ) + scale_colour_manual(values = col40())
 # 
 # FeaturePlot(
 #   mca,
@@ -105,12 +105,12 @@ DimPlot(
 #   vector.friendly = FALSE
 # )
 #
-FeaturePlot(
-  mca,
-  c("Lgr5", "Slc26a3", "Alpi", "Mki67", "Hoxb13"),
-  reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
-  vector.friendly = FALSE
-)
+# FeaturePlot(
+#   mca,
+#   c("Lgr5", "Slc26a3", "Alpi", "Mki67", "Hoxb13"),
+#   reduction.use = "umap", dark.theme = FALSE, pt.size = 0.5,
+#   vector.friendly = FALSE
+# )
 # matrix_to_tibble(mca@dr$umap@cell.embeddings, "sample") %>%
 #   inner_join(tibble(
 #     sample = colnames(singlets), 
@@ -161,18 +161,18 @@ print(paste0("Done all cells analysis at ", Sys.time()))
 # dim.red <- mca@dr$umap@cell.embeddings
 # colnames(dim.red) <- NULL
 
-#setup CIMseqData objects
-cimseq <- seuratToCIMseq(mca, singlets, singletsERCC, multiplets, multipletsERCC)
-cObjSng <- cimseq[[1]]
-cObjMul <- cimseq[[2]]
-# cObjSng <- CIMseqSinglets(singlets, singletERCC, dim.red, classes)
-# cObjMul <- CIMseqMultiplets(multiplets, multipletERCC, select)
+#extract seura data and setup CIMseqData objects
+cimseq.data <- seuratToCIMseq(
+  mca, singlets, singletERCC, multiplets, multipletERCC, markers
+)
+cObjSng <- cimseq.data[[1]]
+cObjMul <- cimseq.data[[2]]
 
 #save
 if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
 print(paste0("saving data to ", currPath, "."))
 save(cObjSng, cObjMul, file = file.path(currPath, "data/CIMseqData.rda"))
-save(mca, file = file.path(currPath, "data/seurat.rda"))
+save(mca, markers, file = file.path(currPath, "data/seurat.rda"))
 
 #write logs
-writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_spUnsupervised.txt"))
+writeLines(capture.output(sessionInfo()), file.path(currPath, "logs/sessionInfo_CIMseqData.txt"))

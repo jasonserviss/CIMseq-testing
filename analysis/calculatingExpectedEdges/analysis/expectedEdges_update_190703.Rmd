@@ -1,0 +1,319 @@
+---
+title: "Calculating expected edges"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message = FALSE}
+packages <- c("CIMseq", "tidyverse")
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+
+load('../../../inst/analysis/MGA.analysis_SI20/data/CIMseqData.rda')
+load('../../../inst/analysis/MGA.analysis_SI20/data/sObj.rda')
+
+#there are 2 cells that were classified as colon but sorted as SI. These have to
+#be removed manually
+c <- getData(cObjSng, "classification")
+s <- names(c[c %in% c("8", "13")])
+i <- which(colnames(getData(cObjSng, "counts")) %in% s)
+cObjSng <- CIMseqSinglets(
+  getData(cObjSng, "counts")[, -i],
+  getData(cObjSng, "counts.ercc")[, -i],
+  getData(cObjSng, "dim.red")[-i, ],
+  getData(cObjSng, "classification")[-i]
+)
+
+#rename classes
+renameClasses <- function(class) {
+  case_when(
+    class == "3" ~ "SI.Lgr5+",
+    class == "4" ~ "SI.Lgr5+.Mki67+",
+    class == "9" ~ "SI.Goblet",
+    class == "11" ~ "SI.TA.late",
+    class == "12" ~ "SI.TA.early",
+    class == "14" ~ "Enteroendocrine",
+    class == "15" ~ "Tufft",
+    class == "16" ~ "SI.Enterocytes",
+    class == "17" ~ "SI.Paneth",
+    class == "19" ~ "Blood",
+    TRUE ~ "error"
+  )
+}
+
+cOrder <- c(
+  "SI.Goblet", "SI.Paneth", "SI.Lgr5+", "SI.Lgr5+.Mki67+", "SI.TA.early", "SI.TA.late", "SI.Enterocytes",
+  "Enteroendocrine", "Tufft", "Blood"
+)
+
+getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+fractions <- getData(sObj, "fractions")
+fractions <- fractions[, !colnames(fractions) %in% c("8", "13")]
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
+
+#FUNCTIONS
+singleModel <- function(classes) {
+  u.classes <- unique(classes)
+  classFreq <- c(table(classes))[u.classes]
+  dat <- lapply(1:length(u.classes), function(i) {
+    curr.class <- u.classes[i]
+    other.classes <- u.classes[u.classes != curr.class]
+    curr.val <- as.numeric(classFreq[i])
+    other.val <- c(classFreq[names(classFreq) != curr.class]) / sum(c(classFreq[names(classFreq) != curr.class]))
+    partners <- rep(other.classes, round(curr.val * other.val[other.classes])) #i think the round here is throwing off the values 
+    data.frame(
+      from = rep(curr.class, length(partners)), to = partners, 
+      stringsAsFactors = FALSE
+    )
+  })
+  grid <- Reduce(rbind, dat)
+  grid
+}
+```
+
+The goal here is to find an accurate way to calculate the expected edges 
+between two cell types based on their frequency in the singlet data. Once an 
+accurate background model of the expected edges can be developed, a p-value can
+be calculated based on the observed and expected values. We assume that in a 
+background model the connections between any two cell types should be 
+proportional to the frequency of those cell types. Therefore, the expected edges
+can be calculated in the following manner:
+
+1. Estimate the number of edges from each cell type to all other cell types 
+based on the frequency of the cell types in the singlet data.  
+2. Estimate the relative proportion of each edge type.  
+3. Calculate the absolute number of expected edges by multiplying the total 
+number of edges, derived from the deconvolution results, by the relative 
+proportion of each edge type.  
+
+```{r}
+test <- c("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", 
+"B", "B", "B", "B", "B", "B", "C", "C", "C", "C", "C", "C", "C", 
+"C", "C", "C", "D", "D", "D", "D", "D", "D", "D", "D", "D", "D", 
+"D", "D", "D", "D", "D", "D", "D", "D", "D", "D", "D", "D")
+```
+
+We start using a test data set comprised of 3 cell types; A, B, and C. In total
+there are 50 cells in the example. The cell type frequencies are 
+`r table(test)`, respectivley. In order to calculate 1., from above, 
+we use cell type A as a starting point. We first calculate the frequency of all
+other cell types and normalize to 1 which gives: 
+`r t <- c(table(test)); o <- c("B", "C", "D"); t[o] / sum(t[o])` 
+for cell types B, C, and D, respectivley. We then use the number of cells in 
+cell type A, i.e. 6, to represent the number of edges (any number can be used as 
+long as it is proportional to the number of cells per cell type) and multiply 
+with the previously calculated frequencies to find the number of edges from
+cell type A to all other cell types: 
+`r t <- c(table(test)); o <- c("B", "C", "D"); round((t[o] / sum(t[o])) * t["A"], digits = 2)`.
+This completes step 1. from above.
+
+To calculate 2. from above we need to continue with this process for all other 
+cell types. Once this is completed we will have allocated 50 edges in total and 
+have a complete absolute value "tissue connection model". The 
+connections in the model are shown below:
+
+```{r}
+table(singleModel(test))
+```
+
+To complete 2., we divide the absolute edge numbers by the sum of all 
+edges which gives us the relative frequency of the edge types. 
+
+In an actual example, we could then use these relative frequencies and multiply
+them by the total edges detected in the deconvolution to achieve step 3. from 
+above. This would give us the absolute number of expected edges in the 
+background model. Subsequently using the Poisson distribution with the expected 
+edges (lambda) vs. the observed deconvolution edges, we can calculate the 
+proability of observing the connections reported by the deconvolution.
+
+It is important to note that, we do not expect the expected edges to be mirrored
+in both directions, i.e. expected edges for cell type A to cell type B are not 
+equal to expected edges from cell type B to cell type A. This is true in all 
+cases where there are an unequal number of singlets representing the two cell 
+types. If we imagine a scenerio where one cell type with a low frequency connects 
+to another cell type with a high frequency. We expect that the number of edges 
+from the small frequency cell type to the high frequency cell type be lower than
+the number of edges connecting the high frequency cell type to the low frequency
+cell type based on the calculations 1-3. We can see an example of in the mouse
+small intestine data below:
+
+```{r}
+edgeStats <- calculateEdgeStats(sObj, cObjSng, cObjMul)
+edgeStats <- as_tibble(edgeStats[, 1:3])
+
+# Calculate the total number of edges in the dataset
+total.edges <- sum(pull(edgeStats, weight))
+classes <- getData(cObjSng, "classification")
+
+#model the tissue connections by assigning the proportional edges for each class
+#to each other class based on the class frequency.
+grid <- singleModel(classes)
+conn.vec <- paste(grid[, 1], grid[, 2], sep = "--")
+
+#randomly assign the edges to the tissue model n times
+iterations <- 1000
+base.seed <- 5354676
+perms <- lapply(1:iterations, function(i) {
+  set.seed(base.seed + i)
+  idx <- sample(1:length(conn.vec), total.edges, replace = TRUE)
+  count <- as.data.frame(table(conn.vec[idx]))
+  set_names(count, c("connection", paste0("iter", i)))
+})
+
+#reformat results
+res <- Reduce(function(x, y) merge(x, y, by = "connection", all = TRUE), perms)
+rownames(res) <- res$connection
+res$connection <- NULL
+res <- as.matrix(res)
+res[is.na(res)] <- 0
+
+#calculate the mean number of edges per connection accross each random edge 
+#allocation
+rm <- rowMeans(res)
+expected <- res %>%
+  matrix_to_tibble("connection") %>%
+  separate(connection, into = c("from", "to"), sep = "--") %>%
+  nest(-from, -to) %>%
+  mutate(data = map(data, as.numeric)) %>%
+  mutate(expected.perm = rm)
+
+#here you need to make sure all combinations are present
+allCmbs <- expand.grid(from = unique(classes), to = unique(classes), stringsAsFactors = FALSE)
+allCmbs <- allCmbs[allCmbs[, 1] != allCmbs[, 2], ]
+expected <- merge(allCmbs, expected, by = c("from", "to"), all = TRUE)
+expected[is.na(expected$data), "data"] <- NA
+expected[is.na(expected$expected.perm), "expected.perm"] <- 0
+
+#look at e.g. Blood - SI.Lgr5+ connections, the lowest and highest
+#frequency cell types
+expected[expected$from %in% c("Blood", "SI.Lgr5+") & expected$to %in% c("Blood", "SI.Lgr5+"), c("from", "to", "expected.perm")]
+
+edgeStats <- inner_join(edgeStats, expected, by = c("from", "to"))
+```
+
+```{r}
+edgeStats <- calculateEdgeStats(sObj, cObjSng, cObjMul)
+edgeStats <- as_tibble(edgeStats[, 1:3])
+adjusted <-  adjustFractions(cObjSng, cObjMul, sObj, theoretical.max = 4)
+class.freq <- colSums(adjusted)
+
+```
+
+We continue with the mouse small intestine data to demonstrate the calculation 
+using real data. We perform the analysis in a step wise manner by first 
+generating the tissue connection model. We then randomly distribute the total 
+edges (discovered by the deconvolution) to the model 1000 times and look at the 
+distribution of the edges for each edge type.
+
+```{r, fig.align="center", fig.width=10, fig.height=8, warnings = FALSE}
+#This may give Warning message: Removed 6 rows containing non-finite values 
+#(stat_bin). This is expected and ok to ignore.
+expected %>%
+  unnest() %>%
+  ggplot() +
+  geom_histogram(aes(data), binwidth = 1) +
+  facet_grid(to~from) +
+  scale_fill_manual(values = col40()) +
+  theme_bw()
+```
+
+The results clearly show that the distribution of the edges for each edge type 
+are approximatley Poisson distributed. Now that we have examined the distribution
+of the expected edges in the tissue model, we calculate the mean value to get 
+one expected edges value per edge type. Then, we can directly calculate the 
+number of expected edges, based on steps 1-3 above,
+and compare these with the randomly allocated edge results.
+
+```{r, fig.align="center", fig.width=10, fig.height=8, message = FALSE}
+#calculate expected without permutation
+mat <- getData(sObj, "fractions")
+class.freq <- colSums(mat)
+names(class.freq) <- colnames(mat)
+
+.f1 <- function(f, d) {
+    freq <- class.freq[names(class.freq) != f]
+    rel <- freq / sum(freq)
+    rel[pull(d, to)]
+  }
+  
+edgeStats <- edgeStats %>%
+  nest(-from) %>%
+  mutate(to.freq = map2(from, data, ~.f1(.x, .y))) %>%
+  mutate(expected.edges.calculated = map2(to.freq, data, ~sum(pull(.y, weight)) * .x)) %>%
+  unnest() %>%
+  select(from, to, weight, to.freq, expected.edges.calculated, expected.perm)
+
+edgeStats$pval <- sapply(1:nrow(edgeStats), function(i) {
+      phyper(
+        q = edgeStats$weight[i], 
+        m = class.freq[edgeStats$to[i]], 
+        n = sum(class.freq) - class.freq[edgeStats$to[i]], 
+        k = sum(edgeStats$weight[edgeStats$from == edgeStats$from[i]]), 
+        lower.tail = FALSE)
+ })
+edgeStats$pval <- p.adjust(edgeStats$pval, 'fdr')
+```
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+edgeStats %>%
+  ggplot() +
+  geom_point(aes(expected.perm, expected.edges.calculated)) +
+  theme_bw() +
+  labs(x = "Expected edges (random allocation)", y = "Expected edges (calculated)") +
+  scale_x_continuous(limits = range(c(edgeStats$expected.perm, edgeStats$expected.edges.calculated))) +
+  scale_y_continuous(limits = range(c(edgeStats$expected.perm, edgeStats$expected.edges.calculated)))
+```
+
+We observe a reasonably linear relationship between the expected edges 
+calculated using the two different methods. Most of the variation between these
+two methods, most likely stems from the need for a rounding step in the random 
+allocation which is not present in the direct calculation.
+
+Finally, we can calculate the p-value based on the deconvolution observed edge 
+weights and the calculated expected edge values.
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+# nsig <- sum(pull(edgeStats, pval) < 0.05)
+# cols <- viridis::viridis(nsig + 1)
+# pdata <- edgeStats %>%
+#   mutate(significant = if_else(pval < 0.05, TRUE, FALSE)) %>%
+#   mutate(idx = ntile(-pval, nrow(.))) %>%
+#   mutate(idx = idx - max(idx[pval > 0.05])) %>%
+#   mutate(idx = if_else(significant, idx + 1, 1)) %>%
+#   mutate(col = cols[idx]) %>%
+#   mutate(col = if_else(significant, col, "grey90"))
+# 
+# pdata %>%
+#   arrange(pval) %>%
+#   mutate(col = parse_factor(col, levels = unique(col))) %>%
+#   ggplot() +
+#   geom_tile(aes(from, to, fill = col)) +
+#   scale_fill_identity(
+#     "p-value", guide = "legend", 
+#     labels = c(format(sort(filter(pdata, significant)$pval), digits = 2, scientific = TRUE), "n.s.")) +
+#   theme_bw() +
+#   theme(
+#     axis.text.x = element_text(angle = 90),
+#     legend.position = "top"
+#   ) +
+#   guides(fill = guide_legend(nrow = 3))
+
+edgeStats %>%
+  filter(pval < 0.05) %>%
+  ggplot() +
+  geom_tile(aes(from, to, fill = pval)) +
+  scale_fill_viridis_c("Significant (alpha < 0.05) p-values") +
+  theme_bw() +
+  theme(legend.position = "top") +
+  guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.05, barwidth = 12))
+```
+
+Note that grey values are not significant (alpha = 0.05) and p-values are
+not calculated for self connections (white values).

@@ -17,7 +17,7 @@ rm(packages)
 
 ##DATA
 load('../data/CIMseqData.rda')
-#load('../data/sObj.rda')
+load('../data/sObj.rda')
 ```
 
 ```{r, eval = TRUE, echo = FALSE}
@@ -59,9 +59,9 @@ cOrder <- c(
 )
 
 getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
-# fractions <- getData(sObj, "fractions")
-# colnames(fractions) <- renameClasses(colnames(fractions))
-# sObj@fractions <- fractions
+fractions <- getData(sObj, "fractions")
+colnames(fractions) <- renameClasses(colnames(fractions))
+sObj@fractions <- fractions
 ```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
@@ -88,14 +88,44 @@ ggsave(
   width = 180,
   units = "mm"
 )
-plotUnsupervisedMarkers(
-  cObjSng, cObjMul,
-  c("Mki67", "Hoxb13"),
-  pal = RColorBrewer::brewer.pal(8, "Set1")
+
+p <- plotUnsupervisedMarkers(cObjSng, cObjMul, "Mki67")
+ggsave(
+  plot = p,
+  filename = '../figures/MGA.enge.Mki67.pdf',
+  device = cairo_pdf,
+  height = 180,
+  width = 180,
+  units = "mm"
+)
+
+p <- plotUnsupervisedMarkers(cObjSng, cObjMul, "Hoxb13")
+ggsave(
+  plot = p,
+  filename = '../figures/MGA.enge.Hoxb13.pdf',
+  device = cairo_pdf,
+  height = 180,
+  width = 180,
+  units = "mm"
 )
 ```
 
-```{r, fig.align="center", fig.width=10, fig.height=8}
+```{r, eval = FALSE}
+classHeatmap(
+  data = data.frame(
+    gene = markers$gene,
+    class = markers$cluster
+  ),
+  counts.log = getData(cObjSng, "counts.log"),
+  classes = tibble(
+    sample = colnames(getData(cObjSng, "counts")), 
+    class = getData(cObjSng, "classification")
+  )
+)
+```
+
+Markers barplot
+```{r, fig.align="center", fig.width=12, fig.height=10}
 markers <- c(
   "Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1", "Mki67",
   "Hoxb13", "Plet1", "Osr2", "Reg4", "Sval1"
@@ -185,31 +215,144 @@ ggsave(
 )
 ```
 
-```{r, fig.align="center", fig.width=14, fig.height=12, eval = FALSE}
+Markers dotplot
+```{r, fig.align="center", fig.width=10, fig.height=8}
+scale.func <- scale_radius
+scale.min <- NA
+scale.max <- NA
+
+p <- d %>%
+  mutate(gene = forcats::fct_rev(factor(gene))) %>%
+  group_by(gene, Classification) %>%
+  summarize(mean = mean(cpm), pct = 100 * (length(which(cpm != 0)) / n())) %>%
+  mutate(scaled.mean.exp = scale(mean)) %>%
+  ggplot() +
+  geom_point(
+    aes(Classification, gene, size = pct, colour = scaled.mean.exp)
+  ) +
+  scale_color_gradient(low = "white", high = "darkred") +
+  scale.func(range = c(0, 12), limits = c(scale.min, scale.max)) +
+  guides(
+    size = guide_legend(
+      title = "% expressed", title.position = "top", title.hjust = 0.5
+    ),
+    colour = guide_colorbar(
+      title = "Scaled mean expression", title.position = "top", 
+      title.hjust = 0.5, barwidth = 10
+    )
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1), 
+    axis.title = element_blank(), 
+    legend.position = "top",
+    legend.justification = "center"
+  )
+p
+ggsave(
+  plot = p,
+  filename = '../figures/MGA.enge.geneDot.pdf',
+  device = cairo_pdf,
+  height = 300,
+  width = 300,
+  units = "mm"
+)
+```
+
+Stemness dotplot
+```{r, fig.align="center", fig.width=10, fig.height=8}
+load('../data/seurat.rda')
+markers <- c("Wnt3", "Wnt2b", "Wnt4", "Wnt5a", "Lgr5", "Axin2", "Ascl2")
+gene.order <- markers
+
+d <- getData(cObjSng, "counts.cpm")[markers, ] %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("Sample") %>%
+  as_tibble() %>% 
+  gather(gene, cpm, -Sample) %>%
+  inner_join(tibble(
+    Sample = colnames(getData(cObjSng, "counts")), 
+    Classification = getData(cObjSng, "classification")
+  ), by = "Sample") %>%
+  mutate(Classification = parse_factor(Classification, levels = cOrder)) %>%
+  mutate(gene = parse_factor(gene, levels = gene.order)) %>%
+  arrange(Classification, gene) %>%
+  mutate(Sample = parse_factor(Sample, levels = unique(Sample)))
+
+
+#scale.func <- scale_size
+scale.func <- scale_radius
+scale.min <- NA
+scale.max <- NA
+
+p <- d %>%
+  mutate(gene = forcats::fct_rev(factor(gene))) %>%
+  group_by(gene, Classification) %>%
+  summarize(mean = mean(cpm), pct = 100 * (length(which(cpm != 0)) / n())) %>%
+  mutate(scaled.mean.exp = scale(mean)) %>%
+  mutate(type = case_when(
+    str_detect(gene, "^Wnt") ~ "Wnt ligand",
+    gene == "Fzd9" ~ "Receptor",
+    TRUE ~ "Wnt target"
+  )) %>%
+  mutate(type = parse_factor(type, levels = c("Wnt ligand", "Receptor", "Wnt target"))) %>%
+  ggplot() +
+  geom_point(
+    aes(Classification, gene, size = pct, colour = scaled.mean.exp)
+  ) +
+  facet_grid(type ~ ., space = "free", scales = "free") +
+  scale_color_gradient(low = "white", high = "darkred") +
+  scale.func(range = c(0, 16), limits = c(scale.min, scale.max)) +
+  guides(
+    size = guide_legend(
+      title = "% expressed", title.position = "top", title.hjust = 0.5
+    ),
+    colour = guide_colorbar(
+      title = "Scaled mean expression", title.position = "top", 
+      title.hjust = 0.5, barwidth = 10
+    )
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1), 
+    axis.title = element_blank(), 
+    legend.position = "top",
+    legend.justification = "center"
+  )
+p
+ggsave(
+  plot = p,
+  filename = '../figures/MGA.enge.stemness.dotplot.pdf',
+  device = cairo_pdf,
+  height = 300,
+  width = 300,
+  units = "mm"
+)
+```
+
+```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
 plotSwarmCircos(sObj, cObjSng, cObjMul, weightCut = 0, classOrder = cOrder)
 ```
 
-clockwise  
-Colon = 5-0 (proximal = 5-8 + 13, distal = 2-14 + 0)  
-Other  16-23  
-Small intestine = 12-15  
+Detected duplicates - quadruplicates.  
+Only ERCC estimated cell number max 4.  
+Weight cutoff = 10.
 
-### Filtering
-
-Only detected duplicates and triplicates.  
-Only ERCC estimated cell number <= 4.  
-Weight cutoff = 5.
-
-```{r, fig.align="center", fig.width=14, fig.height=12, eval = FALSE}
+```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
 adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
 samples <- rownames(adj)
 rs <- rowSums(adj)
-keep1 <- rs == 2 | rs == 3
-keep2 <- samples %in% filter(estimateCells(cObjSng, cObjMul), estimatedCellNumber <= 4)$sample
+keep <- rs == 2 | rs == 3 | rs == 4
 
-pdf('../figures/MGA.enge.circos.pdf')
 plotSwarmCircos(
-  filterSwarm(sObj, keep1 & keep2), cObjSng, cObjMul, weightCut = 5, 
+  filterSwarm(sObj, keep), cObjSng, cObjMul, weightCut = 10, 
+  classOrder = cOrder, alpha = 0.01
+)
+
+pdf('../figures/MGA.enge.circos.pdf', width = 12, height = 10)
+plotSwarmCircos(
+  filterSwarm(sObj, keep), cObjSng, cObjMul, weightCut = 10, 
   classOrder = cOrder, alpha = 0.01
 )
 invisible(dev.off())

@@ -1,5 +1,5 @@
 ---
-title: "Mouse colon analysis"
+title: "Mouse colon bulk analysis"
 author: "Jason T. Serviss"
 date: "`r Sys.Date()`"
 output:
