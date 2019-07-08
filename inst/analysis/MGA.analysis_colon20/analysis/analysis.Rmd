@@ -18,6 +18,7 @@ rm(packages)
 ##DATA
 load('../data/CIMseqData.rda')
 load('../data/sObj.rda')
+load('../../MGA.analysis_enge20/data/pal.rda')
 
 #there are 5 cells that were classified as colon but sorted as SI. These have to
 #be removed manually
@@ -54,10 +55,12 @@ renameClasses <- function(class) {
 }
 
 cOrder <- c(
-  "C.Goblet.proximal", "C.Lgr5+.proximal.1", "C.Lgr5+.proximal.2", "C.Colonocytes", "C.Lgr5+.Mki67+",
-  "C.Goblet.Mki67+", "C.Goblet.distal.Plet1", "C.Goblet.distal.1", "C.Lgr5+.distal", "C.TA.distal",
-  "Enteroendocrine", "Tufft", "Blood"
+  "C.Goblet.Mki67+", "C.Goblet.proximal", "C.Goblet.distal.Plet1", 
+  "C.Lgr5+.proximal.2", "C.Lgr5+.proximal.1", "C.Lgr5+.distal", 
+  "C.Lgr5+.Mki67+", "C.TA.distal", "C.Colonocytes", 
+  "C.Goblet.distal.1",  "Enteroendocrine", "Tufft", "Blood"
 )
+
 
 getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
 fractions <- getData(sObj, "fractions")
@@ -69,7 +72,7 @@ sObj@fractions <- fractions
 
 ### Fig 1: classes
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-p <- plotUnsupervisedClass(cObjSng, cObjMul)
+p <- plotUnsupervisedClass(cObjSng, cObjMul, pal)
 p
 ggsave(
   plot = p,
@@ -89,6 +92,7 @@ p <- plotUnsupervisedMarkers(
   c("Lgr5", "Ptprc", "Chga", "Dclk1", "Slc26a3", "Atoh1"),
   pal = RColorBrewer::brewer.pal(8, "Set1")
 )
+p
 ggsave(
   plot = p,
   filename = '../figures/MGA.enge20.markers.pdf',
@@ -106,6 +110,7 @@ p <- plotUnsupervisedMarkers(
   cObjSng, cObjMul, c("Mki67"),
   pal = RColorBrewer::brewer.pal(8, "Set1")
 )
+p
 ggsave(
   plot = p,
   filename = '../figures/MGA.enge20.Mki67.pdf',
@@ -241,7 +246,7 @@ p <- tibble(
 ) %>%
   ggplot() +
   geom_point(aes(singlet.freq, multiplet.freq, colour = class), size = 3) +
-  scale_colour_manual(values = col40()) +
+  scale_colour_manual(values = pal[order(names(pal))]) +
   xlim(min(c(deconv, singlets)), max(c(deconv, singlets))) +
   ylim(min(c(deconv, singlets)), max(c(deconv, singlets))) +
   geom_abline(slope = 1, intercept = 0, lty = 3, colour = "grey") +
@@ -263,7 +268,10 @@ ggsave(
 ### Fig 12: All connections
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-plotSwarmCircos(sObj, cObjSng, cObjMul, classOrder = cOrder)
+plotSwarmCircos(
+  sObj, cObjSng, cObjMul, classOrder = cOrder, classColour = pal[cOrder], 
+  h.ratio = 0.85
+)
 ```
 
 ### Fig 13: Filtered
@@ -271,22 +279,25 @@ plotSwarmCircos(sObj, cObjSng, cObjMul, classOrder = cOrder)
 Only detected duplicates, triplicates, and quadruplicates.  
 ERCC estimated cell number set to max 4.  
 Weight cutoff = 10.
+Alpha = 1e-3.
 
 ```{r, fig.align="center", fig.width=14, fig.height=12}
-adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
-samples <- rownames(adj)
-rs <- rowSums(adj)
-keep <- rs == 2 | rs == 3 | rs == 4
+# adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
+# samples <- rownames(adj)
+# rs <- rowSums(adj)
+# keep <- rs == 2 | rs == 3 | rs == 4
 
 plotSwarmCircos(
-  filterSwarm(sObj, keep), cObjSng, cObjMul, weightCut = 10, 
-  classOrder = cOrder, theoretical.max = 4
+  sObj, cObjSng, cObjMul, weightCut = 10, 
+  classOrder = cOrder, theoretical.max = 4, classColour = pal[cOrder], 
+  h.ratio = 0.85, alpha = 1e-3
 )
 
 pdf('../figures/MGA.enge20.circos.pdf', width = 9.5, height = 9.5)
 plotSwarmCircos(
-  filterSwarm(sObj, keep), cObjSng, cObjMul, weightCut = 10, 
-  classOrder = cOrder, theoretical.max = 4
+  sObj, cObjSng, cObjMul, weightCut = 10, 
+  classOrder = cOrder, theoretical.max = 4, classColour = pal[cOrder], 
+  h.ratio = 0.85, alpha = 1e-3
 )
 dev.off()
 ```

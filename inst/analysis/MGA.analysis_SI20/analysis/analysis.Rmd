@@ -54,7 +54,7 @@ renameClasses <- function(class) {
 }
 
 cOrder <- c(
-  "SI.Goblet", "SI.Paneth", "SI.Lgr5+", "SI.Lgr5+.Mki67+", "SI.TA.early", "SI.TA.late", "SI.Enterocytes",
+  "SI.Paneth", "SI.Lgr5+", "SI.Lgr5+.Mki67+", "SI.TA.early", "SI.TA.late", "SI.Enterocytes", "SI.Goblet", 
   "Enteroendocrine", "Tufft", "Blood"
 )
 
@@ -63,8 +63,6 @@ fractions <- getData(sObj, "fractions")
 fractions <- fractions[, !colnames(fractions) %in% c("8", "13")]
 colnames(fractions) <- renameClasses(colnames(fractions))
 sObj@fractions <- fractions
-
-pal <- pal[names(pal) %in% unique(getData(cObjSng, "classification"))]
 ```
 
 ### Fig 1: Classes
@@ -269,9 +267,10 @@ ggsave(
 
 ### Fig 12: All connections
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-#pdf('figures/figure4.pdf', width = 9.5, height = 9.5)
-plotSwarmCircos(sObj, cObjSng, cObjMul, classOrder = cOrder, classColour = pal[cOrder])
-#dev.off()
+plotSwarmCircos(
+  sObj, cObjSng, cObjMul, classOrder = cOrder, classColour = pal[cOrder],
+  h.ratio = 0.85
+)
 ```
 
 ### Fig 13: Filtered
@@ -281,20 +280,22 @@ ERCC estimated cell number set to max 4.
 Weight cutoff = 10.
 
 ```{r, fig.align="center", fig.width=14, fig.height=12}
-adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
-samples <- rownames(adj)
-rs <- rowSums(adj)
-keep <- rs == 2 | rs == 3 | rs == 4
+# adj <- adjustFractions(cObjSng, cObjMul, sObj, binary = TRUE)
+# samples <- rownames(adj)
+# rs <- rowSums(adj)
+# keep <- rs == 2 | rs == 3 | rs == 4
 
 plotSwarmCircos(
-  filterSwarm(sObj, keep), cObjSng, cObjMul, weightCut = 10, 
-  classOrder = cOrder, theoretical.max = 4, classColour = pal[cOrder]
+  sObj, cObjSng, cObjMul, weightCut = 10, 
+  classOrder = cOrder, theoretical.max = 4, classColour = pal[cOrder],
+  h.ratio = 0.85, alpha = 1e-3
 )
 
 pdf('../figures/MGA.enge20SI.circos.pdf', width = 9.5, height = 9.5)
 plotSwarmCircos(
-  filterSwarm(sObj, keep), cObjSng, cObjMul, weightCut = 10, 
-  classOrder = cOrder, theoretical.max = 4, classColour = pal[cOrder]
+  sObj, cObjSng, cObjMul, weightCut = 10, 
+  classOrder = cOrder, theoretical.max = 4, classColour = pal[cOrder],
+  h.ratio = 0.85, alpha = 1e-3
 )
 dev.off()
 ```

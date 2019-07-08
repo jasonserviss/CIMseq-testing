@@ -92,6 +92,18 @@ data %>%
   print(n = nrow(.))
 ```
 
+```{r, echo = FALSE}
+pdf('../figures/table.pdf')
+data %>%
+  mutate(correct = cells == class) %>%
+  group_by(class) %>%
+  summarize(precision = sum(correct) / n()) %>%
+  arrange(precision) %>%
+  mutate(precision = round(precision, digits = 3)) %>%
+  gridExtra::grid.table(., rows = rep("", nrow(.)))
+invisible(dev.off())
+```
+
 ```{r, fig.align="center", fig.width = 12, fig.height=10}
 data %>% 
   count(class, cells) %>%
