@@ -9,7 +9,7 @@ rm(packages)
 currPath <- getwd()
 
 #load data
-target <- '../MGA.analysis_enge/data/CIMseqData.rda'
+target <- '../MGA.analysis_enge20/data/CIMseqData.rda'
 if(file.exists(target)) {
   load(target)
 }
@@ -26,7 +26,7 @@ if(!is.na(args[1])) {
     getData(cObjMul, "features")
   )
 
-  #gives 2070 swarm members
+  #gives 1370 swarm members
   init <- cbind(
     swarmInit(cObjSng, 2, null.weight = 1, seed = 35466),
     swarmInit(cObjSng, 3, null.weight = 1, seed = 35466)
@@ -35,7 +35,7 @@ if(!is.na(args[1])) {
   
   runSwarmUppmax(
     cObjSng, cObjMul.2, swarmInit = init, maxiter = 100,
-    nSyntheticMultiplets = 400, eps.stagnate = 1, maxit.stagnate = 5,
+    nSyntheticMultiplets = 2000, eps.stagnate = 1, maxit.stagnate = 5,
     currPath = out, args = args
   )
   
@@ -50,7 +50,7 @@ if(!is.na(args[1])) {
     getData(cObjMul, "features")
   )
 
-  #gives 2070 swarm members
+  #gives 1370 swarm members
   init <- cbind(
     swarmInit(cObjSng, 2, null.weight = 1, seed = 35466),
     swarmInit(cObjSng, 3, null.weight = 1, seed = 35466)
@@ -58,7 +58,7 @@ if(!is.na(args[1])) {
 
   runSwarmMultiprocess(
     cObjSng, cObjMul.2, swarmInit = init, maxiter = 100,
-    nSyntheticMultiplets = 400, eps.stagnate = 1, maxit.stagnate = 5,
+    nSyntheticMultiplets = 2000, eps.stagnate = 1, maxit.stagnate = 5,
     currPath = getwd()
   )
 }
