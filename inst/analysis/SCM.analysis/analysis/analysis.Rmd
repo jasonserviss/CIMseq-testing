@@ -13,7 +13,7 @@ editor_options:
 ```{r, message = FALSE}
 #PACKAGES
 packages <- c(
-  "CIMseq", "CIMseq.data", "CIMseq.testing", "printr", "ggthemes", "dplyr", 
+  "CIMseq", "CIMseq.testing", "CIMseq.data", "printr", "ggthemes", "dplyr", 
   "ggplot2", "tidyr", "purrr", "stringr", "readr"
 )
 purrr::walk(packages, library, character.only = TRUE)
@@ -22,6 +22,7 @@ rm(packages)
 ##DATA
 load("../data/CIMseqData.rda")
 load("../data/sObj.rda")
+if(!dir.exists('../figures')) dir.create('../figures')
 
 #rename classes
 renameClasses <- function(class) {
@@ -33,9 +34,9 @@ renameClasses <- function(class) {
   )
 }
 
-getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+getData(cObjSng, "classification") <- renameClasses.SCM(getData(cObjSng, "classification"))
 fractions <- getData(sObj, "fractions")
-colnames(fractions) <- renameClasses(colnames(fractions))
+colnames(fractions) <- renameClasses.SCM(colnames(fractions))
 sObj@fractions <- fractions
 ```
 
@@ -43,7 +44,7 @@ sObj@fractions <- fractions
 mul.stat <- SCM.Meta %>% 
   filter(!filtered, cellNumber == "Multiplet") %>% 
   mutate(n = map_int(cellTypes, ~length(str_split(.x, "-")[[1]]))) %>% 
-  count(n) %>% 
+  dplyr::count(n) %>% 
   arrange(n) %>% 
   pull(nn)
 ```
@@ -183,10 +184,10 @@ known <- setupPlate(filter(SCM.Meta, !filtered), fill = 1)
 res <- checkResults(sObj, known, cObjSng, cObjMul)
 
 d <- getCellsForMultiplet(sObj, cObjSng, cObjMul) %>%
-  count(cells)
+  dplyr::count(cells)
 
 e <- getCellsForMultiplet(known, cObjSng, cObjMul) %>%
-  count(cells)
+  dplyr::count(cells)
 
 data <- full_join(e, d, by = "cells") %>% 
   rename(`Cell type` = cells, `Expected (n)` = n.x, `Detected (n)` = n.y)

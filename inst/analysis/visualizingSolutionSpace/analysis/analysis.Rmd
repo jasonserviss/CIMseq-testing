@@ -11,14 +11,15 @@ editor_options:
 ```{r setup, include=FALSE}
 #PACKAGES
 packages <- c(
-  "CIMseq.data", "CIMseq", "printr", "ggthemes", "tidyr", "broom", "dplyr",
-  "tibble", "ggplot2", "readr"
+  "CIMseq.testing", "CIMseq.data", "CIMseq", "printr", "ggthemes", "tidyr", 
+  "broom", "dplyr", "tibble", "ggplot2", "readr"
 )
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 #DATA
 load('../data/report.rda')
+if(!dir.exists('../figures')) dir.create('../figures')
 ```
 
 
@@ -74,7 +75,7 @@ p
 
 ggsave(
   plot = p,
-  filename = 'figures/figure2.pdf',
+  filename = '../figures/figure2.pdf',
   device = cairo_pdf,
   height = 240,
   width = 240,
@@ -136,7 +137,7 @@ p <- l1 + p2 + p1 +
 
 ggsave(
   plot = p,
-  filename = 'figures/test.pdf',
+  filename = '../figures/test.pdf',
   device = cairo_pdf,
   height = 80,
   width = 60,

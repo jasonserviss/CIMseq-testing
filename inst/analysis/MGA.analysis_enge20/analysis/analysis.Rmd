@@ -1,5 +1,5 @@
 ---
-title: "Mouse analysis enge - 20 classes"
+title: "Mouse analysis enge"
 author: "Jason T. Serviss"
 date: "`r Sys.Date()`"
 output:
@@ -11,59 +11,26 @@ editor_options:
 ---
 
 ```{r, message = FALSE}
-packages <- c("CIMseq", "CIMseq.data", "tidyverse", "ggthemes")
+packages <- c("CIMseq", "CIMseq.testing", "tidyverse", "ggthemes")
 purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 ##DATA
 load('../data/CIMseqData.rda')
 load('../data/sObj.rda')
-load('../data/pal.rda')
+if(!dir.exists('../figures')) dir.create('../figures')
 ```
 
 ```{r, eval = TRUE, echo = FALSE}
 #rename classes
-renameClasses <- function(class) {
-  case_when(
-    class == "0" ~ "C.Lgr5+.proximal.2",
-    class == "1" ~ "C.Goblet.distal.1",
-    class == "2" ~ "C.Colonocytes",
-    class == "3" ~ "SI.Lgr5+",
-    class == "4" ~ "SI.Lgr5+.Mki67+",
-    class == "5" ~ "C.Lgr5+.distal",
-    class == "6" ~ "C.TA.distal",
-    class == "7" ~ "C.Lgr5+.Mki67+",
-    class == "8" ~ "C.Goblet.proximal",
-    class == "9" ~ "SI.Goblet",
-    class == "10" ~ "C.Goblet.distal.Plet1",
-    class == "11" ~ "SI.TA.late",
-    class == "12" ~ "SI.TA.early",
-    class == "13" ~ "C.Lgr5+.proximal.1",
-    class == "14" ~ "Enteroendocrine",
-    class == "15" ~ "Tufft",
-    class == "16" ~ "SI.Enterocytes",
-    class == "17" ~ "SI.Paneth",
-    class == "18" ~ "C.Goblet.Mki67+",
-    class == "19" ~ "Blood",
-    TRUE ~ "error"
-  )
-}
-
-cOrder <- c(
-  "SI.Paneth", "SI.Lgr5+", "SI.Lgr5+.Mki67+", "SI.TA.early", "SI.TA.late", "SI.Enterocytes", "SI.Goblet", 
-  "C.Goblet.Mki67+", "C.Goblet.proximal", "C.Goblet.distal.Plet1", "C.Lgr5+.proximal.2",
-  "C.Lgr5+.proximal.1", "C.Lgr5+.distal", "C.Lgr5+.Mki67+", "C.TA.distal", "C.Colonocytes", 
-  "C.Goblet.distal.1",  "Enteroendocrine", "Tufft", "Blood"
-)
-
-getData(cObjSng, "classification") <- renameClasses(getData(cObjSng, "classification"))
+getData(cObjSng, "classification") <- renameClasses.MGA(getData(cObjSng, "classification"))
 fractions <- getData(sObj, "fractions")
-colnames(fractions) <- renameClasses(colnames(fractions))
+colnames(fractions) <- renameClasses.MGA(colnames(fractions))
 sObj@fractions <- fractions
 ```
 
 ```{r, fig.align="center", fig.width=10, fig.height=8}
-p <- plotUnsupervisedClass(cObjSng, cObjMul, pal)
+p <- plotUnsupervisedClass(cObjSng, cObjMul, palette('total'))
 p
 ggsave(
   plot = p,
@@ -144,7 +111,7 @@ d <- getData(cObjSng, "counts.cpm")[markers, ] %>%
     Sample = colnames(getData(cObjSng, "counts")), 
     Classification = getData(cObjSng, "classification")
   )) %>%
-  mutate(Classification = parse_factor(Classification, levels = cOrder)) %>%
+  mutate(Classification = parse_factor(Classification, levels = classOrder.MGA('total'))) %>%
   mutate(gene = parse_factor(gene, levels = gene.order)) %>%
   arrange(Classification, gene) %>%
   mutate(Sample = parse_factor(Sample, levels = unique(Sample))) %>% 
@@ -172,7 +139,7 @@ under <- d %>%
     aes(median, y = 0, label = Classification),
     angle = 90, nudge_y = -0.01, hjust = 1, colour = "grey10"
   ) +
-  scale_colour_manual(values = pal[cOrder]) +
+  scale_colour_manual(values = palette('total')[classOrder.MGA('total')]) +
   ylim(c(-1, 0)) +
   theme_few() +
   scale_x_continuous(expand = c(0, 0)) +
@@ -188,7 +155,7 @@ over <- d %>%
   ggplot() + 
   geom_bar(aes(Sample, cpm, fill = Classification), stat = "identity") + 
   facet_grid(gene ~ type, scales = "free", space = "free_x") +
-  scale_fill_manual(values = pal[cOrder]) +
+  scale_fill_manual(values = palette('total')[classOrder.MGA('total')]) +
   theme_few() +
   theme(
     axis.text.x = element_blank(),
@@ -248,7 +215,7 @@ p <- getData(cObjSng, "counts.cpm")[markers, ] %>%
     gene %in% c("Lgr5", "Axin2", "Ascl2") ~ "Wnt target",
     TRUE ~ "error"
   )) %>%
-  mutate(Classification = parse_factor(Classification, levels = cOrder)) %>%
+  mutate(Classification = parse_factor(Classification, levels = classOrder.MGA('total'))) %>%
   mutate(gene = parse_factor(gene, levels = rev(gene.order))) %>%
   mutate(type = parse_factor(type, levels = c("Wnt ligand", "Receptor", "Wnt target"))) %>%
   ggplot() +
@@ -302,7 +269,7 @@ p <- tibble(
 ) %>%
   ggplot() +
   geom_point(aes(singlet.freq, multiplet.freq, colour = class), size = 3) +
-  scale_colour_manual(values = pal[order(names(pal))]) +
+  scale_colour_manual(values = palette('total')[order(names(palette('total')))]) +
   xlim(min(c(deconv, singlets)), max(c(deconv, singlets))) +
   ylim(min(c(deconv, singlets)), max(c(deconv, singlets))) +
   geom_abline(slope = 1, intercept = 0, lty = 3, colour = "grey") +
@@ -324,8 +291,8 @@ ggsave(
 
 ```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
 plotSwarmCircos(
-  sObj, cObjSng, cObjMul, weightCut = 0, classOrder = cOrder, 
-  classColour = pal[cOrder], h.ratio = 0.85
+  sObj, cObjSng, cObjMul, weightCut = 0, classOrder = classOrder.MGA('total'), 
+  classColour = palette('total')[classOrder.MGA('total')], h.ratio = 0.85
 )
 ```
 
@@ -341,14 +308,14 @@ Weight cutoff = 10.
 
 plotSwarmCircos(
   sObj, cObjSng, cObjMul, weightCut = 10, 
-  classOrder = cOrder, classColour = pal[cOrder], h.ratio = 0.85,
+  classOrder = classOrder.MGA('total'), classColour = palette('total')[classOrder.MGA('total')], h.ratio = 0.85,
   alpha = 1e-3
 )
 
 pdf('../figures/MGA.enge.circos.pdf', width = 12, height = 10, onefile = FALSE)
 plotSwarmCircos(
   sObj, cObjSng, cObjMul, weightCut = 10, 
-  classOrder = cOrder, classColour = pal[cOrder], h.ratio = 0.85,
+  classOrder = classOrder.MGA('total'), classColour = palette('total')[classOrder.MGA('total')], h.ratio = 0.85,
   alpha = 1e-3
 )
 invisible(dev.off())
