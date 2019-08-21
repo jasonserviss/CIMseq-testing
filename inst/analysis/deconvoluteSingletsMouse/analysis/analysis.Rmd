@@ -97,11 +97,34 @@ data %>%
   summarize(precision = sum(correct) / n()) %>%
   arrange(precision) %>%
   mutate(precision = round(precision, digits = 3)) %>%
+  rename(Class = class, Precision = precision) %>%
   gridExtra::grid.table(., rows = rep("", nrow(.)))
 invisible(dev.off())
 ```
 
-```{r, fig.align="center", fig.width = 12, fig.height=10}
+<br></br>
+
+Precision for whole all deconvolutions (i.e. not divided by class)
+```{r}
+data %>%
+  mutate(correct = cells == class) %>% 
+  pull(correct) %>% 
+  sum() / nrow(data)
+```
+
+<br></br>
+
+Mean precision per class
+```{r}
+data %>%
+  mutate(correct = cells == class) %>%
+  group_by(class) %>%
+  summarize(precision = sum(correct) / n()) %>% 
+  pull(precision) %>% 
+  mean()
+```
+
+```{r, fig.align="center", fig.width = 12, fig.height=10, echo = FALSE, eval = FALSE}
 data %>% 
   count(class, cells) %>%
   group_by(class) %>%
@@ -115,7 +138,7 @@ data %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
-```{r, fig.align="center", fig.width = 12, fig.height=10}
+```{r, fig.align="center", fig.width = 12, fig.height=10, echo = FALSE, eval = FALSE}
 adj <- adjustFractions(cObjSng, cObjMul.2, sObj, binary = TRUE)
 samples <- rownames(adj)
 rs <- rowSums(adj)
@@ -128,7 +151,12 @@ plotSwarmCircos(
 )
 ```
 
+Table of detected cell numbers per singlet 
+(perfect: all == 1, acceptable: all == 0 | all == 1)
+
 ```{r}
+adj <- adjustFractions(cObjSng, cObjMul.2, sObj, binary = TRUE)
+rs <- rowSums(adj)
 table(rs)
 ```
 

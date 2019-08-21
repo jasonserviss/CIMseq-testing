@@ -38,7 +38,7 @@ p
 
 ggsave(
   plot = p,
-  filename = '../figures/figure1.pdf',
+  filename = '../figures/multipletCellNrDist.pdf',
   device = cairo_pdf,
   height = 180,
   width = 120,

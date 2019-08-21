@@ -345,7 +345,7 @@ plotSwarmCircos(
   alpha = 1e-3
 )
 
-pdf('../figures/MGA.enge.circos.pdf', width = 12, height = 10)
+pdf('../figures/MGA.enge.circos.pdf', width = 12, height = 10, onefile = FALSE)
 plotSwarmCircos(
   sObj, cObjSng, cObjMul, weightCut = 10, 
   classOrder = cOrder, classColour = pal[cOrder], h.ratio = 0.85,

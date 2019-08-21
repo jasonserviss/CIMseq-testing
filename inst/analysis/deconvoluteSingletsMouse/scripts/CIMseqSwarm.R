@@ -7,6 +7,7 @@ purrr::walk(packages, library, character.only = TRUE)
 rm(packages)
 
 currPath <- getwd()
+options(future.globals.maxSize = Inf)
 
 #load data
 target <- '../MGA.analysis_enge20/data/CIMseqData.rda'

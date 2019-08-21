@@ -49,7 +49,7 @@ RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/m
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('rmarkdown/1.11')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('printr/0.1')"
 RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('knitr/1.20')"
-RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('remotes/2.0.2')"
+RUN Rscript -e "source('https://raw.githubusercontent.com/jasonserviss/install/master/install_cran.R'); install_cran('remotes/2.1.0')"
 RUN Rscript -e "remotes::install_github('thomasp85/patchwork@fd7958bae3e7a1e30237c751952e412a0a1d1242', dependencies = FALSE)"
 
 #Bioconductor package imports

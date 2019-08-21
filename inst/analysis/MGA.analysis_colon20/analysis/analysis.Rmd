@@ -70,7 +70,7 @@ sObj@fractions <- fractions
 ```
 
 
-### Fig 1: classes
+### Fig 1: Classes
 ```{r, fig.align="center", fig.width=10, fig.height=8}
 p <- plotUnsupervisedClass(cObjSng, cObjMul, pal)
 p
@@ -293,12 +293,90 @@ plotSwarmCircos(
   h.ratio = 0.85, alpha = 1e-3
 )
 
-pdf('../figures/MGA.enge20.circos.pdf', width = 9.5, height = 9.5)
+pdf('../figures/MGA.enge20.circos.pdf', width = 9.5, height = 9.5, onefile = FALSE)
 plotSwarmCircos(
   sObj, cObjSng, cObjMul, weightCut = 10, 
   classOrder = cOrder, theoretical.max = 4, classColour = pal[cOrder], 
   h.ratio = 0.85, alpha = 1e-3
 )
 dev.off()
+```
+
+Calculate the probability of observing Lgr5 expression when Plet1 is or is not 
+expressed in Muc2 high expressing multiplets.
+
+```{r, fig.align="center", fig.width=14, fig.height=12}
+p <- getData(cObjMul, "counts.cpm") %>% 
+  .[c("Plet1", "Lgr5", "Muc2"), ] %>%
+  t() %>%
+  matrix_to_tibble("sample") %>%
+  filter(Muc2 > 3000) %>% #include only Muc2 high
+  mutate(
+    express.plet1 = if_else(Plet1 > 0, TRUE, FALSE),
+    express.lgr5 = if_else(Lgr5 > 0, TRUE, FALSE)
+  ) %>%
+  group_by(express.plet1, express.lgr5) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  group_by(express.plet1) %>%
+  mutate(total = sum(n)) %>%
+  ungroup() %>%
+  mutate(lgr5.prob = n / total) %>%
+  filter((express.plet1 == TRUE & express.lgr5 == TRUE) | (express.plet1 == FALSE & express.lgr5 == TRUE)) %>%
+  ggplot() + 
+  geom_bar(aes(express.plet1, lgr5.prob), stat = "identity", position = position_dodge(width = 1)) +
+  labs(x = "Plet1 expressed", y = "Lgr5 probability") +
+  ggthemes::theme_few()
+
+p
+ggsave(
+  plot = p,
+  filename = '../figures/MGA.enge20.Lgr5prob.pdf',
+  device = cairo_pdf,
+  height = 180,
+  width = 90,
+  units = "mm"
+)
+```
+
+```{r}
+pdata <- adjustFractions(cObjSng, cObjMul, sObj, theoretical.max = 4) %>%
+  matrix_to_tibble("sample") %>%
+  filter(C.Goblet.proximal == 1) %>%
+  select(-C.Goblet.proximal) %>%
+  gather(class, binary, -sample) %>%
+  group_by(sample) %>%
+  summarize(others = paste(class[binary == 1], collapse = ", ")) %>%
+  mutate(others = map(others, ~str_split(.x, ", ")[[1]])) %>%
+  unnest() %>%
+  filter(others != "") %>%
+  group_by(others) %>%
+  summarize(prob = n() / nrow(.)) %>% 
+  rename(class = others) %>%
+  full_join(tibble(class = unique(getData(cObjSng, "classification")))) %>%
+  filter(class != "C.Goblet.proximal") %>%
+  replace_na(list(prob = 0))
+
+p <- pdata %>% 
+  ggplot() +
+  geom_bar(aes(class, prob), stat = "identity", position = position_dodge(width = 1)) +
+  geom_text(aes(class, prob + 0.01, label = round(prob, digits = 3))) +
+  theme_bw() +
+  labs(y = "Probability") +
+  theme(axis.title.x = element_blank(), axis.text.x = element_text(angle = 90))
+
+p
+ggsave(
+  plot = p,
+  filename = '../figures/MGA.enge20.PletIntProb.pdf',
+  device = cairo_pdf,
+  height = 240,
+  width = 240,
+  units = "mm"
+)
+```
+
+```{r}
+sessionInfo()
 ```
 
