@@ -110,7 +110,7 @@ cObjMul <- CIMseqMultiplets(mul, mulERCC, select)
 if(!"data" %in% list.dirs(currPath, full.names = FALSE)) system('mkdir data')
 save(cObjSng, cObjMul, file = file.path(currPath, "data/CIMseqData.rda"))
 
-##spSwarm
+##Deconvolution
 baseSeed <- 43892
 init <- map(1:10, function(i) {
   cbind(
