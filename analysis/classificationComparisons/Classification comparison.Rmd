@@ -1,0 +1,166 @@
+---
+title: "Classification comparison"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(CIMseq)
+library(ggthemes)
+library(patchwork)
+
+mclass <- read_csv('~/Desktop/Monocle_Classification.csv')
+load('~/Github/CIMseq.testing/inst/analysis/MGA.analysis_enge20/data/CIMseqData.rda')
+load('~/Desktop/Monocle20_translation.rda')
+```
+
+Monocle classification
+```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
+mclass.2 <- mclass$Cluster
+names(mclass.2) <- mclass$X1
+
+monoc <- CIMseqSinglets(
+  getData(cObjSng, "counts"), getData(cObjSng, "counts.ercc"),
+  getData(cObjSng, "dim.red"), as.character(mclass.2[colnames(getData(cObjSng, "counts"))])
+)
+
+
+cOrder <- c(
+  "SI.Goblet", "Paneth", "SI.Stem", "SI.Stem.Mki67", "SI.TA.early", "SI.TA.late", "Enterocyte",
+  "C.Proximal.Goblet", "C.Stem.2", "C.TA.proximal", "Colonocytes", "C.Stem.Mki67",
+  "C.Distal.Goblet", "C.Distal.Goblet.Plet1", "C.Stem.distal", "C.TA.distal",
+  "NA.3", "Chromaffin", "Tuft", "Blood.1"
+)
+getData(monoc, "classification") <- renameClasses.key(getData(monoc, "classification"), Monocle20.translation)
+
+plotUnsupervisedClass(monoc, cObjMul)
+```
+
+```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
+markers <- c(
+  "Lgr5", "Ptprc", "Chga", "Dclk1", "Alpi", "Slc26a3", "Atoh1", "Lyz1", "Mki67",
+  "Hoxb13", "Plet1", "Osr2", "Reg4", "Sval1"
+)
+
+gene.order <- c(
+  "Hoxb13", "Osr2", "Atoh1", "Reg4", "Sval1", "Plet1", "Mki67", "Lgr5", "Alpi", 
+  "Slc26a3", "Lyz1", "Dclk1", "Chga", "Ptprc"
+)
+
+d <- getData(monoc, "counts.cpm")[markers, ] %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("Sample") %>%
+  as_tibble() %>% 
+  gather(gene, cpm, -Sample) %>%
+  inner_join(tibble(
+    Sample = colnames(getData(monoc, "counts")), 
+    Classification = getData(monoc, "classification")
+  )) %>%
+  mutate(gene = parse_factor(gene, levels = gene.order)) %>%
+  mutate(Classification = parse_factor(Classification, levels = cOrder)) %>%
+  arrange(Classification, gene) %>%
+  mutate(Sample = parse_factor(Sample, levels = unique(Sample)))
+
+under <- d %>%
+  mutate(idx = 1:nrow(.)) %>% 
+  group_by(Classification) %>% 
+  summarize(
+    min = (min(idx)), max = (max(idx) - 1), median = median(idx)
+  ) %>%
+  ggplot() +
+  geom_segment(
+    aes(x = min, xend = max, y = 0, yend = 0, colour = Classification)
+  ) +
+  geom_text(
+    aes(median, y = 0, label = Classification),
+    angle = 90, nudge_y = -0.01, hjust = 1, colour = "grey10"
+  ) +
+  scale_colour_manual(values = col40()) +
+  ylim(c(-1, 0)) +
+  theme_few() +
+  scale_x_continuous(expand = c(0, 0)) +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    panel.border = element_blank()
+  ) +
+  guides(colour = FALSE)
+
+over <- d %>% 
+  ggplot() + 
+  geom_bar(aes(Sample, cpm, fill = Classification), stat = "identity") + 
+  facet_grid(gene ~ ., scales = "free", space = "free_x") +
+  scale_fill_manual(values = col40()) +
+  theme_few() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.background.x = element_rect(fill = "white")
+  ) +
+  labs(y = "CPM") +
+  guides(fill = FALSE)
+
+p <- over + under + plot_layout(ncol = 1, heights = c(2, 1))
+p
+```
+
+```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
+scale.func <- scale_radius
+scale.min <- NA
+scale.max <- NA
+
+p <- d %>%
+  mutate(gene = forcats::fct_rev(factor(gene))) %>%
+  group_by(gene, Classification) %>%
+  summarize(mean = mean(cpm), pct = 100 * (length(which(cpm != 0)) / n())) %>%
+  mutate(scaled.mean.exp = scale(mean)) %>%
+  ggplot() +
+  geom_point(
+    aes(Classification, gene, size = pct, colour = scaled.mean.exp)
+  ) +
+  scale_color_gradient(low = "white", high = "darkred") +
+  scale.func(range = c(0, 16), limits = c(scale.min, scale.max)) +
+  guides(
+    size = guide_legend(
+      title = "% expressed", title.position = "top", title.hjust = 0.5
+    ),
+    colour = guide_colorbar(
+      title = "Scaled mean expression", title.position = "top", 
+      title.hjust = 0.5, barwidth = 10
+    )
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1), 
+    axis.title = element_blank(), 
+    legend.position = "top",
+    legend.justification = "center"
+  )
+p
+```
+
+20 class classification
+```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
+plotUnsupervisedClass(cObjSng, cObjMul)
+rm(cObjSng)
+rm(cObjMul)
+```
+
+23 class classification
+```{r, fig.align="center", fig.width=14, fig.height=12, eval = TRUE}
+load('~/Github/CIMseq.testing/inst/analysis/MGA.analysis_enge/data/CIMseqData.rda')
+plotUnsupervisedClass(cObjSng, cObjMul)
+rm(cObjSng)
+rm(cObjMul)
+```
+

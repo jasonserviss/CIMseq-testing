@@ -1,0 +1,13 @@
+nohup: ignoring input
+During startup - Warning message:
+Setting LC_CTYPE failed, using "C" 
+-- Attaching packages --------------------------------------- tidyverse 1.2.1 --
+<U+221A> ggplot2 3.0.0     <U+221A> purrr   0.2.5
+<U+221A> tibble  1.4.2     <U+221A> dplyr   0.7.7
+<U+221A> tidyr   0.8.1     <U+221A> stringr 1.3.1
+<U+221A> readr   1.1.1     <U+221A> forcats 0.2.0
+-- Conflicts ------------------------------------------ tidyverse_conflicts() --
+x dplyr::filter() masks stats::filter()
+x dplyr::lag()    masks stats::lag()
+ncol(counts) != ncol(counts.ercc).
+is.na(c(counts, counts.ercc) returned TRUE

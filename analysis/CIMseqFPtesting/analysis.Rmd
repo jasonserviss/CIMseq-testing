@@ -1,0 +1,99 @@
+---
+title: "Some testing"
+author: "Jason T. Serviss"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, echo = FALSE, message = FALSE}
+packages <- c(
+  "CIMseq", "sp.scRNAseqData", "printr", "ggthemes", "tidyverse", "gplots"
+)
+purrr::walk(packages, library, character.only = TRUE)
+rm(packages)
+```
+
+I ran a quick test to look into how the algorithm will react when we have multiple singlet classes that are “similar”;  in the case of the test, identical. For all tests I used the sorted multiplets dataset to randomly defined the HCT116 singlets as 3 separate classes (A, B, and C). For all these tests I expected (hoped) that the fractions for the 3 HCT116 classes would either all be high or all be 0.
+
+(1) For the first test, I ran the deconvolution with these singlets and A375-HOS multiplets.
+
+```{r}
+load('~/Desktop/tests/output.rda')
+getData(sObj2, "fractions")
+```
+
+
+(2) For the next test, I ran the same singlets with HCT116-HOS multiplets.
+
+```{r}
+rm(sObj2)
+load('~/Desktop/tests/output2.rda')
+getData(sObj2, "fractions")
+```
+
+(3) Finally, I ran these singlets and HOS singlets with HCT116-HOS multiplets.
+
+```{r}
+rm(sObj2)
+load('~/Desktop/tests/output3.rda')
+getData(sObj2, "fractions")
+```
+
+I think (1) and (2) look about as expected. (3) results indicate that the algorithm is assigning fractions to HCT116 classes (often 2 out of 3) in an unequal manner, i.e. its giving an answer where no answer is really present. Also, many of these incorrect fractions are above either of the cutoffs that we typically use (0.01 or 0.001).
+
+As a control I plotted the expression of the selected genes (provided to the deconvolution algo) in a heatmap indicating the 4 classes included in (3). No obvious differences in the randomly assigned HCT116 classes (blue, green, red) but a clear difference between HCT116 and HOS (pink).
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+heatmap.2(
+  getData(cObjSng2, "counts.cpm")[getData(cObjMul2, "features"), ], 
+  ColSideColors = col40()[as.numeric(as.factor(getData(cObjSng2, "classification")))],
+  trace = "none", key = FALSE, scale = "row", col = viridis::viridis(100), 
+  labRow = NA, labCol = NA
+)
+```
+
+As well, I plotted the cost for the multiplets used in (3) when using either a) the full singlet dataset or b) the test singlet dataset. Costs are higher in the test dataset in the majority of the cases.
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+load('~/Github/sp.scRNAseqTesting/analysis/SCM.analysis/data/sObj.rda')
+idx <- which(colnames(getData(cObjMul2, "counts")) %in% rownames(getData(sObj2, "fractions")))
+tibble(
+  sample = rownames(getData(sObj, "fractions"))[idx], 
+  `Cost full data` = getData(sObj, "costs")[idx], 
+  `Cost test data` = getData(sObj2, "costs")[idx]
+) %>% 
+  gather(type, cost, -sample) %>% 
+  ggplot() + 
+  geom_boxplot(aes(type, cost)) + 
+  theme(axis.title.x = element_blank())
+```
+
+Still thinking the result for (3) is a bit peculiar, I ran a final test with
+the same setup as (3) but only including one gene for the deconvolution where 
+the gene is unexpressed (0) in all HCT116 classes but expressed in HOS.
+
+```{r, fig.align="center", fig.width=10, fig.height=8}
+rm(sObj2)
+rm(sObj)
+load('~/Desktop/tests/output4.rda')
+matrix_to_tibble(
+  t(getData(cObjSng2, "counts.cpm")[getData(cObjMul2, "features") + 1, ]),
+  "sample"
+) %>%
+  gather(gene, cpm, -sample) %>%
+  inner_join(tibble(
+    sample = colnames(getData(cObjSng2, "counts")), 
+    class = getData(cObjSng2, "classification")
+  )) %>%
+  ggplot() +
+  geom_boxplot(aes(class, cpm, fill = gene)) +
+  scale_fill_manual(values = col40())
+
+getData(sObj2, "fractions")
+```
+
+This is a bit concerning...
